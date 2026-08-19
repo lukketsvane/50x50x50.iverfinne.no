@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useRef, useState, type JSX, type PointerEvent } from "react"
+import { useCallback, useMemo, useState, type CSSProperties, type JSX, type ReactNode } from "react"
 import {
   CUBE,
   MATERIALS,
@@ -17,125 +17,229 @@ import { ENGINES, getEngine } from "@/lib/engines"
 /**
  * SANDKASSE — kontrollflata.
  *
- * Panelet er ikkje eit skjema. Det er tabellen som står ved sida av
- * objektet, og skruane ligg under han: ein les fyrst kva ein fekk, og
- * skrur etterpå. Difor står måltavla alltid open og skyvarane alltid bak
- * ein utvidar, og ikkje omvendt.
+ * Same kontrollspråk som parametric.iverfinne.no, med vilje: eit flytande
+ * ark nedst med tre tilstandar. Lukka er det éi line — motoren, tre tal og
+ * to knappar — og objektet eig heile skjermen. Halvope kjem lesemåtane,
+ * materialet, måltavla og eksporten. Heilt ope kjem skyveveggen.
+ *
+ * Det sandkassen legg til språket er tala: dei tre som avgjer om objektet
+ * i det heile er eit sitjemøbel står i sjølve lina, alltid, og skiftar
+ * farge når ein regel ryk. Ein leikegrind gøymer rekninga; ein reiskap
+ * har henne i panna.
  *
  * Ingen tal vert rekna ut her. Alt kjem frå `metrics` og `rules`, som har
- * målt det objektet som faktisk står på skjermen. Skulle panelet rekna
- * sjølv, ville tabellen og teikninga kunne kome i utakt — og då er heile
- * poenget med sandkassen borte.
+ * målt det objektet som faktisk står på skjermen.
  */
 
-/** Dei tre lesemåtane. Same objekt, tre måtar å sjå det på — ikkje tre
- *  innstillingar, difor står dei øvst og ikkje inne i ein meny. Kva dei
- *  tyder er opp til motoren: «lag» er stabelen i SKAL, finnane i STRAUM og
- *  blada i RIBBE, men lesinga er den same — dette er delane. */
 const VIEWS: readonly { id: View; label: string; hint: string }[] = [
   { id: "flate", label: "flate", hint: "flata objektet nærmar seg, ferdig" },
   { id: "lag", label: "lag", hint: "delane slik dei faktisk er, montert" },
-  { id: "kontur", label: "kontur", hint: "dei flate kuttprofilane, ovanfrå" },
+  { id: "kontur", label: "kontur", hint: "dei flate kuttprofilane" },
 ]
 
 const EXPORTS: readonly { id: "stl" | "dxf" | "svg" | "ark"; label: string; hint: string }[] = [
   { id: "stl", label: "stl", hint: "flata som trekantnett, til rendering og 3D-print" },
   { id: "dxf", label: "dxf", hint: "alle delar som kurver, til fresen" },
-  { id: "svg", label: "svg", hint: "konturkart av heile stabelen" },
+  { id: "svg", label: "svg", hint: "konturkart av delane" },
   { id: "ark", label: "kuttark", hint: "delane nesta på plate" },
 ]
 
-const DASH = "–"
+/** Finértonar til materialprikkane. Fargen er ikkje pynt: han er den eine
+ *  skilnaden mellom dei tre ein faktisk kan sjå på eit ferdig møbel. */
+const WOOD: Record<Material, string> = {
+  bjork: "#e9dcc0",
+  bok: "#d9b48d",
+  poppel: "#f2ead2",
+}
 
-/** Norsk desimalskiljeteikn. Grensesnittet er på nynorsk, og då er det
- *  komma — eit punktum les som eit tal frå eit anna dokument. */
+const DASH = "–"
 const nn = (v: number, d: number) =>
   Number.isFinite(v) ? v.toFixed(d).replace(".", ",") : DASH
 const n0 = (v: number) => nn(v, 0)
 const n1 = (v: number) => nn(v, 1)
 const n2 = (v: number) => nn(v, 2)
 
-/** Kor mange desimalar eit band fortener: steget seier det alt. */
 const decimals = (step: number) => (step >= 1 ? 0 : step >= 0.1 ? 1 : step >= 0.01 ? 2 : 3)
-
-/** Skyvaren snappar sjølv til steget; dette kuttar berre bort flyttalsgruset. */
 const snap = (v: number, r: Range) =>
   !Number.isFinite(v) ? r.min : r.int ? Math.round(v) : +v.toFixed(4)
-
 const num = (p: ParamBag, k: string, fallback: number) =>
   typeof p[k] === "number" ? (p[k] as number) : fallback
 
-type Row = {
+// same kontrollspråk som parametric: hårliner, piller og to runde knappar
+const HAIR: CSSProperties = { borderColor: "var(--rule)" }
+const ICON_BTN =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition active:scale-95"
+const ICON_BTN_SOLID =
+  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95"
+
+function chipStyle(active: boolean): CSSProperties {
+  return active
+    ? { background: "var(--ink)", color: "var(--paper)", borderColor: "transparent" }
+    : { color: "var(--ink)", borderColor: "var(--rule)" }
+}
+const CHIP =
+  "min-h-[30px] rounded-full border px-3 text-[11px] leading-none tracking-[0.04em] transition active:scale-95 disabled:opacity-30"
+
+/** Ikona er strekar, teikna her i staden for henta frå eit bibliotek:
+ *  fire ikon er ikkje verdt ein avhengnad. */
+const STROKE = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+}
+const IcoShuffle = (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" {...STROKE}>
+    <path d="M2 18h2.9a4 4 0 0 0 3.4-1.9l5.4-8.2A4 4 0 0 1 17.1 6H22" />
+    <path d="m18 2 4 4-4 4" />
+    <path d="M2 6h2.9a4 4 0 0 1 3.4 1.9l.5.8" />
+    <path d="m14.6 14.5.5.8a4 4 0 0 0 3.4 1.9H22" />
+    <path d="m18 14 4 4-4 4" />
+  </svg>
+)
+const IcoSliders = (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" {...STROKE}>
+    <path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4" />
+  </svg>
+)
+const IcoDown = (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" {...STROKE}>
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+)
+const IcoUp = (
+  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...STROKE}>
+    <path d="m18 15-6-6-6 6" />
+  </svg>
+)
+
+type TableRow = {
   label: string
   value: string
   unit: string
-  /** kva regel som eig talet; bryt han, seier tavla frå her og ikkje berre nede i lista */
-  rule?: string
+  /** kva reglar som eig talet — id-ane skil seg frå motor til motor */
+  rules?: readonly string[]
 }
 
-/** dei fire tala som avgjer om objektet i det heile er eit sitjemøbel */
-const MOBILE_ROWS = new Set(["ytre mål", "sitjehøgd", "veltevinkel", "masse"])
+/** Reglane som eig kvart tal, på tvers av dei fire motorane. Same tanke
+ *  har ulik id frå motor til motor, og ei rad som berre kjende SKAL sine
+ *  ville stå svart medan STRAUM braut seg. */
+const R_KUBE = ["kube"]
+const R_SIT = ["setehogd", "sitjehogd"]
+const R_SETE = ["skal", "setebreidd", "setebaering", "sete"]
+const R_FOT = ["bein", "golv", "stotte", "fotboge"]
+const R_VELTE = ["velte", "velting"]
+const R_MASSE = ["masse"]
+const R_DELAR = ["lagtal", "finnetal", "plater", "plate", "platetal", "unike"]
+const R_UTN = ["utnytting", "styrke"]
 
-/**
- * Måltavla. Rekkjefylgja er ikkje tilfeldig: fyrst det oppgåva spør om
- * (kuben), så det kroppen spør om (setet), så det golvet spør om (foten),
- * og til sist det verkstaden spør om (lag, delar, masse, utnytting).
- */
-function tableRows(m: Metrics | null): Row[] {
+function tableRows(m: Metrics | null): TableRow[] {
   if (!m) {
-    const tom = (label: string, unit: string, rule?: string): Row => ({
-      label,
-      value: DASH,
-      unit,
-      rule,
-    })
+    const tom = (label: string, unit: string): TableRow => ({ label, value: DASH, unit })
     return [
-      tom("ytre mål", "mm", "kube"),
-      tom("klaring", "mm", "kube"),
+      tom("ytre mål", "mm"),
+      tom("klaring", "mm"),
       tom("setekant", "mm"),
-      tom("sitjehøgd", "mm", "setehogd"),
-      tom("sitjeflate", "mm", "skal"),
-      tom("fotavtrykk", "mm", "bein"),
-      tom("støtteflate", "cm²", "bein"),
-      tom("veltevinkel", "°", "velte"),
+      tom("sitjehøgd", "mm"),
+      tom("sitjeflate", "mm"),
+      tom("fotavtrykk", "mm"),
+      tom("støtteflate", "cm²"),
+      tom("veltevinkel", "°"),
       tom("masse", "kg"),
-      tom("delar", "stk", "lagtal"),
-      tom("utnytting", "%", "utnytting"),
+      tom("delar", "stk"),
+      tom("utnytting", "%"),
     ]
   }
   return [
-    {
-      label: "ytre mål",
-      value: `${n1(m.envX)} × ${n1(m.envY)} × ${n1(m.envZ)}`,
-      unit: "mm",
-      rule: "kube",
-    },
-    {
-      label: "klaring",
-      value: `${n1(m.clearX)} · ${n1(m.clearY)} · ${n1(m.clearZ)}`,
-      unit: "mm",
-      rule: "kube",
-    },
+    { label: "ytre mål", value: `${n1(m.envX)} × ${n1(m.envY)} × ${n1(m.envZ)}`, unit: "mm", rules: R_KUBE },
+    { label: "klaring", value: `${n1(m.clearX)} · ${n1(m.clearY)} · ${n1(m.clearZ)}`, unit: "mm", rules: R_KUBE },
     { label: "setekant", value: n0(m.seatZ), unit: "mm" },
     // Setekanten er ikkje der ein sit. På ei skål ligg dei tretti
     // millimeter frå kvarandre, og det er sitjehøgda regelen les.
-    { label: "sitjehøgd", value: n0(m.sitZ), unit: "mm", rule: "setehogd" },
-    { label: "sitjeflate", value: `${n0(m.seatW)} × ${n0(m.seatD)}`, unit: "mm", rule: "skal" },
-    { label: "fotavtrykk", value: `${n0(m.footX)} × ${n0(m.footY)}`, unit: "mm", rule: "bein" },
-    { label: "støtteflate", value: n0(m.footArea / 100), unit: "cm²", rule: "bein" },
-    { label: "veltevinkel", value: n1(m.tipAngle), unit: "°", rule: "velte" },
+    { label: "sitjehøgd", value: n0(m.sitZ), unit: "mm", rules: R_SIT },
+    { label: "sitjeflate", value: `${n0(m.seatW)} × ${n0(m.seatD)}`, unit: "mm", rules: R_SETE },
+    { label: "fotavtrykk", value: `${n0(m.footX)} × ${n0(m.footY)}`, unit: "mm", rules: R_FOT },
+    { label: "støtteflate", value: n0(m.footArea / 100), unit: "cm²", rules: R_FOT },
+    { label: "veltevinkel", value: n1(m.tipAngle), unit: "°", rules: R_VELTE },
     // ferdig masse, ikkje som kutta: slipemonet ligg att som støv på golvet
-    { label: "masse", value: n2(m.mass), unit: "kg" },
-    {
-      label: `${m.unitLabel} · delar`,
-      value: `${n0(m.units)} · ${n0(m.parts)}`,
-      unit: "stk",
-      rule: "lagtal",
-    },
-    { label: "utnytting", value: n0(m.util * 100), unit: "%", rule: "utnytting" },
+    { label: "masse", value: n2(m.mass), unit: "kg", rules: R_MASSE },
+    { label: `${m.unitLabel} · delar`, value: `${n0(m.units)} · ${n0(m.parts)}`, unit: "stk", rules: R_DELAR },
+    { label: "utnytting", value: n0(m.util * 100), unit: "%", rules: R_UTN },
   ]
 }
 
+/** Éin skyvar: etiketten er låsen, prikken seier om han er teken. */
+function SliderRow({
+  k,
+  r,
+  value,
+  locked,
+  onChange,
+  onToggleLock,
+}: {
+  k: string
+  r: Range
+  value: number
+  locked: boolean
+  onChange: (k: string, raw: string) => void
+  onToggleLock: (k: string) => void
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 py-1.5 transition-opacity"
+      style={{ opacity: locked ? 0.35 : 1 }}
+    >
+      <button
+        type="button"
+        aria-pressed={locked}
+        title={locked ? "låst mot terningen — trykk for å låse opp" : "trykk for å låse mot terningen"}
+        onClick={() => onToggleLock(k)}
+        className="flex w-24 shrink-0 items-center gap-1.5 text-left text-[10px] uppercase leading-[1.2] tracking-[0.14em]"
+        style={{ color: "var(--ink)" }}
+      >
+        <span
+          aria-hidden="true"
+          className="block h-[5px] w-[5px] shrink-0 rounded-full"
+          style={{
+            background: locked ? "var(--ink)" : "transparent",
+            border: locked ? "none" : "1px solid color-mix(in srgb, var(--ink) 30%, transparent)",
+          }}
+        />
+        <span className="min-w-0 flex-1">{r.label}</span>
+      </button>
+      <input
+        type="range"
+        className="pslider flex-1"
+        min={r.min}
+        max={r.max}
+        step={r.step}
+        value={value}
+        aria-label={locked ? `${r.label}, låst` : r.label}
+        onChange={(e) => onChange(k, e.target.value)}
+      />
+      <span className="tab w-14 shrink-0 text-right text-[11px]" style={{ color: "var(--ink)" }}>
+        {value.toFixed(decimals(r.step)).replace(".", ",")}
+        {r.unit && <span className="pl-0.5 opacity-45">{r.unit}</span>}
+      </span>
+    </div>
+  )
+}
+
+/** Ei rekkje i halvarket: etikett til venstre, innhaldet til høgre. */
+function PanelRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <span
+        className="w-20 shrink-0 text-[10px] uppercase tracking-[0.18em]"
+        style={{ color: "var(--ink)" }}
+      >
+        {label}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">{children}</div>
+    </div>
+  )
+}
 
 export function ControlsPanel(props: {
   engine: EngineId
@@ -182,36 +286,23 @@ export function ControlsPanel(props: {
     onShare,
   } = props
 
-  const [open, setOpen] = useState(false)
-  const [drag, setDrag] = useState<{ y: number; live: boolean }>({ y: 0, live: false })
-  const from = useRef<number | null>(null)
-  const dragY = useRef(0)
-  const moved = useRef(false)
+  // lukka → halv (lesemåtar, materiale, tavla, eksport) → full (skyveveggen)
+  const [mode, setMode] = useState<"lukka" | "halv" | "full">("lukka")
+  const open = mode !== "lukka"
 
-  // Ein broten regel skal farge tabellrada si, ikkje berre stå i lista
-  // nedanfor: det er talet ein les, og det er talet som er gale.
+  const eng = getEngine(engine)
+
   const broken = useMemo(() => {
     const hard = new Set<string>()
     const soft = new Set<string>()
     for (const r of rules) if (!r.ok) (r.hard ? hard : soft).add(r.id)
     return { hard, soft }
   }, [rules])
-
   const failed = useMemo(() => rules.filter((r) => !r.ok), [rules])
+  const isHard = (ids: readonly string[]) => ids.some((id) => broken.hard.has(id))
+  const isSoft = (ids: readonly string[]) => ids.some((id) => broken.soft.has(id))
 
-  const eng = getEngine(engine)
-  const allRows = useMemo(() => tableRows(metrics), [metrics])
-  // På mobilen tek arket halve skjermen om heile tavla står open, og då er
-  // det objektet som forsvinn — som er det einaste ein eigentleg er her for
-  // å sjå. Er arket lagt saman, viser vi difor berre dei tala som kan gjere
-  // ein parameter ugyldig; resten kjem opp saman med skyvarane.
-  const rowsOut = useMemo(
-    () =>
-      isDesktop || open
-        ? allRows
-        : allRows.filter((r) => MOBILE_ROWS.has(r.label)),
-    [allRows, isDesktop, open],
-  )
+  const rows = useMemo(() => tableRows(metrics), [metrics])
 
   const setParam = useCallback(
     (k: string, raw: string) =>
@@ -219,395 +310,323 @@ export function ControlsPanel(props: {
     [params, onChange, eng],
   )
 
-  // Arket nedst på mobilen. Draget og klikket deler same knapp, så eit drag
-  // må hugsast: elles slår klikket som fylgjer etter fingeren utvidaren
-  // tilbake med det same.
-  const gripDown = useCallback((e: PointerEvent<HTMLButtonElement>) => {
-    from.current = e.clientY
-    moved.current = false
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }, [])
-
-  const gripMove = useCallback(
-    (e: PointerEvent<HTMLButtonElement>) => {
-      if (from.current === null) return
-      const dy = e.clientY - from.current
-      if (Math.abs(dy) > 6) moved.current = true
-      // opp er berre eit knapt kikk når arket alt er nede, og omvendt:
-      // gesten skal seie kva veg han går, ikkje flytte panelet ut av syne
-      const y = open ? Math.min(200, Math.max(-24, dy)) : Math.max(-72, Math.min(24, dy))
-      dragY.current = y
-      setDrag({ y, live: true })
-    },
-    [open],
-  )
-
-  const gripUp = useCallback(() => {
-    if (from.current === null) return
-    from.current = null
-    // avgjerda vert lesen av ein ref og ikkje inne i ein set-oppdaterar:
-    // ei tilstandsendring skal ikkje liggja gøymd i utrekninga av ei anna
-    const y = dragY.current
-    dragY.current = 0
-    setDrag({ y: 0, live: false })
-    if (y < -28) setOpen(true)
-    else if (y > 48) setOpen(false)
-  }, [])
-
-  const btn =
-    "shrink-0 rounded-none px-1.5 py-1 text-[11px] leading-none tracking-[0.06em] transition-opacity disabled:cursor-default"
+  /** Dei tre tala som avgjer om det er eit sitjemøbel, i sjølve lina.
+   *  Panelet kan lukkast; rekninga kan ikkje. */
+  const headline: { text: string; ids: readonly string[] }[] = metrics
+    ? [
+        { text: `${n1(metrics.mass)} kg`, ids: R_MASSE },
+        { text: `${n1(metrics.tipAngle)}°`, ids: R_VELTE },
+        { text: `${n0(metrics.util * 100)} %`, ids: R_UTN },
+      ]
+    : []
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-10">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-10 flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
       <section
         aria-label="kontrollar for sandkassen"
         aria-busy={busy}
-        className="pointer-events-auto absolute inset-x-0 bottom-0 flex max-h-[88svh] flex-col border-t px-4 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-1 backdrop-blur-md lg:inset-x-auto lg:bottom-5 lg:left-5 lg:max-h-[calc(100svh-8rem)] lg:w-[21.5rem] lg:border lg:pb-3 lg:pt-3"
-        style={{
-          color: "var(--ink)",
-          borderColor: "var(--rule)",
-          background: "color-mix(in srgb, var(--paper) 86%, transparent)",
-          transform: drag.y ? `translateY(${drag.y}px)` : undefined,
-          transition: drag.live ? "none" : "transform 180ms ease",
-        }}
+        className="pointer-events-auto w-full max-w-md rounded-3xl border"
+        style={{ ...HAIR, background: "var(--paper)", color: "var(--ink)" }}
       >
-        {/* Grepet i arket. Berre på mobil — på desktop ligg panelet stille. */}
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls="sandkasse-skruar"
-          onPointerDown={gripDown}
-          onPointerMove={gripMove}
-          onPointerUp={gripUp}
-          onPointerCancel={gripUp}
-          onClick={() => {
-            if (moved.current) {
-              moved.current = false
-              return
-            }
-            setOpen((o) => !o)
-          }}
-          className="mx-auto mb-1 flex h-6 w-24 shrink-0 items-center justify-center lg:hidden"
-          style={{ touchAction: "none" }}
-        >
-          <span className="sr-only">dra arket opp eller ned</span>
-          <span
-            aria-hidden="true"
-            className="block h-px w-9"
-            style={{ background: "color-mix(in srgb, var(--ink) 45%, transparent)" }}
-          />
-        </button>
-
-        {/* --- typologien --------------------------------------------- */}
-        {/* Nedtrekket byter MOTOR og ikkje form. Dei fire er fire måtar å
-            byggje ei krum sitjeflate av flate plater, og kvar av dei har sitt
-            eige parameterrom, sine eigne ledd og si eiga grense. Kvar motor
-            held på sitt eige punkt: byter du fram og attende, står objektet
-            der du forlét det. */}
-        <div className="mb-3 flex shrink-0 items-baseline justify-between gap-3 border-b pb-2"
-             style={{ borderColor: "var(--rule)" }}>
-          <label
-            htmlFor="sandkasse-motor"
-            className="shrink-0 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35"
-          >
-            typologi
-          </label>
+        {/* hovudlina — motoren, rekninga, terningen og opnaren */}
+        <div className="flex items-center gap-1.5 p-2.5">
           <select
-            id="sandkasse-motor"
             value={engine}
             onChange={(e) => onEngine(e.target.value as EngineId)}
-            className="min-w-0 flex-1 cursor-pointer appearance-none bg-transparent text-right text-[12px] leading-none tracking-[0.06em] outline-none"
-            style={{ color: "var(--ink)" }}
+            aria-label="typologi"
+            className="h-9 shrink-0 cursor-pointer appearance-none rounded-full border bg-transparent pl-3 pr-2.5 text-[11px] uppercase tracking-[0.18em] outline-none"
+            style={{ ...HAIR, color: "var(--ink)" }}
           >
             {ENGINES.map((e) => (
-              <option key={e.id} value={e.id} style={{ color: "#111" }}>
+              <option key={e.id} value={e.id} style={{ color: "#111", background: "#fff" }}>
                 {e.label}
               </option>
             ))}
           </select>
-        </div>
-        <p className="mb-3 shrink-0 text-[10px] leading-[1.5] opacity-45">{eng.note}</p>
 
-        {/* --- dei tre lesemåtane -------------------------------------- */}
-        <div className="flex shrink-0 items-center justify-between gap-2">
-          <div className="flex items-center gap-3" role="group" aria-label="lesemåte">
-            {VIEWS.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                title={v.hint}
-                aria-pressed={view === v.id}
-                onClick={() => onView(v.id)}
-                className="text-[12px] leading-none tracking-[0.14em] transition-opacity"
-                style={{
-                  opacity: view === v.id ? 1 : 0.38,
-                  borderBottom:
-                    view === v.id ? "1px solid var(--ink)" : "1px solid transparent",
-                  paddingBottom: 3,
-                }}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
-          {/* Prikken har alltid same plass, så tavla står i ro medan motoren reknar. */}
+          <span className="tab min-w-0 flex-1 truncate pl-1.5 text-[11px] tracking-[0.06em]">
+            {headline.length === 0 ? (
+              <span className="opacity-40">reknar …</span>
+            ) : (
+              headline.map((h, i) => (
+                <span key={h.ids[0]}>
+                  {i > 0 && <span className="px-1 opacity-30">·</span>}
+                  <span
+                    style={{
+                      color: isHard(h.ids) ? "var(--warn)" : undefined,
+                      opacity: isHard(h.ids) ? 1 : 0.62,
+                      textDecoration: isSoft(h.ids) ? "underline dotted" : undefined,
+                      textUnderlineOffset: 3,
+                    }}
+                  >
+                    {h.text}
+                  </span>
+                </span>
+              ))
+            )}
+          </span>
+
+          {/* prikken har fast plass, så lina står i ro medan motoren reknar */}
           <span
             aria-hidden="true"
-            className="block h-[5px] w-[5px] rounded-full"
+            className="block h-[5px] w-[5px] shrink-0 rounded-full"
             style={{
               background: "var(--ink)",
-              opacity: busy ? 0.85 : 0.14,
+              opacity: busy ? 0.8 : 0.12,
               transition: "opacity 200ms ease",
             }}
           />
+
+          <button
+            type="button"
+            onClick={onShuffle}
+            aria-label="terning — nye tal innanfor grensene, låste skruar står"
+            title="terning"
+            className={ICON_BTN_SOLID}
+            style={{ background: "var(--ink)", color: "var(--paper)" }}
+          >
+            {IcoShuffle}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode(open ? "lukka" : "halv")}
+            aria-label={open ? "gøym kontrollane" : "vis kontrollane"}
+            aria-expanded={open}
+            className={ICON_BTN}
+            style={{ ...HAIR, color: "var(--ink)" }}
+          >
+            {open ? IcoDown : IcoSliders}
+          </button>
         </div>
 
-        {/* --- måltavla ------------------------------------------------- */}
-        <h2 className="mt-3 shrink-0 text-[10px] uppercase leading-none tracking-[0.24em] opacity-40">
-          mål · {CUBE}-kuben
-        </h2>
-        <dl
-          className="mt-2 shrink-0"
-          style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
-        >
-          {rowsOut.map((row) => {
-            const hard = row.rule !== undefined && broken.hard.has(row.rule)
-            const soft = row.rule !== undefined && broken.soft.has(row.rule)
-            return (
-              <div
-                key={row.label}
-                className="flex items-baseline justify-between gap-3 py-[2px] text-[11px] leading-4"
-              >
-                <dt className="shrink-0 opacity-50">{row.label}</dt>
-                <dd
-                  className="tab truncate text-right"
-                  style={{
-                    color: hard ? "var(--warn)" : undefined,
-                    // eit mjukt brot er eit val og ikkje ein feil: det skal
-                    // merkast, men ikkje rope
-                    textDecoration: soft ? "underline dotted" : undefined,
-                    textDecorationColor: soft
-                      ? "color-mix(in srgb, var(--ink) 45%, transparent)"
-                      : undefined,
-                    textUnderlineOffset: 3,
-                  }}
-                >
-                  {row.value}
-                  <span className="pl-1 opacity-45">{row.unit}</span>
-                </dd>
-              </div>
-            )
-          })}
-        </dl>
-
-        {/* --- reglane som ikkje er oppfylte ---------------------------- */}
-        {failed.length > 0 && (
-          <ul
-            className="mt-3 shrink-0 space-y-2 border-t pt-3"
-            style={{ borderColor: "var(--rule)" }}
-          >
-            {failed.map((r) => (
-              <li key={r.id}>
-                <div
-                  className="flex items-baseline justify-between gap-3 text-[11px] leading-4"
-                  style={{ color: r.hard ? "var(--warn)" : undefined }}
-                >
-                  <span className="tracking-[0.06em]">
-                    <span className="opacity-60">{r.hard ? "bryt" : "merk"} · </span>
-                    {r.label}
-                  </span>
-                  <span className="tab shrink-0 opacity-80">{r.value}</span>
-                </div>
-                <p className="mt-[3px] text-[10px] leading-[1.5] opacity-50">{r.why}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* --- utvidaren ------------------------------------------------ */}
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls="sandkasse-skruar"
-          onClick={() => setOpen((o) => !o)}
-          className="mt-3 flex shrink-0 items-baseline justify-between gap-3 border-t pt-3 text-[10px] uppercase leading-none tracking-[0.24em] transition-opacity"
-          style={{ borderColor: "var(--rule)", opacity: open ? 0.8 : 0.45 }}
-        >
-          <span>skruane</span>
-          <span className="tab tracking-normal normal-case">
-            {locked.size > 0 && (
-              <span className="pr-2 opacity-70">
-                {locked.size} {locked.size === 1 ? "låst" : "låste"}
-              </span>
-            )}
-            {open ? "lukk" : "opne"}
-          </span>
-        </button>
-
+        {/* det utvidbare arket */}
         {open && (
-          <div
-            id="sandkasse-skruar"
-            className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-1"
-          >
-            {eng.groups.map((g) => (
-              <div key={g.id} className="mb-4">
-                <h3 className="mb-2 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
-                  {g.label}
-                </h3>
-                {g.keys.map((k) => {
-                  const r = eng.ranges[k]
-                  const isLocked = locked.has(k)
-                  return (
-                    <div key={k} className="mb-2">
-                      <div className="flex items-baseline justify-between gap-3">
-                        {/* Etiketten er låsen. Ein parameter ein er nøgd med skal
-                            kunne stå i ro medan terningen kastar resten. */}
-                        <button
-                          type="button"
-                          aria-pressed={isLocked}
-                          title={isLocked ? "lås opp mot terningen" : "lås mot terningen"}
-                          onClick={() => onToggleLock(k)}
-                          className="flex items-baseline gap-1 text-[11px] leading-4 tracking-[0.04em] transition-opacity"
-                          style={{ opacity: isLocked ? 0.95 : 0.5 }}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className="block h-[5px] w-[5px] shrink-0 translate-y-[-1px]"
-                            style={{
-                              background: isLocked ? "var(--ink)" : "transparent",
-                              border: isLocked
-                                ? "none"
-                                : "1px solid color-mix(in srgb, var(--ink) 26%, transparent)",
-                            }}
-                          />
-                          {r.label}
-                        </button>
-                        <span
-                          className="tab shrink-0 text-[11px] leading-4"
-                          style={{ opacity: isLocked ? 0.55 : 0.85 }}
-                        >
-                          {num(params, k, r.min)
-                            .toFixed(decimals(r.step))
-                            .replace(".", ",")}
-                          <span className="pl-1 opacity-45">{r.unit ?? ""}</span>
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        className={isLocked ? "pslider locked mt-[6px]" : "pslider mt-[6px]"}
-                        min={r.min}
-                        max={r.max}
-                        step={r.step}
-                        value={params[k]}
-                        aria-label={isLocked ? `${r.label}, låst` : r.label}
-                        onChange={(e) => setParam(k, e.target.value)}
-                      />
-                    </div>
-                  )
-                })}
-                {/* Materialet høyrer til bygget, men er ikkje eit tal og kan
-                    difor ikkje vera ein skyvar — det er masse og fastleik. */}
-                {g.id === "bygg" && (
-                  <div className="mt-3 flex items-baseline justify-between gap-3">
-                    <span className="text-[11px] leading-4 tracking-[0.04em] opacity-50">
-                      materiale
-                    </span>
-                    <span className="flex items-baseline gap-3">
-                      {(Object.keys(MATERIALS) as Material[]).map((mk) => (
-                        <button
-                          key={mk}
-                          type="button"
-                          aria-pressed={params.material === mk}
-                          onClick={() => onChange({ ...params, material: mk })}
-                          className="text-[11px] leading-4 transition-opacity"
-                          style={{ opacity: params.material === mk ? 1 : 0.35 }}
-                        >
-                          {MATERIALS[mk].label}
-                        </button>
-                      ))}
-                    </span>
+          <div className="max-h-[56vh] overflow-y-auto overscroll-contain px-4 pb-4">
+            {/* éi line om produksjonsvegen — det er han som skil typologiane */}
+            <p className="pb-2 text-[10px] leading-[1.5] opacity-45">{eng.note}</p>
+
+            <PanelRow label="visning">
+              {VIEWS.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  title={v.hint}
+                  aria-pressed={view === v.id}
+                  onClick={() => onView(v.id)}
+                  className={CHIP}
+                  style={chipStyle(view === v.id)}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </PanelRow>
+
+            <PanelRow label="materiale">
+              {(Object.keys(MATERIALS) as Material[]).map((mk) => (
+                <button
+                  key={mk}
+                  type="button"
+                  aria-pressed={params.material === mk}
+                  aria-label={`materiale: ${MATERIALS[mk].label}`}
+                  title={MATERIALS[mk].label}
+                  onClick={() => onChange({ ...params, material: mk })}
+                  className="h-6 w-6 rounded-full border transition active:scale-90"
+                  style={{
+                    backgroundColor: WOOD[mk],
+                    borderColor: params.material === mk ? "var(--ink)" : "var(--rule)",
+                    boxShadow: params.material === mk ? "0 0 0 1px var(--ink)" : undefined,
+                  }}
+                />
+              ))}
+              <span className="pl-1 text-[11px] opacity-45">
+                {MATERIALS[(params.material as Material) ?? "bjork"]?.label}
+              </span>
+            </PanelRow>
+
+            {/* måltavla — alt er målt på objektet som står på skjermen */}
+            <h2 className="mt-2 text-[10px] uppercase leading-none tracking-[0.24em] opacity-40">
+              mål · {CUBE}-kuben
+            </h2>
+            <dl
+              className="mt-1.5"
+              style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
+            >
+              {rows.map((row) => {
+                const hard = row.rules !== undefined && isHard(row.rules)
+                const soft = row.rules !== undefined && isSoft(row.rules)
+                return (
+                  <div
+                    key={row.label}
+                    className="flex items-baseline justify-between gap-3 py-[2px] text-[11px] leading-4"
+                  >
+                    <dt className="shrink-0 opacity-50">{row.label}</dt>
+                    <dd
+                      className="tab truncate text-right"
+                      style={{
+                        color: hard ? "var(--warn)" : undefined,
+                        // eit mjukt brot er eit val og ikkje ein feil: det
+                        // skal merkast, men ikkje rope
+                        textDecoration: soft ? "underline dotted" : undefined,
+                        textDecorationColor: soft
+                          ? "color-mix(in srgb, var(--ink) 45%, transparent)"
+                          : undefined,
+                        textUnderlineOffset: 3,
+                      }}
+                    >
+                      {row.value}
+                      <span className="pl-1 opacity-45">{row.unit}</span>
+                    </dd>
                   </div>
-                )}
-              </div>
-            ))}
+                )
+              })}
+            </dl>
+
+            {/* reglane som ikkje er oppfylte */}
+            {failed.length > 0 && (
+              <ul className="mt-2 space-y-2 border-t pt-2.5" style={HAIR}>
+                {failed.map((r) => (
+                  <li key={r.id}>
+                    <div
+                      className="flex items-baseline justify-between gap-3 text-[11px] leading-4"
+                      style={{ color: r.hard ? "var(--warn)" : undefined }}
+                    >
+                      <span className="tracking-[0.06em]">
+                        <span className="opacity-60">{r.hard ? "bryt" : "merk"} · </span>
+                        {r.label}
+                      </span>
+                      <span className="tab shrink-0 opacity-80">{r.value}</span>
+                    </div>
+                    <p className="mt-[3px] text-[10px] leading-[1.5] opacity-50">{r.why}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* frøet: same tekst gjev alltid same objekt — «Iver» er eitt
+                bestemt punkt i rommet og kan skrivast ned */}
+            <div className="mt-2.5 flex items-center gap-2 border-t pt-3" style={HAIR}>
+              <label className="flex min-w-0 flex-1 items-baseline gap-2">
+                <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] opacity-45">
+                  frø
+                </span>
+                <input
+                  type="text"
+                  value={seed}
+                  spellCheck={false}
+                  autoComplete="off"
+                  onChange={(e) => onSeed(e.target.value)}
+                  className="tab w-full min-w-0 border-b bg-transparent pb-[2px] text-[11px] leading-4 tracking-[0.08em] outline-none"
+                  style={{ ...HAIR, color: "var(--ink)" }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={onReset}
+                className={CHIP}
+                style={chipStyle(false)}
+                title="tilbake til standardobjektet"
+              >
+                nullstill
+              </button>
+              <button
+                type="button"
+                onClick={onShare}
+                className={CHIP}
+                style={chipStyle(false)}
+                title="lenkja ber heile objektet i hashen"
+              >
+                del
+              </button>
+            </div>
+
+            {/* eksporten får heile breidda: fire piller på éi line er meir
+                lesbart enn tre og ein dinglande fjerdemann */}
+            <div className="flex flex-wrap items-center gap-1.5 py-1.5">
+              {EXPORTS.map((x) => (
+                <button
+                  key={x.id}
+                  type="button"
+                  title={x.hint}
+                  disabled={busy}
+                  onClick={() => onExport(x.id)}
+                  className={CHIP + " uppercase tracking-[0.1em]"}
+                  style={chipStyle(false)}
+                >
+                  {x.label}
+                </button>
+              ))}
+            </div>
+
+            {isDesktop && (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={hiDetail}
+                onClick={onToggleDetail}
+                title="fleire trekantar i flata; tyngre å rekne"
+                className="my-2 flex w-full items-center justify-between rounded-2xl border px-3 py-2 transition active:scale-[0.99]"
+                style={HAIR}
+              >
+                <span className="text-[10px] uppercase tracking-[0.18em]">fint nett</span>
+                <span
+                  className="relative h-5 w-9 rounded-full border transition"
+                  style={{ ...HAIR, background: hiDetail ? "var(--ink)" : "transparent" }}
+                >
+                  <span
+                    className="absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all"
+                    style={{
+                      left: hiDetail ? 18 : 2,
+                      background: hiDetail ? "var(--paper)" : "var(--ink)",
+                    }}
+                  />
+                </span>
+              </button>
+            )}
+
+            {/* utvidaren mellom halvt og heilt ope — skyveveggen bak han */}
+            <button
+              type="button"
+              aria-expanded={mode === "full"}
+              onClick={() => setMode(mode === "full" ? "halv" : "full")}
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-2xl border py-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-70 transition active:scale-[0.99]"
+              style={HAIR}
+            >
+              {mode === "full" ? (
+                <>færre skruar {IcoUp}</>
+              ) : (
+                <>
+                  alle skruane
+                  {locked.size > 0 && (
+                    <span className="tab font-normal normal-case tracking-normal opacity-60">
+                      · {locked.size} låst
+                    </span>
+                  )}
+                  {IcoDown}
+                </>
+              )}
+            </button>
+
+            {mode === "full" &&
+              eng.groups.map((g) => (
+                <div key={g.id} className="pt-3">
+                  <h3 className="pb-0.5 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
+                    {g.label}
+                  </h3>
+                  {g.keys.map((k) => (
+                    <SliderRow
+                      key={k}
+                      k={k}
+                      r={eng.ranges[k]}
+                      value={num(params, k, eng.ranges[k].min)}
+                      locked={locked.has(k)}
+                      onChange={setParam}
+                      onToggleLock={onToggleLock}
+                    />
+                  ))}
+                </div>
+              ))}
           </div>
         )}
-
-        {/* --- frøet og terningen --------------------------------------- */}
-        <div
-          className="mt-3 flex shrink-0 items-center justify-between gap-3 border-t pt-3"
-          style={{ borderColor: "var(--rule)" }}
-        >
-          <label className="flex min-w-0 items-baseline gap-2">
-            <span className="shrink-0 text-[10px] uppercase tracking-[0.24em] opacity-40">frø</span>
-            <input
-              type="text"
-              value={seed}
-              spellCheck={false}
-              autoComplete="off"
-              onChange={(e) => onSeed(e.target.value)}
-              className="tab w-full min-w-0 border-b bg-transparent pb-[2px] text-[11px] leading-4 tracking-[0.08em] outline-none focus-visible:opacity-100"
-              style={{ borderColor: "var(--rule)", color: "var(--ink)" }}
-            />
-          </label>
-          <div className="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={onShuffle}
-              title="nye tal innanfor grensene; låste skruar står"
-              className={btn + " opacity-80 hover:opacity-100"}
-            >
-              terning
-            </button>
-            <button
-              type="button"
-              onClick={onReset}
-              title="tilbake til SKAL, objektet i mappa"
-              className={btn + " opacity-50 hover:opacity-100"}
-            >
-              nullstill
-            </button>
-            <button
-              type="button"
-              onClick={onShare}
-              title="lenkja ber heile objektet i hashen"
-              className={btn + " opacity-50 hover:opacity-100"}
-            >
-              del
-            </button>
-          </div>
-        </div>
-
-        {/* --- eksport -------------------------------------------------- */}
-        <div className="mt-2 flex shrink-0 items-center justify-between gap-3">
-          <div className="flex items-center gap-3" role="group" aria-label="eksport">
-            {EXPORTS.map((x) => (
-              <button
-                key={x.id}
-                type="button"
-                title={x.hint}
-                disabled={busy}
-                onClick={() => onExport(x.id)}
-                className={btn + " uppercase tracking-[0.14em]"}
-                style={{ opacity: busy ? 0.25 : 0.6 }}
-              >
-                {x.label}
-              </button>
-            ))}
-          </div>
-          {isDesktop && (
-            <button
-              type="button"
-              aria-pressed={hiDetail}
-              onClick={onToggleDetail}
-              title="fleire trekantar i flata; tyngre å rekne"
-              className={btn}
-              style={{ opacity: hiDetail ? 0.9 : 0.4 }}
-            >
-              fint nett
-            </button>
-          )}
-        </div>
       </section>
     </div>
   )
