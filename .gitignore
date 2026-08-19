@@ -6,6 +6,7 @@ tsconfig.tsbuildinfo
 next-env.d.ts
 .env*.local
 .vercel/
-doc/out/
+doc/out/*
+!doc/out/sandkasse.pdf
 __pycache__/
 doc/data/
