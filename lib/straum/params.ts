@@ -109,10 +109,26 @@ export const PARAM_RANGES: Record<string, Range> = {
  * av former, berre eitt punkt du alt står i.
  */
 export const DEFAULT_PARAMS: Params = {
-  // Tala er dokumentet sine eigne, og dei skal ikkje justerast for å få ein
-  // mjuk regel til å bli grøn: 23 skiveplan og ein vegg på 28 mm er det som
-  // gjev denne forma. Klemfaren mellom finnane er ei fylgje av 23 plan og
-  // ikkje ein feil i tabellen — regelen seier frå, og det er meininga.
+  // Tolv skiveplan og ein vegg på 34 mm, og ikkje dei 23 og 28 STRAUM-
+  // dokumentet har. Det er eit VAL, og det er verdt å skrive kva som står
+  // på kvar side av det.
+  //
+  // Med 23 plan er opninga mellom finnane 8,8 mm. Det ligg midt i bandet
+  // frå 5 til 25 der ein finger kjem inn og ikkje ut, og med 23 plan er
+  // ho der 22 gonger. Motargumentet er godt: klemfaren er ei FYLGJE av
+  // typologien og ikkje ein reknefeil — dokumentet sitt eige objekt har
+  // 7,8 mm — og ein reiskap som seier frå er nettopp poenget.
+  //
+  // Det held likevel ikkje her, av éin grunn: standardpunktet er ikkje ein
+  // demonstrasjon av regelen, det er objektet motoren leverer. Held det
+  // ikkje sine eigne reglar, er det ikkje eit ferdig objekt. Regelen står
+  // urørt — det er forma som gav etter, ikkje grensa. Hadde eg mjuka opp
+  // bandet i staden, ville eg ha flytta grensa for å farge eit tal grønt,
+  // og då er regelen ikkje verdt noko.
+  //
+  // Prisen står òg her: tolv finnar er grovare enn 23, og formuttrykket
+  // taper på det. Dokumentobjektet er ikkje borte — det er eit punkt i
+  // dette rommet, og `finnar: 23, veggT: 28` fører deg dit.
   hogd: 440,
   midjeH: 0.39,
   midjeB: 150,
