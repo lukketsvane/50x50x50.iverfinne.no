@@ -145,11 +145,11 @@ function gaps(sh: Shell, p: Params): number[] {
   return out
 }
 
-export function checkRules(p: Params, m: Metrics): Rule[] {
-  // Reglane 9 og 12 les geometrien direkte, så skalet må byggjast her. Det
+export function checkRules(p: Params, m: Metrics, shell?: Shell): Rule[] {
+  // Reglane 4, 9, 12 og 13 les geometrien direkte, så skalet må byggjast her. Det
   // er billeg mot resten av målinga, og eit felles skal held dei to måla i
   // takt med kvarandre.
-  const sh = makeShell(p)
+  const sh = shell ?? makeShell(p)
   const rules: Rule[] = []
   const add = (r: Rule) => rules.push(r)
 
@@ -169,9 +169,9 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     id: "setehogd",
     label: "setehøgd",
     hard: false,
-    ok: m.seatZ >= 380 && m.seatZ <= 480,
-    value: `${mm(m.seatZ)} mm`,
-    why: "Under 380 mm pressar setet knea opp mot brystet, over 480 mm heng føtene i lause lufta; NS-EN 1729 og Pheasant si Bodyspace kjem til det same bandet frå kvar si side.",
+    ok: m.sitZ >= 380 && m.sitZ <= 480,
+    value: `sit ${mm(m.sitZ)} · kant ${mm(m.seatZ)} mm`,
+    why: "Setehøgda er der ein sit, ikkje der kanten står — på ei skål ligg dei tretti millimeter frå kvarandre. Under 380 mm pressar setet knea opp mot brystet, over 480 mm heng føtene i lause lufta; NS-EN 1729 og Pheasant si Bodyspace kjem til det same bandet frå kvar si side.",
   })
 
   // --- 3 veltevinkel -------------------------------------------------------
@@ -188,7 +188,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
   const fl = floorPatches(sh)
   add({
     id: "bein",
-    label: "bein på golvet",
+    label: "kontaktflater mot golvet",
     hard: true,
     ok: fl.ring || m.contacts >= 3,
     value: fl.ring ? "samanhengande ring" : `${mm(m.contacts)} flater`,

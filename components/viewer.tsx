@@ -12,8 +12,9 @@ export type LightDir = { az: number; el: number }
 
 const FIT_MARGIN = 1.35
 const GROUND_Y = -0.9
-/** Golvlina står i same skjermhøgd same kor stort objektet er: målet
- *  stig i takt med kameraavstanden, så vinkelen ned mot golvet er fast. */
+/** Golvlina står i same skjermhøgd same kor stort objektet er:
+ *  siktepunktet stig i takt med kameraavstanden, så vinkelen ned mot
+ *  golvet er fast. */
 const FLOOR_TAN = 0.1637
 
 function FitCamera({
@@ -39,9 +40,10 @@ function FitCamera({
     const dist = Math.min(15, Math.max(3.2, (fit.r * FIT_MARGIN) / Math.tan(Math.min(vHalf, hHalf))))
     // Golvpinninga held golvlina i same skjermhøgd, men berre så lenge
     // ho ikkje kastar sikta over objektet. På eit høgt og smalt lerret
-    // vert avstanden stor, og då ville målet flyge opp i lause lufta med
-    // krakken langt nede. Difor eit tak på objektet si eiga midje — og
-    // på mobilen eit lyft til, av di panelet et den nedste tredelen.
+    // vert avstanden stor, og då ville siktepunktet flyge opp i lause
+    // lufta med krakken langt nede. Difor eit tak på objektet si eiga
+    // midje — og på mobilen eit lyft til, av di panelet et den nedste
+    // tredelen.
     const mid = GROUND_Y + fit.cy
     controls.target.set(0, Math.min(GROUND_Y + dist * FLOOR_TAN, mid) - lift * fit.cy, 0)
     const dir = camera.position.clone().sub(controls.target)
@@ -95,7 +97,7 @@ export function Viewer({
 }) {
   const bg = dark ? "#0a0a0a" : "#ffffff"
   const shadow = hiDetail ? 4096 : 2048
-  // Éin styrbar hovudlyskjelde på ein fast kuppel, pluss to svake fyll.
+  // Éi styrbar hovudlyskjelde på ein fast kuppel, pluss to svake fyll.
   // Ingen omgjevingskart og ingen mjuk kontaktflekk: eit møbel skal kaste
   // éin hard skugge, slik det gjer i eit verkstadlys.
   const lightPos = useMemo<[number, number, number]>(() => {

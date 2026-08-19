@@ -9,7 +9,8 @@
  *
  * Objektet er to lukka skal som gjennomtrengjer kvarandre: veggen frå
  * golvet til rimet, og setet. Skøyten er ikkje tangential — setet stikk
- * 65 % inn i veggtjukna — slik at både slicaren og limfuga har noko å ta i.
+ * inn på 35 % av veggtjukna, rekna frå ytterflata — slik at både slicaren
+ * og limfuga har noko å ta i.
  */
 import { makeShell, type Shell, type Vec3 } from "./field"
 import type { Params } from "./params"
@@ -32,7 +33,7 @@ export type MeshData = {
   max: Vec3
 }
 
-/** ein klipt hjørnepunkt i parameterplanet */
+/** eit klipt hjørnepunkt i parameterplanet */
 type CV = { fi: number; fj: number; cut: boolean }
 
 class Soup {
@@ -239,8 +240,8 @@ const neg = (v: Vec3): Vec3 => [-v[0], -v[1], -v[2]]
 // =============================================================================
 /**
  * Setet er ikkje ei plate. Det er toppen av same flata: ei skål målt i
- * normalisert radius innanfor snittet, med ein 1 mm avdekk mot skalet som
- * gjev ein skarp skuggestrek heile vegen rundt.
+ * normalisert radius innanfor snittet, med ein skråkant på `lip`
+ * millimeter mot skalet som gjev ein skarp skuggestrek heile vegen rundt.
  */
 function seat(sh: Shell, p: Params, d: Detail, s: Soup) {
   const { nth, nq } = d
@@ -295,7 +296,7 @@ function seat(sh: Shell, p: Params, d: Detail, s: Soup) {
       s.tri(B[i][k], B[i][k + 1], B[i1][k + 1], dn)
       s.tri(B[i][k], B[i1][k + 1], B[i1][k], dn)
     }
-    // avdekket: den skrå flata frå setekanten ned mot skalet
+    // skråkanten: den skrå flata frå setekanten ned mot skalet
     const q = nq - 1
     const oa = T[i][q]
     const ob = T[i1][q]

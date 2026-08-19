@@ -12,7 +12,7 @@
  * SNITTBREIDDA
  * Fresen har breidd. Køyrer senteret langs den nominelle konturen, et
  * halve snittet seg inn i delen på kvar side, og delen kjem ut ein heil
- * snittbreidd for lita. Det er ikkje ein finess: det smalaste godset i
+ * snittbreidd for lita. Det er ikkje ein finesse: det smalaste godset i
  * stabelen er kring 5 mm, og 3 mm av det er meir enn halve veggen. Difor
  * vert ytre konturar flytte kerf/2 utover og hòl kerf/2 innover.
  */
@@ -215,7 +215,7 @@ function distTo(poly: Pt[], x: number, y: number): number {
 // =============================================================================
 /**
  * Flyttar heile konturen `d` millimeter ut frå det området han omsluttar.
- * Negativ `d` krympar. Vindinga speler ingi rolle — retninga vert lesen av
+ * Negativ `d` krympar. Vindinga spelar inga rolle — retninga vert lesen av
  * forteikna på arealet — så same funksjonen tek ytre konturar og hòl.
  *
  * Kvar kant vert skuva langs normalen sin, og nabokantane skorne mot
@@ -232,7 +232,7 @@ function distTo(poly: Pt[], x: number, y: number): number {
  * krumningsradien er stor overalt bortsett frå i endane på beinbitane, og
  * offsettet er 1,5 mm mot eit gods som aldri er smalare enn 5 mm. Vert
  * kerf sett urimeleg høgt, eller plyT så tynn at delane vert trådsmale,
- * må ein rett offsettbibliotek inn.
+ * må eit ordentleg offsettbibliotek inn.
  */
 export function offsetPoly(poly: Pt[], d: number): Pt[] {
   const n = poly.length

@@ -3,12 +3,12 @@
  *
  * Same objekt, andre lesemåte. Der `surface.ts` byggjer den ferdige,
  * slipte flata, byggjer denne fila objektet slik det kjem ut av fresen:
- * 31 flate lag med slipemon på ytterkanten. Skilnaden mellom dei to
+ * flate lag med slipemon på ytterkanten. Skilnaden mellom dei to
  * meshane er nøyaktig det arbeidet som står att etter liming.
  *
- * Delane treng ingen ear-clipping. Kvar del er laga av eitt vinkelsvep,
+ * Delane treng ingen ear-clipping. Kvar del er laga av eitt sveip,
  * så ytre og indre kant har like mange punkt og høyrer saman parvis —
- * `span` på delen held det paret. Ein triangulering som er gjeven av
+ * `span` på delen held det paret. Ei triangulering som er gjeven av
  * korleis geometrien vart laga, kan ikkje slå feil på ein konkav kontur.
  */
 import type { Layer, Part, Pt, Stack } from "./laminae"

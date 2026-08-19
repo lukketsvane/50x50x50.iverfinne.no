@@ -17,7 +17,7 @@ export const MATERIALS: Record<
   Material,
   { label: string; rho: number; fmk: number; fck: number }
 > = {
-  // rho kg/m3 · fm,k og fc,k i MPa, karakteristiske verdiar for kryssfiner
+  // rho kg/m3 · fm,k og fc,k i MPa, karakteristiske verdiar for finér
   bjork: { label: "bjørkefinér", rho: 680, fmk: 40, fck: 26 },
   bok: { label: "bøkefinér", rho: 720, fmk: 44, fck: 28 },
   poppel: { label: "poppelkjerne", rho: 460, fmk: 24, fck: 15 },
@@ -74,7 +74,7 @@ export type Params = {
   finDir: number // kvar ryggen står, grader
 
   // --- SETE ---------------------------------------------------------------
-  seatZ: number // setehøgd, mm
+  seatZ: number // høgda på setekanten, mm — der ein sit er lågare, sjå metrics
   dish: number // skåldjupn, mm
   dishExp: number // >2 gjev flat botn og bratt kant
   saddle: number // sal: grunnare på tvers enn på langs
@@ -145,8 +145,8 @@ export const PARAM_RANGES: Record<ParamKey, Range> = {
   finWide: { min: 24, max: 150, step: 1, label: "ryggbreidd", unit: "°" },
   finDir: { min: 0, max: 360, step: 1, label: "ryggretning", unit: "°" },
 
-  seatZ: { min: 330, max: 470, step: 1, label: "setehøgd", unit: "mm" },
-  dish: { min: 8, max: 76, step: 0.5, label: "skåldjupn", unit: "mm" },
+  seatZ: { min: 330, max: 480, step: 1, label: "setekant", unit: "mm" },
+  dish: { min: 8, max: 76, step: 0.5, label: "skål ned", unit: "mm" },
   dishExp: { min: 1.5, max: 5.2, step: 0.02, label: "skålform" },
   saddle: { min: 0, max: 0.55, step: 0.005, label: "sal" },
   saddleDir: { min: 0, max: 180, step: 1, label: "salretning", unit: "°" },
@@ -186,8 +186,8 @@ export const DEFAULT_PARAMS: Params = {
   shoulder: 0.08,
 
   legs: 3,
-  legGap: 62,
-  legRise: 0.44,
+  legGap: 70,
+  legRise: 0.4,
   legStretch: 0.34,
   legDir: 24,
   legSkew: 0.16,
@@ -201,20 +201,20 @@ export const DEFAULT_PARAMS: Params = {
 
   rimWave: 40,
   rimPhase: 116,
-  finRise: 100,
+  finRise: 90,
   finLean: 0.3,
   finWide: 110,
   finDir: 206,
 
-  seatZ: 380,
-  dish: 42,
+  seatZ: 405,
+  dish: 40,
   dishExp: 2.4,
   saddle: 0.26,
   saddleDir: 34,
   lip: 1,
 
   plyT: 15,
-  shellT: 13,
+  shellT: 14,
   edgeT: 3,
   sand: 2.2,
   material: "bjork",

@@ -113,7 +113,7 @@ export function sheetSvg(nesting: Nesting, i: number): string {
  *
  * Skuggen av eit vassrett snitt er alltid eitt samanhengande intervall —
  * ein ring kastar full skugge, for strålen som går gjennom hòlet treffer
- * framveggen og bakveggen — så oppriset kan byggjast av snitt utan at
+ * framveggen og bakveggen — så opprisset kan byggjast av snitt utan at
  * nokon strålar må sporast. Der laget er delt i tre bein, er intervalla
  * tre, og då opnar beinopningane seg i silhuetten slik dei skal.
  *
@@ -184,7 +184,7 @@ export function elevationSvg(p: Params, dir: number): string {
 }
 
 /** Skuggen av setet ved høgda z. Skåla er monoton i q, så snittet vert
- *  funne ved halvering i staden for å blottleggja eksponenten. */
+ *  funne ved halvering i staden for å snu skålformelen. */
 function seatSpan(
   sh: Shell,
   p: Params,
@@ -257,7 +257,7 @@ class Box {
   }
 }
 
-/** Strekbreidda skal vere den same på papiret same kva målestokk teikninga
+/** Strekbreidda skal vera den same på papiret same kva målestokk teikninga
  *  står i, difor vert ho gonga opp når biletet vert krympa. */
 const scale = (natural: number, want?: number) =>
   want && want > 0 ? natural / want : 1

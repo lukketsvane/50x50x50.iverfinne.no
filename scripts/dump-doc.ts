@@ -1,13 +1,13 @@
 /**
  * Dumpar alt PDF-mappa treng, ut av den same motoren som teiknar
  * nettsida. Det er heile poenget: teikninga, tabellen, kuttarket og
- * berekninga kan ikkje kome i utakt, fordi dei har éin kjelde.
+ * berekninga kan ikkje kome i utakt, fordi dei har éi kjelde.
  *
  *   npx tsx scripts/dump-doc.ts [utmappe]
  *
  * Skriv doc/data/doc.json og eitt binært mesh per rendring. Meshane er
  * rå float32 — 18 tal per trekant, tre hjørne à posisjon og normal — av
- * di JSON av ein million tal er ei fillæst fil ingen har hatt godt av.
+ * di ei JSON-fil på ein million tal er ingen tent med.
  */
 import { mkdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
@@ -107,7 +107,7 @@ function fieldGrid(p: Params, nth = 360, nh = 180) {
   return { nth, nh, values: v.map((x) => +x.toFixed(3)), above }
 }
 
-/** ryggrad, vriding, midje og akseforhold gjennom høgda */
+/** ryggrad, vriding og radius i to retningar gjennom høgda */
 function laws(p: Params, n = 120) {
   const sh = makeShell(p)
   const rows: { h: number; z: number; x: number; y: number; twist: number; r0: number; r90: number }[] = []
@@ -133,7 +133,7 @@ const p = DEFAULT_PARAMS
 const sh = makeShell(p)
 const stack = buildStack(p, sh)
 const metrics = measure(p)
-const rules = checkRules(p, metrics)
+const rules = checkRules(p, metrics, sh)
 const nesting = nest(stack)
 
 const meshes = [
@@ -161,11 +161,12 @@ const variants = VARIANTS.map((v) => {
       seatZ: vm.seatZ,
       tipAngle: vm.tipAngle,
       mass: vm.mass,
+      sitZ: vm.sitZ,
       layers: vm.layers,
       parts: vm.parts,
       util: vm.util,
     },
-    rules: checkRules(vp, vm).filter((r) => !r.ok).map((r) => r.id),
+    rules: checkRules(vp, vm, vsh).filter((r) => !r.ok).map((r) => r.id),
     mesh: mesh.file,
     tris: mesh.tris,
   }

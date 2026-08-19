@@ -13,7 +13,7 @@ for (const d of ["lav","mid"] as const) {
   const st = t("buildStack", () => buildStack(p, sh)) as ReturnType<typeof buildStack>
   const me = t("buildMesh", () => buildMesh(p, DETAIL[d], sh)) as ReturnType<typeof buildMesh>
   const m = t("measure (lånt)", () => measure(p, { shell: sh, mesh: me, stack: st })) as ReturnType<typeof measure>
-  t("checkRules", () => checkRules(p, m))
+  t("checkRules (lånt)", () => checkRules(p, m, sh))
   console.log("SUM".padEnd(26), (Date.now()-t0)+" ms")
   const a = Date.now(); measure(p); console.log("measure (utan lån)".padEnd(26), (Date.now()-a)+" ms")
 }

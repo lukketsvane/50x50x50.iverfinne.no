@@ -1,6 +1,6 @@
 # PLAN
 
-Arbeidsdokument for utbygginga av sandkassen. Skriven for éin person med
+Arbeidsdokument for utbygginga av sandkassen. Skrive for éin person med
 ein innleveringsdato. Alle tal i dokumentet er målte på denne maskina med
 skripta i `scripts/`, og kvar tabell seier kva skript talet kjem frå.
 
@@ -60,7 +60,7 @@ ferdig — sjå etappe 0.
 
 ## 3 Arkitektur
 
-### 3.1 Kva som er ei rein funksjon av `Params`
+### 3.1 Kva som er ein rein funksjon av `Params`
 
 Heile motoren er eit lag på lag av reine funksjonar, og rekkjefylgja er
 ikkje tilfeldig:
@@ -109,7 +109,7 @@ eit hog-mesh 1 087 ms. Svaret skal delast i to meldingar — `tal` fyrst,
 bygd.
 
 For lite: ei bygging som er i gang kan ikkje avbrytast. Drar ein ein
-skyvar i to sekund, står det ein ferdig, forelda bygging i kø for kvar 90
+skyvar i to sekund, står det ei ferdig, forelda bygging i kø for kvar 90
 ms. Hovudtråden kastar dei rett nok — `shown.current` passar på at eit
 gammalt svar aldri overskriv eit nyare — men arbeidaren har alt brukt
 tida. Han treng ein generasjonsteljar han sjekkar mellom fasane, slik at
@@ -186,7 +186,7 @@ PDF-en er eit byggjeprodukt, ikkje ei fil ein redigerer. `doc/data/` og
 
 | kva | kvifor det er verdt å låne |
 |---|---|
-| lysriggen i `viewer.tsx` | éin styrbar hovudlampe og to faste, svake; ingen ambient, ingen environment map. Éin hard skugge er det som let ein lesa ei krum flate |
+| lysriggen i `viewer.tsx` | éin styrbar hovudlampe og to faste, svake; ingen omgjevingslys, ingen omgjevingskart. Éin hard skugge er det som let ein lesa ei krum flate |
 | `frameloop="demand"` | scena teiknar når noko endrar seg, ikkje 60 gonger i sekundet |
 | fast orbitmål | golvet flyttar seg aldri; auto-innramminga går berre lenger bak |
 | gestane i `gesture-params.tsx` | to fingrar skrur ein parameter, tre styrer lyset og legg kameraet tilbake |
@@ -203,7 +203,7 @@ PDF-en er eit byggjeprodukt, ikkje ei fil ein redigerer. `doc/data/` og
    motor måtte anten sprengje registeret eller tvinge dei fem andre til å
    bera felt dei ikkje har bruk for.
 2. **Einingar og ei oppgåve.** Dei fem er dimensjonslaus skulptur; det
-   einaste verkelege målet der borte er eit lyshaldarhol. Her er kvart tal
+   einaste verkelege målet der borte er eit lyshaldarhòl. Her er kvart tal
    i millimeter og svarar til ein kube på 500 mm, til NS-EN 1728, 1022 og
    1995-1-1, og til ein innleveringsdato.
 3. **Terningen.** Der er kvart punkt i rommet eit gyldig objekt, og
@@ -221,7 +221,7 @@ PDF-en er eit byggjeprodukt, ikkje ei fil ein redigerer. `doc/data/` og
 6. **Språket.** Reiskapen er på nynorsk av di mappa er det, og av di orda
    er ein del av argumentet.
 
-**Kostnaden, ærleg sagt:** to kopiar av scene, gestar og panel. Ein
+**Kostnaden, ærleg sagt:** to kopiar av scene, gestar og panel. Ei
 retting det eine staden når ikkje den andre. Det er valt, og då må det
 òg stå kva ein gjer med det: scena vert kopiert over med vilje éin gong
 til før innlevering, og aldri etterpå.
@@ -281,23 +281,34 @@ objekt godt, det gjer det berre mogleg.
 Rekkjefylgja er den ein ville teke dei i. Dei fyrste fire er fart, av di alt
 anna er ubehageleg å arbeide med når kvar endring kostar 2,3 sekund.
 
-### 0 · Rydd opp i kva objekt sandkassen faktisk viser
+### 0 · Rydd opp i kva objekt sandkassen faktisk viser — GJORD
 
 **Kvifor.** SKAL-mappa skildrar 33 lag, 50 delar, 3,9 kg og
-460 × 472 × 488 mm. `DEFAULT_PARAMS` gjennom denne motoren gjev 32 lag, 61
-delar, 3,38 kg og 488,5 × 415,2 × 480,0 mm. Det er ikkje ein feil i seg
-sjølv — den gamle mappa vart rekna av den gamle Python-modellen, og
-`sandkasse.pdf` er internt samstemt med koden — men så lenge det ikkje står
-nokon stad kva som gjeld, skildrar dei to dokumenta to ulike krakkar. Det
-er nett den utakta tesen lovar at ikkje skal skje.
+460 × 472 × 488 mm. Fyrste versjonen av denne motoren gav 32 lag, 61 delar,
+3,38 kg og 488,5 × 415,2 × 480,0 mm gjennom `DEFAULT_PARAMS`. Det er ikkje ein
+feil i seg sjølv — den gamle mappa vart rekna av den gamle Python-modellen —
+men så lenge det ikkje stod nokon stad kva som gjaldt, skildra dei to
+dokumenta to ulike krakkar.
 
-**Kva.** Avgjer og skriv ned: tala frå denne motoren er dei som gjeld, og
-SKAL-mappa er eit vitnemål om eit steg. Sjekk òg om `DEFAULT_PARAMS` skal
-justerast slik at han faktisk landar på objektet i mappa, eller om mappa
-skal reknast som forbi.
+**Kva som vart gjort.** Standardpunktet er retta, og grunnen var ikkje
+kosmetikk. Ein gjennomgang synte at måltalet «setehøgd» var parameteren
+send rett gjennom: `fitToCube` skalerer berre planet, så setekanten ligg
+nøyaktig der ein sette han. Men det er ikkje der ein sit. Sitjeflata ligg
+nede i skåla, og på ei skål på 40 mm er skilnaden 25 millimeter. Motoren
+måler no båe, regelen les den nedste, og standardpunktet er flytt slik at
+sitjehøgda — ikkje setekanten — landar i bandet frå NS-EN 1729.
 
-**Synleg resultat.** Éi setning i `README.md` som seier kva som er
-gjeldande, og eit `sandkasse.pdf` ingen treng lese med to sett tal i hovudet.
+| | før | no |
+|---|---|---|
+| setekant | 380 mm | 405 mm |
+| sitjehøgd | 353 mm — utanfor bandet | 380 mm |
+| ytre mål | 488,5 × 415,2 × 480,0 | 486,0 × 409,5 × 495,0 |
+| lag / delar | 32 / 61 | 33 / 61 |
+| masse ferdig | 3,38 kg | 3,82 kg |
+| veltevinkel | 21,7° | 19,3° |
+
+Tala frå denne motoren er dei som gjeld. SKAL-mappa er eit vitnemål om eit
+steg, ikkje ei kjelde til tal.
 
 ### 1 · Slutt å byggje objektet tre gonger — GJORD
 
@@ -538,7 +549,7 @@ etappe er ferdig, og ein etappe er ikkje ferdig før talet er målt om att.
 
 **Vercel, vanleg Next-bygg.** Alle fire rutene vert alt prerendra statisk,
 så det ligg ingen serverkode her. `output: "export"` er difor ei
-eittlinjes endring den dagen mappa må liggja på ein minnepinne på ei
+eittlinjes endring den dagen mappa må liggja på ein minnepinne på ein
 gjennomgang — arbeidaren går gjennom `new URL(..., import.meta.url)` og
 overlever ein statisk eksport. Til då er det ingen grunn til å byte.
 

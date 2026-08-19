@@ -172,7 +172,10 @@ function thin(pts: Pt[], max = 900): Pt[] {
 }
 
 /** Minste avstand mellom to konturar når B er skuva `dx` til høgre.
- *  Målt punkt mot kant båe vegar; kryssar konturane, vert han null. */
+ *  Målt hjørne mot kant båe vegar. To konturar som kryssar kvarandre
+ *  mellom hjørna gjev framleis eit positivt tal — dette er inga
+ *  kryssprøve. Det held her av di konturane er sampla kvar grad og
+ *  aldri har ein kant som er lengre enn klaringa. */
 function gapBetween(a: Pt[], b: Pt[], dx: number): number {
   const shifted = b.map((q): Pt => [q[0] + dx, q[1]])
   return Math.min(oneWay(a, shifted), oneWay(shifted, a))
@@ -216,7 +219,7 @@ export function nest(
   gap = 6,
 ): Nesting {
   // Klaringa mellom to nabokonturar må romme heile snittbreidda pluss det
-  // monnet ein treng for at delane ikkje skal losne i kvarandre.
+  // monnet ein treng for at delane ikkje skal renne i hop.
   const pad = kerf + gap
   const margin = gap
   const maxW = Math.max(1, sheetW - 2 * margin)

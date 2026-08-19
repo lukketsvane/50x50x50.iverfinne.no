@@ -3,12 +3,23 @@
  *
  * Skilnaden på ein parameter og eit mål er heile poenget med fila: ein
  * parameter seier kva ein bad om, eit mål seier kva ein fekk. Skalet vert
- * skalert inn i kuben etter at ein har skrudd, opningane et av rimet og
- * setekanten flyttar seg med bylgja — så `p.seatZ` og setehøgda på det
- * objektet som faktisk står der treng ikkje vera same tal.
+ * skalert inn i kuben etter at ein har skrudd, opningane et av rimet, og
+ * ryggen kan vera eten opp av eit sveip — så det ein bad om og det som
+ * står der treng ikkje vera same tal.
  *
- * Alt her er difor målt på geometrien: flata frå `surface`, laga frå
- * `laminae`, snitta frå `field`. Ingen ting er rekna ut att av parametrane.
+ * Tre tal er unnatak, og dei skal namngjevast i staden for å gøymast:
+ *
+ *   `seatZ` er høgda på setekanten, og han er identisk med `p.seatZ`.
+ *   `fitToCube` skalerer berre planet — Z er alt gjeve i millimeter og
+ *   vert aldri rørt — så setekanten ligg nøyaktig der ein sette han.
+ *   Talet som svarar på «kor høgt sit eg» er `sitZ`, og det er eit anna.
+ *
+ *   `sitZ` og `dishDepth` er rekna av geometrien, men skåla har analytisk
+ *   botn i `p.seatZ - p.dish`, så botnen er ikkje uavhengig av parametrane.
+ *   Det som er målt, er kor mykje av skåla rimbylgja et opp.
+ *
+ * Alt anna her er lese av geometrien: flata frå `surface`, laga frå
+ * `laminae`, snitta frå `field`.
  */
 import { makeShell, planArcs, wrapPi, type Shell } from "./field"
 import { buildStack, type Stack, type Pt } from "./laminae"
@@ -46,7 +57,8 @@ export type Metrics = {
   clearX: number // det som er att til 500-kuben, mm
   clearY: number
   clearZ: number
-  seatZ: number // setehøgd, mm
+  seatZ: number // høgda på setekanten, mm — identisk med p.seatZ, sjå toppen
+  sitZ: number // kor høgt ein faktisk sit: planet 15 mm over botnen av skåla, mm
   dishW: number // brukbar skål på tvers, mm
   dishD: number // brukbar skål fram og attende, mm
   dishDepth: number // kor djup skåla er der ho er brukbar, mm
@@ -195,10 +207,19 @@ function sectionCells(sh: Shell, z: number, nt: number, nr = 8): Cell[] {
  */
 /**
  * Volum og fyrste moment om golvet, av divergenssetninga. Nettet er
- * samstemt orientert og lukka, så summen over trekantane er eksakt.
- * Setet og veggen gjennomtrengjer kvarandre med under ein promille av
- * volumet, og den overlappen vert difor talt to gonger; det er billegare
- * å seie det enn å rette det.
+ * samstemt orientert og lukka, så summen over trekantane er eksakt — men
+ * han reknar vindingstalet, ikkje unionen.
+ *
+ * Setet og veggen gjennomtrengjer kvarandre med vilje i skøyten, og det
+ * volumet vert difor talt to gonger. Målt med strålekasting gjennom det
+ * verkelege nettet er overlappen 3,3 % på standardobjektet og 2,1–4,7 %
+ * over tilfeldige trekk — ikkje ein promille, som det stod her før.
+ *
+ * Massen og tyngdepunktet er altså om lag tre prosent for høge. Det er
+ * ein kjend feil og ikkje ei avrunding: å rette han krev ein union, og
+ * ein union krev anten ein boolsk operasjon på nettet eller ei integrering
+ * av `solidAt` over eit fint rutenett. Begge kostar meir enn eit tal som
+ * uansett skal kontrollmålast på ei vekt.
  */
 function meshVolume(m: { positions: Float32Array; tris: number }): [number, number] {
   let v = 0
@@ -439,6 +460,11 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   // Skåldjupna er ikkje parameteren: rimbylgja dreg setekanten under
   // p.seatZ over delar av omkrinsen, og då er det mindre skål att.
   const dishDepth = Math.max(0, edgeSum / NT - bot)
+  // Setekanten er ikkje der ein sit. Sitjeflata ligg nede i skåla, og ho
+  // vert lesen i det same planet som den brukbare flata: femten millimeter
+  // over botnen. På eit djupt sete er skilnaden mot setekanten tre
+  // centimeter, og det er tre centimeter som elles ikkje står nokon stad.
+  const sitZ = bot + DISH_REF
 
   // --- rim og rygg ---------------------------------------------------------
   let rimHave = 0
@@ -479,17 +505,18 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     { id: "clearY", label: "klaring Y", value: CUBE - envY, unit: "mm", fmt: mm1 },
     { id: "clearZ", label: "klaring høgd", value: CUBE - envZ, unit: "mm", fmt: mm1 },
 
-    { id: "seatZ", label: "setehøgd", value: sh.seatZ, unit: "mm", fmt: mm },
-    { id: "dishW", label: "skål breidd", value: dishW, unit: "mm", fmt: mm },
-    { id: "dishD", label: "skål djupn", value: dishD, unit: "mm", fmt: mm },
-    { id: "dishDepth", label: "skål ned", value: dishDepth, unit: "mm", fmt: mm1 },
+    { id: "seatZ", label: "setekant", value: sh.seatZ, unit: "mm", fmt: mm },
+    { id: "sitZ", label: "sitjehøgd", value: sitZ, unit: "mm", fmt: mm },
+    { id: "dishW", label: "skål på tvers", value: dishW, unit: "mm", fmt: mm },
+    { id: "dishD", label: "skål framover", value: dishD, unit: "mm", fmt: mm },
+    { id: "dishDepth", label: "skåldjupn, målt", value: dishDepth, unit: "mm", fmt: mm1 },
     { id: "finRise", label: "rygg over sete", value: finRise, unit: "mm", fmt: mm },
     { id: "rimSpan", label: "rim som finst", value: rimSpan, unit: "°", fmt: mm },
 
     { id: "footX", label: "fotavtrykk X", value: footX, unit: "mm", fmt: mm },
     { id: "footY", label: "fotavtrykk Y", value: footY, unit: "mm", fmt: mm },
     { id: "footArea", label: "støtteflate", value: footArea, unit: "mm²", fmt: cm2 },
-    { id: "contacts", label: "bein på golvet", value: contacts, unit: "stk", fmt: mm },
+    { id: "contacts", label: "kontaktflater mot golvet", value: contacts, unit: "stk", fmt: mm },
     { id: "comZ", label: "tyngdepunkt", value: comZ, unit: "mm", fmt: mm },
     { id: "tipArm", label: "vippearm", value: tipArm, unit: "mm", fmt: mm },
     { id: "tipAngle", label: "veltevinkel", value: tipAngle, unit: "°", fmt: mm1 },
@@ -526,6 +553,7 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     clearY: CUBE - envY,
     clearZ: CUBE - envZ,
     seatZ: sh.seatZ,
+    sitZ,
     dishW,
     dishD,
     dishDepth,

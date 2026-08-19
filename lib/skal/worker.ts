@@ -4,8 +4,8 @@
  *
  * Å byggje objektet tek nokre hundre millisekund. Gjer ein det på
  * hovudtråden, frys lerretet kvar gong ein skyvar rører seg, og då er
- * det ikkje lenger ein sandkasse — då er det eit skjema med ein
- * førehandsvisning. Alt som kostar tid ligg difor her, og hovudtråden
+ * det ikkje lenger ein sandkasse — då er det eit skjema med ei
+ * førehandsvising. Alt som kostar tid ligg difor her, og hovudtråden
  * gjer ikkje anna enn å teikne.
  */
 import { makeShell } from "./field"
@@ -63,7 +63,10 @@ export type ExportRes = {
 }
 export type Res = BuildRes | ExportRes
 
-const EMPTY = new Float32Array(0)
+/** Kvar tom buffer må vera si eiga. Ein delt konstant vert frakopla
+ *  fyrste gongen han vert overført, og då feilar neste melding — og
+ *  konturvisinga, som er den einaste som sender to tomme, vart svart. */
+const empty = () => new Float32Array(0)
 
 function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
   const sh = makeShell(req.params)
@@ -74,11 +77,11 @@ function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
   // byter til «lag», og då er tabellen ikkje lenger den same tabellen.
   const skin = buildMesh(req.params, DETAIL[req.detail], sh)
   const metrics = measure(req.params, { shell: sh, mesh: skin, stack })
-  const rules = checkRules(req.params, metrics)
+  const rules = checkRules(req.params, metrics, sh)
 
   let mesh: MeshData = skin
-  let lines: Float32Array<ArrayBufferLike> = EMPTY
-  let heavy: Float32Array<ArrayBufferLike> = EMPTY
+  let lines: Float32Array<ArrayBufferLike> = empty()
+  let heavy: Float32Array<ArrayBufferLike> = empty()
   if (req.view === "lag") {
     mesh = stackMesh(stack)
   } else if (req.view === "kontur") {
@@ -86,8 +89,8 @@ function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
     lines = c.positions
     heavy = c.heavy
     mesh = {
-      positions: EMPTY,
-      normals: EMPTY,
+      positions: empty(),
+      normals: empty(),
       tris: 0,
       min: [sh.R * -1, sh.R * -1, 0],
       max: [sh.R, sh.R, sh.zTop],
@@ -114,11 +117,13 @@ function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
       mass: stack.mass,
     },
   }
-  const transfer: Transferable[] = [
-    mesh.positions.buffer,
-    mesh.normals.buffer,
-  ]
-  if (lines.length) transfer.push(lines.buffer, heavy.buffer)
+  // Berre bufferar med innhald vert overførte, og kvar buffer berre éin
+  // gong: same buffer to gonger i lista er ein DataCloneError, og han tek
+  // heile meldinga med seg.
+  const transfer: Transferable[] = []
+  for (const a of [mesh.positions, mesh.normals, lines, heavy]) {
+    if (a.byteLength && !transfer.includes(a.buffer)) transfer.push(a.buffer)
+  }
   return { res, transfer }
 }
 
@@ -181,7 +186,7 @@ self.onmessage = (e: MessageEvent<Req>) => {
   } catch (err) {
     // Ein parameterkombinasjon som får motoren til å gje opp er ein feil
     // i motoren, ikkje i brukaren. Meld frå i konsollen og la den førre
-    // bygginga bli ståande, i staden for å svartlegge lerretet.
+    // bygginga bli ståande, i staden for å svartleggje lerretet.
     console.error("sandkasse: bygginga slo feil", err)
   }
 }

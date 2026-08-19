@@ -217,7 +217,10 @@ def sheet_plot(ax, k=0):
                      pl["y"] + c[0] * sa + c[1] * ca] for c in poly]
         draw_polys(ax, [tf(pl["outline"])] + [tf(h) for h in pl["holes"]],
                    lw=0.28, color=INK)
-    ax.plot([S["used"], S["used"]], [0, S["h"]], color=WARN, lw=0.6,
+    # Hyllene stablar seg oppover i y, så «brukt» er ei HØGD på plata og
+    # ikkje ei lengd. Ei loddrett line her ville samanlikna høgda med
+    # breidda og gjeve eit tal som ser mykje betre ut enn det er.
+    ax.plot([0, S["w"]], [S["used"], S["used"]], color=WARN, lw=0.6,
             ls=(0, (4, 3)))
     equal(ax, 0, S["w"], 0, S["h"], pad=0.02)
 
@@ -239,11 +242,14 @@ def fmt(v, n=0):
 
 
 def flag(rule_id, text):
-    """Merkjer eit tal raudt om regelen det høyrer til ikkje er oppfylt."""
+    """Merkjer eit tal raudt om regelen det høyrer til ikkje er oppfylt.
+
+    Ein ukjend id er ein skrivefeil, og han skal smelle her og ikkje
+    stilltiande la eit brot stå svart på arket."""
     for r in D["rules"]:
-        if r["id"] == rule_id and not r["ok"]:
-            return "!" + text
-    return text
+        if r["id"] == rule_id:
+            return ("!" + text) if not r["ok"] else text
+    raise KeyError(f"ukjend regel-id: {rule_id}")
 
 
 @page
@@ -455,8 +461,9 @@ def p_object(pg, no):
     rows = [
         ("ytre mål", flag("kube", f"{fmt(M['envX'])} × {fmt(M['envY'])} × {fmt(M['envZ'])} mm")),
         ("klaring til kuben", f"{fmt(M['clearX'])} / {fmt(M['clearY'])} / {fmt(M['clearZ'])} mm"),
-        ("setehøgd", flag("sete", f"{fmt(M['seatZ'])} mm")),
-        ("skål, brukbar flate", flag("skaal", f"{fmt(M['dishW'])} × {fmt(M['dishD'])} mm")),
+        ("setekant", f"{fmt(M['seatZ'])} mm"),
+        ("sitjehøgd", flag("setehogd", f"{fmt(M['sitZ'])} mm")),
+        ("skål, brukbar flate", flag("skal", f"{fmt(M['dishW'])} × {fmt(M['dishD'])} mm")),
         ("skåldjupn", f"{fmt(M['dishDepth'])} mm"),
         ("ryggen over setet", f"{fmt(M['finRise'])} mm"),
         ("fotavtrykk", f"{fmt(M['footX'])} × {fmt(M['footY'])} mm"),
@@ -467,8 +474,8 @@ def p_object(pg, no):
     ]
     y3 = pg.table(pg.col1, y2, rows, w=pg.body_w, size=8.6)
     pg.side(y2,
-        "Setehøgda ligg nedst i det brukbare bandet. Det er valt: ein rygg krev "
-        "at setet kjem ned, elles kjem ryggen for høgt i kuben.")
+        "Setekanten og sitjehøgda er to tal. På ei skål ligg dei tretti "
+        "millimeter frå kvarandre, og det er det nedste av dei ein sit på.")
     pg.para(pg.col1, y3 + int(10 * MM),
         "Alle tala over er målte på geometrien etter at ho er passa inn i "
         "kuben, ikkje lesne av parametrane. Det er ikkje det same: skalet vert "
@@ -502,9 +509,9 @@ def p_seat(pg, no):
         ("skåldjupn", f"{fmt(M['dishDepth'])} mm"),
         ("skålform, eksponent", f"{fmt(P['dishExp'],2)}"),
         ("sal", f"{fmt(P['saddle'],2)}, dreidd {fmt(P['saddleDir'])}°"),
-        ("setekant over skalet", f"{fmt(P['lip'],1)} mm"),
+        ("kanten stikk ut over skalet", f"{fmt(P['lip'],1)} mm"),
         ("brukbar flate 15 mm over botnen",
-         flag("skaal", f"{fmt(M['dishW'])} × {fmt(M['dishD'])} mm")),
+         flag("skal", f"{fmt(M['dishW'])} × {fmt(M['dishD'])} mm")),
     ]
     y3 = pg.table(pg.col1, y2 + int(16 * MM), rows, w=pg.body_w, size=8.6)
     pg.para(pg.col1, y3 + int(8 * MM),
@@ -612,11 +619,12 @@ def p_sheet(pg, no):
     y2 = y + int(72 * MM)
     pg.caption(pg.col1, y2,
         f"{fmt(N['sheetW'])} × {fmt(N['sheetH'])} mm bjørkefinér {fmt(P['plyT'],0)} mm. "
-        f"Raud stipla line viser kor mykje av plata som faktisk vert brukt. "
+        f"Delane ligg i hyller som stablar seg oppover; den raude stipla lina "
+        f"er kor høgt opp på plata dei rekk. "
         f"Delane er nesta med fri rotasjon i femten graders steg.")
     rows = [
         ("plater", f"{len(N['sheets'])} stk"),
-        ("brukt av fyrste plata", f"{fmt(N['usedLen'])} mm av {fmt(N['sheetW'])}"),
+        ("brukt av plata, på tvers", f"{fmt(N['sheets'][0]['used'])} mm av {fmt(N['sheetH'])}"),
         ("utnytting", f"{fmt(N['util'] * 100,0)} %"),
         ("delar", f"{STACK['parts']} stk"),
         ("snittbreidd, kompensert", "3 mm"),
@@ -695,8 +703,8 @@ def _variant_page(pg, no, sel, first):
         pg.rule(cx, cx + w, cy + int(58 * MM), lw=0.5)
         pg.text(cx, cy + int(62 * MM),
                 f"{fmt(m['envX'])} × {fmt(m['envY'])} × {fmt(m['envZ'])} mm · "
-                f"sete {fmt(m['seatZ'])} · {fmt(m['tipAngle'],0)}° · "
-                f"{fmt(m['mass'],1)} kg",
+                f"sit {fmt(m['sitZ'])} · {fmt(m['tipAngle'],0)}° · "
+                f"{m['layers']} lag · {fmt(m['mass'],1)} kg",
                 size=6.8, color=INK_FAINT)
         if v["rules"]:
             pg.text(cx, cy + int(66 * MM), "bryt: " + ", ".join(v["rules"]),
