@@ -38,25 +38,34 @@ reiskap, og ærleg nok til at det han seier kan stolast på.**
 
 ## 2 Kva som står i dag
 
+Sandkassen er ikkje éin generator lenger. Han er eit register med fire, og
+skalet veit ingenting om kva som ligg under nedtrekket.
+
 | lag | fil | status |
 |---|---|---|
-| parameterrom | `params.ts` | 45 tal + materiale, 8 grupper, klemming, deterministisk terning |
-| felt | `field.ts` | snitt, ryggrad, vriding, midje, opningar, rim, sete, kubekontroll |
-| flate | `surface.ts` | mesh klipt mot feltet, tre detaljnivå |
-| lag | `laminae.ts` | vassrette snitt gjennom godset, slipemon, masse |
-| stabel | `stack-mesh.ts` | stabelen som mesh og konturkart |
-| måling | `metrics.ts` | 32 måltal, alle lesne av geometrien |
-| reglar | `rules.ts` | 14 reglar, 4 harde |
-| nesting | `nest.ts` | delane på 2500 × 1250 |
-| eksport | `export-stl/dxf/svg.ts` | STL, DXF med KUTT og GRAVER, SVG |
-| tråd | `worker.ts` | alt som kostar tid, ute av hovudtråden |
-| grensesnitt | `studio.tsx`, `viewer.tsx`, `controls-panel.tsx` | tre lesemåtar, skyvarar, tabell, reglar, eksport |
-| mappe | `doc/render.py` | 15 sider, eigen rasterisator utan GPU |
+| kontrakt | `lib/core.ts` | `EngineDef`: parameterrom, tre lesemåtar, måltavle, reglar, fire eksportformat. Pluss geometrien alle fire treng: hylster, superellipse, meshvolum, kapasitetar |
+| register | `lib/engines.ts` | fire motorar, nedtrekk, per-motor tilstand |
+| tråd | `lib/worker.ts` | motoruavhengig; rutar på `req.engine` |
+| grensesnitt | `studio.tsx`, `viewer.tsx`, `controls-panel.tsx` | skriven éin gong, tener alle fire |
+| prøve | `scripts/typologies.ts` | kontraktprøva: nøklar, terning, lukka nett, NaN, kuben, reglar, tid |
+| mappe | `doc/render.py` | 16 sider, eigen rasterisator utan GPU |
 
-Standardobjektet held alle 14 reglane. Det er ikkje det same som at det er
-ferdig — sjå etappe 0.
+Og dei fire motorane, med tala frå `scripts/typologies.ts`:
 
----
+| motor | produksjonsveg | skyvarar | reglar (harde) | masse | utnytting | bygg + mål |
+|---|---|---|---|---|---|---|
+| `skal` | vassrette lamellar, stabla og slipte ned til éi flate | 45 | 14 (4) | 3,82 kg | 5 % | 1526 ms |
+| `straum` | éin kropp skoren i skrå skiveplan, finnar sette i spor | 30 | 17 (5) | 5,05 kg | 8 % | 350 ms |
+| `ribbe` | radiale blad og vassrette band, kryssholdte i kvarandre | 33 | 16 (9) | 10,24 kg | 15 % | 100 ms |
+| `vaffel` | kryssholdte ribber i to retningar, utan lim og utan skruar | 21 | 16 (8) | 5,56 kg | 18 % | 585 ms |
+
+Alle fire held alle reglane sine på standardobjektet. Ingen av dei held
+alle reglane på eit tilfeldig trekk — sjå etappe 7.
+
+**Det som er verdt å lese ut av tabellen:** SKAL er femten gonger tregare
+enn RIBBE. Det er ikkje ei slurv i SKAL — det er at eit felt som må
+marsjerast kostar meir enn ei flate som let seg skrive ned. Etappe 2 og 3
+handlar om den skilnaden.
 
 ## 3 Arkitektur
 
@@ -193,15 +202,25 @@ PDF-en er eit byggjeprodukt, ikkje ei fil ein redigerer. `doc/data/` og
 | arket og utvidaren i panelet | draget og klikket deler same knapp |
 | prinsippet om hashen | eit design er eit punkt, hashen kodar punktet nøyaktig, og hashen er ikkje til å stole på |
 
-**Kva vi ikkje lånar:** geometri — ikkje ei line. Motorregisteret. Engelsken.
+**Kva vi ikkje lånar:** geometri — ikkje ei line. Koden i registeret deira.
+Engelsken.
+
+**Kva vi lånte likevel, og som endra planen:** *ideen* om eit register.
+Fyrste utkastet av dette dokumentet argumenterte for at sandkassen skulle
+ha éin generator og ingen motormeny. Det var feil, og det var feil av ein
+grunn som er verdt å skrive ned: eg tenkte at motoren var forma. Han er
+ikkje det — han er produksjonsvegen. Fire vegar til den same krumme flata
+er fire motorar, og då er nedtrekket ikkje pynt lånt frå naboen, det er
+tesen sjølv sett på skjermen.
 
 **Kvifor dette er eit eige domene og ikkje ein sjette motor:**
 
 1. **Kontrakten.** Dei fem motorane der oppfyller éin kontrakt:
-   `Params → mesh`. Sandkassen sin er `Params → mesh + stabel + 32 måltal +
-   14 reglar + nesting + tre eksportformat + ei PDF-mappe`. Ein sjette
-   motor måtte anten sprengje registeret eller tvinge dei fem andre til å
-   bera felt dei ikkje har bruk for.
+   `Params → mesh`. Vår er `Params → mesh + stabel + kring 34 måltal + 14
+   til 17 reglar + nesting + fire eksportformat + ei PDF-mappe`. Ein sjette
+   motor der borte måtte anten sprengje registeret deira eller tvinge dei
+   fem andre til å bera felt dei ikkje har bruk for. Difor har vi vårt
+   eige register med vår eigen, tyngre kontrakt — og fire motorar i han.
 2. **Einingar og ei oppgåve.** Dei fem er dimensjonslaus skulptur; det
    einaste verkelege målet der borte er eit lyshaldarhòl. Her er kvart tal
    i millimeter og svarar til ein kube på 500 mm, til NS-EN 1728, 1022 og
@@ -280,6 +299,60 @@ objekt godt, det gjer det berre mogleg.
 
 Rekkjefylgja er den ein ville teke dei i. Dei fyrste fire er fart, av di alt
 anna er ubehageleg å arbeide med når kvar endring kostar 2,3 sekund.
+
+### A · Fire typologiar bak éin kontrakt — GJORD
+
+**Kvifor.** Sandkassen viste éi form, og det gjorde tesen usynleg. Poenget
+er ikkje at DENNE krakken er parametrisk — det er at spørsmålet «korleis
+byggjer ein ei krum sitjeflate av flate plater?» har fleire svar, og at
+kvart svar er eit eige rom med si eiga grense. Éin motor er ein
+demonstrasjon. Fire er eit argument.
+
+**Kva som vart gjort.** `lib/core.ts` fekk kontrakten — `EngineDef` — og
+`lib/engines.ts` registeret. Skalet vart skrive om til å ta motoren som
+tilstand: eige parameterrom, eigne låsar og eige punkt per motor, slik at
+ein byter typologi utan å miste objektet ein forlét. Terningen kryssar
+aldri motorgrensa, av di eit tal i eitt parameterrom ikkje tyder noko i
+eit anna.
+
+Tre nye motorar vart skrivne mot den kontrakten. Det er `scripts/typologies.ts`
+som avgjer om dei held han: nøklane, terningen, det lukka nettet, NaN,
+kuben, sitjehøgda, reglane, tida og alle fire eksportformata.
+
+**Tre feil prøva fann, og som ingen ville sett på skjermen:**
+
+1. **Halve VAFFEL hadde negativt volum.** Y-familien legg profilen i
+   (x, z) og X-familien i (y, z). Dei to plana er spegelvende — `y × z`
+   peikar langs `+x`, men `x × z` peikar langs `−y` — så same vindinga gjev
+   utoverpeikande trekantar i det eine og innoverpeikande i det andre.
+   Kvar ribbe var lukka og rett for seg; summen var 0,86 dm³ i staden for
+   28,08. Massen i tabellen var skilnaden mellom dei to helvtene.
+
+2. **Spora i VAFFEL var hòl og ikkje spor.** Munnen på eit spor vart dregen
+   fem millimeter forbi kanten. Men kanten er krum, så i kvar side av
+   sporet stod det gods att og lukka han. Ei ribbe med ni slike er ikkje
+   noko ein kan setje saman — ho er ei plate med ni avlange hòl.
+
+3. **STRAUM hadde tjuetre klemfeller.** Opninga mellom finnane var 8,8 mm,
+   midt i bandet frå 5 til 25 der ein finger kjem inn og ikkje ut, og med
+   tjuetre finnar er ho der tjueto gonger. Standarden er no tolv finnar og
+   ein vegg på 34 mm.
+
+**Og éin ting som ikkje var ein feil, men eit feil val:** VAFFEL hadde
+fyrst ei kvelving per ribbe. Då byrjar X- og Y-ribba i ulik høgd der dei
+kryssar, og det eine sporet må gå heilt ut til underkanten på ribba — 335
+mm i ei ribbe på 430. Kvelvinga høyrer til KROPPEN. Med éi felles kvelving
+er over- og underkanten den same i kvart kryss, og begge spora vert
+nøyaktig halve overlappet. Talet på ledd gjekk frå 24 til 77 utan at ei
+einaste ribbe vart delt.
+
+| | før | no |
+|---|---|---|
+| motorar | 1 | 4 |
+| typologiar som held alle reglane sine | 1 | 4 |
+| kode skalet må vite om ein motor | alt | `EngineDef` |
+| VAFFEL, gyldige objekt frå terningen | — | 20 % harde |
+| STRAUM, gyldige objekt frå terningen | 35 % | 98 % |
 
 ### 0 · Rydd opp i kva objekt sandkassen faktisk viser — GJORD
 
