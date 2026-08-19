@@ -68,7 +68,7 @@ export type Metrics = {
   tipAngle: number // veltevinkel, grader
   tipArm: number // kortaste vippearm frå setesenteret, mm
   contacts: number // kor mange skilde flater objektet står på; ein ring er 1
-  minSecArea: number // minste vassrette tverrsnitt under setet, mm²
+  minSecArea: number // det dimensjonerande vassrette tverrsnittet, mm²
   minSecZ: number // høgda det ligg i, mm
   sigmaC: number // trykkspenning i det snittet, MPa
   sigmaM: number // bøyespenning same stad, MPa
@@ -205,6 +205,21 @@ function sectionCells(sh: Shell, z: number, nt: number, nr = 8): Cell[] {
  * 52406 mm² på SKAL, altså under ein promille. Difor er det ikkje verdt
  * å byggja stabelen to gonger berre for å få eit tal på arealtapet.
  */
+
+// =============================================================================
+// MÅLINGA
+// =============================================================================
+/**
+ * Det arbeidaren alt har bygd, som målinga kan låne i staden for å byggje
+ * om att. Ei full runde bygde skalet tre gonger og stabelen to før dette
+ * fanst; 86 prosent av tida målinga tok gjekk med til arbeid som låg
+ * ferdig i minnet ein funksjon unna.
+ *
+ * `mesh` MÅ vera det ferdige skalet frå `buildMesh` — stabelmeshet er
+ * objektet slik det kjem ut av fresen, med slipemon og trapp, og ville
+ * gje eit for stort volum og ei for stor omhylling.
+ */
+export type Prebuilt = { shell?: Shell; mesh?: MeshData; stack?: Stack }
 /**
  * Volum og fyrste moment om golvet, av divergenssetninga. Nettet er
  * samstemt orientert og lukka, så summen over trekantane er eksakt — men
@@ -238,45 +253,6 @@ function meshVolume(m: { positions: Float32Array; tris: number }): [number, numb
   return [v, mz]
 }
 
-function sandedArea(sh: Shell, st: Stack, sand: number): number {
-  if (sand <= 0) return 0
-  let lost = 0
-  for (const L of st.layers) {
-    const [cx, cy] = sh.spine(sh.hOf((L.z0 + L.z1) / 2))
-    for (const part of L.parts) {
-      // ein lause bit er lagra som ytterbogen fram og innerbogen attende,
-      // ein ring har ytterbogen som heile omrisset og innerbogen som hòl
-      const n = part.ring ? part.outline.length : part.outline.length / 2
-      const steps = part.ring ? n : n - 1
-      for (let i = 0; i < steps; i++) {
-        const a = part.outline[i]
-        const b = part.outline[(i + 1) % n]
-        const ra = Math.hypot(a[0] - cx, a[1] - cy)
-        const rb = Math.hypot(b[0] - cx, b[1] - cy)
-        const dth = Math.abs(
-          wrapPi(Math.atan2(b[1] - cy, b[0] - cx) - Math.atan2(a[1] - cy, a[0] - cx)),
-        )
-        lost += (sand * ((ra + rb) / 2) - (sand * sand) / 2) * dth
-      }
-    }
-  }
-  return lost
-}
-
-// =============================================================================
-// MÅLINGA
-// =============================================================================
-/**
- * Det arbeidaren alt har bygd, som målinga kan låne i staden for å byggje
- * om att. Ei full runde bygde skalet tre gonger og stabelen to før dette
- * fanst; 86 prosent av tida målinga tok gjekk med til arbeid som låg
- * ferdig i minnet ein funksjon unna.
- *
- * `mesh` MÅ vera det ferdige skalet frå `buildMesh` — stabelmeshet er
- * objektet slik det kjem ut av fresen, med slipemon og trapp, og ville
- * gje eit for stort volum og ei for stor omhylling.
- */
-export type Prebuilt = { shell?: Shell; mesh?: MeshData; stack?: Stack }
 
 export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   const sh = pre.shell ?? makeShell(p)
@@ -358,61 +334,74 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   // Berre opp til setet: over setehøgda er det ryggen som står att, og han
   // fører ikkje setelasta ned i golvet. Grovt sveip fyrst, så eitt fint
   // snitt der minimumet ligg — det er berre der talet skal brukast til noko.
-  const NS = 120
-  let minSecArea = Infinity
-  let minSecZ = 0
-  for (let i = 0; i <= NS; i++) {
-    const z = (i / NS) * p.seatZ
-    const a = ringArea(sh, z, 256)
-    if (a > 1 && a < minSecArea) {
-      minSecArea = a
-      minSecZ = z
-    }
-  }
-  if (!Number.isFinite(minSecArea)) minSecArea = 0
-
-  const cells = sectionCells(sh, minSecZ, 768)
-  let A = 0
-  let gx = 0
-  let gy = 0
-  for (const c of cells) {
-    A += c.dA
-    gx += c.x * c.dA
-    gy += c.y * c.dA
-  }
-  if (A > 0) {
-    gx /= A
-    gy /= A
-    minSecArea = A
-  }
-
-  // --- berekning -----------------------------------------------------------
-  // Skalet vert lese som ei tynnvegga søyle med utmiddel: heile setelasta
-  // går gjennom det minste snittet, og av di setesenteret ikkje står over
-  // snittsenteret kjem det eit moment M = N·e i tillegg. Motstandsmomentet
-  // er rekna av snittet sjølv om tyngdepunktsaksen normalt på e — det er den
-  // aksen momentet bøyer om.
-  const ex = sx - gx
-  const ey = sy - gy
-  const e = Math.hypot(ex, ey)
-  let W = 0
-  if (A > 0 && e > 1e-6) {
-    const ux = ex / e
-    const uy = ey / e
-    let I = 0
-    let c = 0
-    for (const q of cells) {
-      const u = (q.x - gx) * ux + (q.y - gy) * uy
-      I += u * u * q.dA
-      if (Math.abs(u) > c) c = Math.abs(u)
-    }
-    W = c > 1e-6 ? I / c : 0
-  }
-  const sigmaC = A > 0 ? SEAT_LOAD / A : Infinity
-  const sigmaM = W > 0 ? (SEAT_LOAD * e) / W : 0
+  // Det dimensjonerande snittet er ikkje det minste. Areal og utmiddel
+  // dreg kvar sin veg oppover: nede er snittet lite, men setesenteret står
+  // nesten over det, så momentet er null; oppe er utmiddelet stort, men
+  // snittet er vidt. Difor vert utnyttinga rekna i kvart snitt og
+  // maksimum teke — leitte ein etter minste AREAL i staden, ville svaret
+  // vore sett av kvar sveipet sluttar og ikkje av geometrien.
+  //
+  // Sveipet går berre til botnen av skåla. Over det er det setet som ber,
+  // og setet er ikkje ei søyle.
   const capC = (mat.fck * KMOD) / GAMMA_M
   const capM = (mat.fmk * KMOD) / GAMMA_M
-  const util = sigmaC / capC + sigmaM / capM
+  const NS = 60
+  const zCol = Math.max(20, p.seatZ - p.dish - p.shellT)
+
+  /** areal, tyngdepunkt, utmiddel, motstandsmoment og utnytting i eitt snitt */
+  const section = (z: number) => {
+    const cells = sectionCells(sh, z, 384)
+    let A = 0
+    let gx = 0
+    let gy = 0
+    for (const c of cells) {
+      A += c.dA
+      gx += c.x * c.dA
+      gy += c.y * c.dA
+    }
+    if (!(A > 1)) return null
+    gx /= A
+    gy /= A
+    const ex = sx - gx
+    const ey = sy - gy
+    const e = Math.hypot(ex, ey)
+    let W = 0
+    if (e > 1e-6) {
+      const ux = ex / e
+      const uy = ey / e
+      let I = 0
+      let c = 0
+      for (const q of cells) {
+        const u = (q.x - gx) * ux + (q.y - gy) * uy
+        I += u * u * q.dA
+        if (Math.abs(u) > c) c = Math.abs(u)
+      }
+      W = c > 1e-6 ? I / c : 0
+    }
+    const sc = SEAT_LOAD / A
+    const sm = W > 0 ? (SEAT_LOAD * e) / W : 0
+    return { z, A, sc, sm, util: sc / capC + sm / capM }
+  }
+
+  let worst: ReturnType<typeof section> = null
+  for (let i = 0; i <= NS; i++) {
+    const q = section((i / NS) * zCol)
+    if (q && (!worst || q.util > worst.util)) worst = q
+  }
+  // eitt finare sveip kring vinnaren, slik at talet ikkje heng på steget
+  if (worst) {
+    const h = zCol / NS
+    for (let i = -8; i <= 8; i++) {
+      const q = section(Math.max(0, Math.min(zCol, worst.z + (i * h) / 8)))
+      if (q && q.util > worst.util) worst = q
+    }
+  }
+
+  const minSecArea = worst ? worst.A : 0
+  const minSecZ = worst ? worst.z : 0
+  const sigmaC = worst ? worst.sc : Infinity
+  const sigmaM = worst ? worst.sm : 0
+  const util = worst ? worst.util : Infinity
 
   // --- setet ---------------------------------------------------------------
   // Den brukbare skåla er den flata som ligg innanfor femten millimeter over
@@ -521,7 +510,7 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     { id: "tipArm", label: "vippearm", value: tipArm, unit: "mm", fmt: mm },
     { id: "tipAngle", label: "veltevinkel", value: tipAngle, unit: "°", fmt: mm1 },
 
-    { id: "minSecArea", label: "minste snitt", value: minSecArea, unit: "mm²", fmt: cm2 },
+    { id: "minSecArea", label: "dimensjonerande snitt", value: minSecArea, unit: "mm²", fmt: cm2 },
     { id: "minSecZ", label: "snittet ligg", value: minSecZ, unit: "mm", fmt: mm },
     { id: "sigmaC", label: "trykkspenning", value: sigmaC, unit: "MPa", fmt: mpa },
     { id: "capC", label: "trykkapasitet", value: capC, unit: "MPa", fmt: mpa },

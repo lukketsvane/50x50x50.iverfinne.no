@@ -69,11 +69,19 @@ function wallBand(sh: Shell, th: number, z: number, cx: number, cy: number): Iv 
   if (z > top || sh.matAt(th, sh.hOf(z)) < 1) return null
   const o = sh.outer(th, z)
   const hi = Math.hypot(o[0] - cx, o[1] - cy)
+  // Fikspunktet zs <- z + n_z(zs)·t(zs). Han konvergerer raskt, men ikkje
+  // alltid: mot golvet og mot rimet finst det inga løysing, og då klemmer
+  // vi mot randa med vitande vilje — der er bandet uansett avgrensa av
+  // golvflata eller av rimbandet og ikkje av offsettet. Toleranseprøva står
+  // her for at eit fast tal steg gav opptil 1,3 mm feil på vridde objekt.
   let zs = z
-  for (let k = 0; k < 3; k++) {
+  for (let k = 0; k < 8; k++) {
     const n = sh.normal(th, zs)
     const t = sh.wall(th, zs)
-    zs = Math.min(top, Math.max(0, z + n[2] * t))
+    const next = Math.min(top, Math.max(0, z + n[2] * t))
+    const move = Math.abs(next - zs)
+    zs = next
+    if (move < 0.05) break
   }
   const n2 = sh.normal(th, zs)
   const t2 = sh.wall(th, zs)

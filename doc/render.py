@@ -172,8 +172,8 @@ def area_curve(ax):
     ax.set_axis_on()
     ax.set_xlabel("cm²", fontsize=6.2, color=INK_FAINT, labelpad=1)
     ax.set_ylabel("mm over golvet", fontsize=6.2, color=INK_FAINT, labelpad=1)
-    ax.text(max(a) * 0.98, M["minSecZ"], " minste snitt", fontsize=6.2,
-            color=WARN, va="center", ha="right")
+    ax.text(max(a) * 0.98, M["minSecZ"] + D["zTop"] * 0.018, "styrande snitt ",
+            fontsize=6.2, color=WARN, va="bottom", ha="right")
 
 
 def law_curves(ax):
@@ -472,15 +472,14 @@ def p_object(pg, no):
         ("masse", f"{fmt(M['mass'],1)} kg ferdig · {fmt(M['massCut'],1)} kg kutta"),
         ("lag / delar", f"{M['layers']} / {M['parts']}"),
     ]
-    y3 = pg.table(pg.col1, y2, rows, w=pg.body_w, size=8.6)
+    y3 = pg.table(pg.col1, y2, rows, w=pg.body_w, size=8.3)
     pg.side(y2,
         "Setekanten og sitjehøgda er to tal. På ei skål ligg dei tretti "
         "millimeter frå kvarandre, og det er det nedste av dei ein sit på.")
-    pg.para(pg.col1, y3 + int(10 * MM),
-        "Alle tala over er målte på geometrien etter at ho er passa inn i "
-        "kuben, ikkje lesne av parametrane. Det er ikkje det same: skalet vert "
-        "skalert ned til det står inne i dei 500 millimetrane, og då er "
-        "setehøgda ein ville ha og setehøgda ein fekk to ulike tal.")
+    pg.para(pg.col1, y3 + int(5 * MM),
+        "Tala over er målte på geometrien etter at ho er passa inn i kuben, "
+        "ikkje lesne av parametrane — med to unnatak som står namngjevne i "
+        "koden: setekanten og platetjukna går uendra gjennom.", size=8.2)
     pg.foot(no)
 
 
@@ -648,7 +647,7 @@ def p_calc(pg, no):
     y2 = y
     rows = [
         ("lasttilfelle", "1600 N, NS-EN 1728"),
-        ("minste tverrsnitt", f"{fmt(M['minSecArea'] / 100, 0)} cm² ved z = {fmt(M['minSecZ'])} mm"),
+        ("styrande snitt", f"{fmt(M['minSecArea'] / 100, 0)} cm² ved z = {fmt(M['minSecZ'])} mm"),
         ("trykkspenning", f"{fmt(M['sigmaC'],2)} MPa av {fmt(M['capC'],1)}"),
         ("bøyespenning", f"{fmt(M['sigmaM'],2)} MPa av {fmt(M['capM'],1)}"),
         ("samla utnytting", flag("utnytting", f"{fmt(M['util'] * 100,0)} %")),
@@ -742,12 +741,21 @@ def p_rest(pg, no):
                      "i dette dokumentet er rekna; sliping må gjerast."),
         ("Prøv NS-EN 1022", "Veltevinkelen er rekna av geometri. Ein krakk med rygg "
                             "vert dratt bakover når nokon reiser seg."),
+        ("Union i volumrekninga", "Setet og veggen gjennomtrengjer kvarandre med vilje "
+                                  "i skøyten, og det volumet vert talt to gonger. Målt "
+                                  "overlapp er 3,3 %, så massen her er om lag tre "
+                                  "prosent for høg. Vekta veit betre enn rekninga."),
+        ("Kubekontrollen er eit anslag", "Innpassinga finn randa av kvar opning ved "
+                                         "halvering, men toppar mellom to rader i "
+                                         "rutenettet kan ho framleis bomme på — målt "
+                                         "opptil 10,6 mm over 31 objekt. Marginen på "
+                                         "14 mm dekkjer det; garantien er den harde "
+                                         "regelen, ikkje innpassinga."),
         ("Dybelplan i motoren", "Hòla er ikkje geometri enno. Dei bør leggjast der to "
-                                "lag har mest overlapp, og det talet finst alt i stacken."),
-        ("Ekte polygonnesting", "Hyllepakkinga sløser plate. Nesting inne i annulusane "
-                                "er den eine endringa som løftar utnyttinga mest."),
-        ("Klemfare", "Opningane mellom delane må vera anten under 5 mm eller over 25. "
-                     "Regelen finst; geometrien som løyser han finst ikkje."),
+                                "lag har mest overlapp, og det talet finst alt i stabelen."),
+        ("Ekte polygonnesting", "Hyllepakkinga fyller berre ein femtedel av plata. "
+                                "Nesting inne i ringane er den eine endringa som "
+                                "løftar utnyttinga mest."),
         ("Kant mot golvet", "Beina endar i ein skarp kant. Ein liten fas eller ein filtknott."),
         ("Skiveavfallet", "Dei største hòlskivene er emne til eit mindre objekt. Prøv om "
                           "familien held seg i mindre målestokk."),
