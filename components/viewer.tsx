@@ -43,8 +43,8 @@ function FitCamera({
     // ho ikkje kastar sikta over objektet. På eit høgt og smalt lerret
     // vert avstanden stor, og då ville siktepunktet flyge opp i lause
     // lufta med krakken langt nede. Difor eit tak på objektet si eiga
-    // midje — og på mobilen eit lyft til, av di panelet et den nedste
-    // tredelen.
+    // midje — og på mobilen eit lite lyft til, av di kontrollina ligg
+    // over den nedste kanten.
     const mid = GROUND_Y + fit.cy
     controls.target.set(0, Math.min(GROUND_Y + dist * FLOOR_TAN, mid) - lift * fit.cy, 0)
     const dir = camera.position.clone().sub(controls.target)
@@ -156,7 +156,10 @@ export function Viewer({
         </group>
       </Suspense>
 
-      <FitCamera fit={fit} lift={mobile ? 0.95 : 0} />
+      {/* Panelet er no ei lukka line nedst, ikkje eit halvt ark: lyftet
+          skal berre sleppe objektet fri frå den lina, ikkje ein tredel av
+          skjermen. */}
+      <FitCamera fit={fit} lift={mobile ? 0.3 : 0} />
       <GestureParams onNudge={onNudge} onLight={onLight} />
       <OrbitControls
         target={[0, 0.35, 0]}
