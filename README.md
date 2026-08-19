@@ -1,16 +1,23 @@
 # 50x50x50.iverfinne.no — SANDKASSE
 
-Ein parametrisk sandkasse for eit sitjemøbel i stabla bjørkefinér, bygd
-til AHO-oppgåva **50 × 50 × 50**: eit møbel som skal stå inne i ein kube
-på 500 millimeter.
+Ein parametrisk sandkasse for sitjemøbel, bygd til AHO-oppgåva
+**50 × 50 × 50**: eit møbel som skal stå inne i ein kube på 500 millimeter.
 
-Objektet er ei samanhengande flate. Ho startar som bein på golvet, veks
-saman i midja, opnar seg til eit sete og reiser seg til ein låg rygg bak.
-Det er ingen ledd, ingen skruar, ingen delar som møtest — berre ei flate
-som skiftar kva ho gjer. Flata er ei likning: eit snitt som vandrar langs
-ein ryggrad, roterer på vegen opp og skiftar akseforhold undervegs. Kvar
-det skal vera hòl, og kvar kanten skal liggja, er eit felt over vinkel og
-høgd.
+Sandkassen har fire typologiar, og dei er ikkje fire former. Dei er fire
+svar på det same spørsmålet: **korleis byggjer ein ei krum sitjeflate av
+flate plater?**
+
+| typologi | produksjonsveg | leddet |
+|---|---|---|
+| **SKAL** | vassrette lamellar, stabla og slipte ned til éi flate | lim og dybel |
+| **STRAUM** | éin kropp skoren i skrå skiveplan, finnar sette i spor | gjennomspor |
+| **RIBBE** | radiale blad og vassrette band | kryssholdt |
+| **VAFFEL** | dei same ribbene i to rette retningar i staden for radialt | kryssholdt |
+
+Nedtrekket i panelet byter typologi og ikkje form. Kvar av dei har sitt
+eige parameterrom, sine eigne ledd og si eiga grense — og det er grensene
+som skil dei. Kvar motor held på sitt eige punkt: byter du fram og attende,
+står objektet der du forlét det.
 
 ## Kvifor dette finst
 
@@ -29,35 +36,32 @@ Same objekt, tre visingar, same likning:
 
 | | |
 |---|---|
-| **flate** | den ferdige, slipte flata — objektet slik det står |
-| **lag** | stabelen slik han kjem ut av fresen, med slipemon på ytterkanten |
-| **kontur** | konturkartet — alle laga lagde oppå kvarandre, samstundes plan og kuttdata |
+| **flate** | flata objektet nærmar seg, ferdig |
+| **lag** | delane slik dei faktisk er — montert, med ledd og spor synlege |
+| **kontur** | dei flate kuttprofilane, sedde ovanfrå |
 
 ## Reglane
 
 Det som skil ein reiskap frå ein demonstrasjon, er om han seier nei.
-Sandkassen teiknar kva som helst, men han seier frå og han seier kvifor:
-kuben, setehøgda, veltevinkelen, talet på bein, utnyttinga, eggkanten,
-den brukbare skåla, opplegg for rimet, godset i den smalaste delen,
-lagtalet, ryggen og klemfaren mellom delane. Harde reglar tyder at
-objektet bryt oppgåva eller ikkje kan byggjast; mjuke er val som skal stå
-på papiret i staden for i hovudet.
+Sandkassen teiknar kva som helst, men han seier frå og han seier kvifor.
+Harde reglar tyder at objektet bryt oppgåva eller ikkje kan byggjast;
+mjuke er val som skal stå på papiret i staden for i hovudet.
+
+Reglane er eit golv, ikkje ein dom. Å halde alle gjer ikkje eit objekt
+godt — det gjer det berre mogleg.
 
 ## Kva som ligg kvar
 
 | fil | kva |
 |---|---|
-| `lib/skal/params.ts` | parameterrommet — band, standardar, klemming av URL-ar, terningen |
-| `lib/skal/field.ts` | **start her.** Snitt, ryggrad, vriding, midje, opningsfelt, rim, sete, kubekontroll |
-| `lib/skal/surface.ts` | flata som mesh, klipt mot feltet rute for rute |
-| `lib/skal/laminae.ts` | dei flate laga: vassrette snitt gjennom godset, med slipemon |
-| `lib/skal/stack-mesh.ts` | stabelen som mesh, og konturkartet i tre dimensjonar |
-| `lib/skal/metrics.ts` | alt som vert målt: omhylling, fotavtrykk, velting, spenning, masse |
-| `lib/skal/rules.ts` | reglane som seier nei |
-| `lib/skal/nest.ts` | delane lagde ut på finérplate |
-| `lib/skal/export-*.ts` | STL, DXF med lag KUTT og GRAVER, SVG |
-| `lib/skal/variants.ts` | tolv snitt gjennom rommet, med grunngjeving og motargument |
-| `lib/skal/worker.ts` | motoren i eigen tråd |
+| `lib/core.ts` | **start her.** Kontrakten alle motorane deler: parameterband, måltal, reglar, lesemåtar, og geometrien alle fire treng |
+| `lib/engines.ts` | registeret. Ein ny typologi kostar ei mappe og ei line |
+| `lib/worker.ts` | motoren i eigen tråd; han veit ikkje kva typologi han byggjer |
+| `lib/skal/` | vassrette lamellar: felt, flate, lag, måling, reglar, nesting, eksport |
+| `lib/straum/` | skrå skiveplan og finnar i spor |
+| `lib/ribbe/` | radiale blad og band, kryssholdte |
+| `lib/vaffel/` | kartesiske ribber i to retningar |
+| `components/` | scena, gestane, panelet — alle engangsfrie: dei kjenner berre kontrakten |
 | `doc/` | PDF-mappa: eigen rasterisator, sats og sider |
 | `PLAN.md` | planen for korleis denne webben skal byggjast ut |
 
@@ -81,8 +85,11 @@ rasterisator med z-buffer, skuggekart og omgjevingsokklusjon.
 ## Kva som er lånt
 
 Scena, gestane og den delbare URL-en kjem frå
-[parametric.iverfinne.no](https://parametric.iverfinne.no) — same
-lysrigg, same tre-fingers lysstyring, same prinsipp om at eit design er
-eit punkt i eit parameterrom og at hashen kodar det punktet nøyaktig.
-Geometrien deler dei ingenting av. Grunnen til at dette er eit eige
-domene og ikkje ein sjette motor der, står i `PLAN.md`.
+[parametric.iverfinne.no](https://parametric.iverfinne.no) — same lysrigg,
+same tre-fingers lysstyring, same nedtrekk for motor, og same prinsipp om
+at eit design er eit punkt i eit parameterrom og at hashen kodar punktet
+nøyaktig. Geometrien deler dei ingenting av.
+
+Skilnaden på dei fem motorane der og dei fire her er at desse skal kunne
+byggjast. Keramikk og totem treng ikkje det; eit møbel gjer. Grunnen til at
+dette er eit eige domene og ikkje ein sjette motor der, står i `PLAN.md`.

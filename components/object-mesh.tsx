@@ -10,12 +10,12 @@ import type { View } from "@/lib/core"
 export const MM = 1 / 250
 
 /**
- * Objektet i scena. Modellen reknar i millimeter med Z opp, som er
- * koordinatsystemet til verkstaden; scena har Y opp. Omrekninga skjer her og
- * ingen annan stad, slik at ingen tal i motoren nokon gong er i
- * «sceneeiningar».
+ * Objektet i scena, kva typologi det så er. Modellen reknar i millimeter med
+ * Z opp, som er koordinatsystemet til verkstaden; scena har Y opp.
+ * Omrekninga skjer her og ingen annan stad, slik at ingen tal i nokon motor
+ * nokon gong er i «sceneeiningar».
  */
-export function SkalMesh({
+export function ObjectMesh({
   data,
   view,
   dark,

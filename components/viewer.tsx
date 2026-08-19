@@ -6,7 +6,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
 import type { BuildRes } from "@/lib/worker"
 import type { View } from "@/lib/core"
-import { MM, SkalMesh } from "./skal-mesh"
+import { MM, ObjectMesh } from "./object-mesh"
 import { GestureParams, type NudgeAxis } from "./gesture-params"
 
 export type LightDir = { az: number; el: number }
@@ -140,7 +140,7 @@ export function Viewer({
 
       <Suspense fallback={null}>
         <group position={[0, GROUND_Y, 0]}>
-          <SkalMesh
+          <ObjectMesh
             data={data}
             view={view}
             dark={dark}
