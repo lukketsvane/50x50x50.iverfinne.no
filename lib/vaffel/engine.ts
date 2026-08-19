@@ -1,0 +1,137 @@
+/**
+ * VAFFEL som motor: kontrakten i core.ts, fylt av modulane i denne mappa.
+ *
+ * Produksjonsvegen er kryssholdte ribber i to retningar. Ei krum sitjeflate
+ * let seg ikkje bøyge av ei plate, men ho let seg TILNÆRME av kantane på
+ * mange plater — og ein plateknat er ei rett line. Difor er kvar del her
+ * flat og rett, medan flata over dei er krum i begge retningar.
+ *
+ * Prisen er vekta. Kvar ribbe går heilt ned til golvet, så åtten plater
+ * ber ein krakk som tre kunne ha bore; til gjengjeld finst det ikkje eit
+ * lim, ein skrue eller ei oppspenning i heile møbelet. Rutenettet held seg
+ * sjølv, og det er den eine tingen ingen av dei tre andre typologiane kan.
+ */
+import type {
+  BuildOut,
+  DetailKey,
+  EngineDef,
+  ExportKind,
+  ExportOut,
+  ParamBag,
+  Vec3,
+  View,
+} from "../core"
+import type { Material } from "../core"
+import { meshToStl } from "../skal/export-stl"
+import { makeBody } from "./body"
+import { buildGrid } from "./ribs"
+import { DETAIL, contourLines, lagMesh, shellMesh } from "./mesh"
+import { measure } from "./metrics"
+import { checkRules } from "./rules"
+import { buildParts } from "./parts"
+import { nest } from "./nest"
+import { partsToDxf } from "./export-dxf"
+import { profileSvg, sheetSvg } from "./export-svg"
+import {
+  DEFAULT_PARAMS,
+  GROUPS,
+  NUDGE_PARAMS,
+  PARAM_KEYS,
+  PARAM_RANGES,
+  clampParams,
+  randomParams,
+  type Params,
+} from "./params"
+
+const asP = (p: ParamBag) => p as unknown as Params
+/** Ein ny tom buffer kvar gong. Ein delt tom Float32Array vert kopla frå
+ *  fyrste gong han vert send gjennom postMessage, og då er alle seinare
+ *  visningar tomme utan at noko feilar. */
+const EMPTY = () => new Float32Array(0)
+
+export const VAFFEL: EngineDef = {
+  id: "vaffel",
+  label: "vaffel",
+  note: "kryssholdte ribber i to retningar, utan lim og utan skruar",
+  ranges: PARAM_RANGES,
+  groups: GROUPS,
+  keys: PARAM_KEYS,
+  defaults: DEFAULT_PARAMS as unknown as ParamBag,
+  nudge: NUDGE_PARAMS,
+  unitLabel: "ribber",
+
+  clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
+  random: (rnd, prev, locked) =>
+    randomParams(rnd, asP(prev), locked) as unknown as ParamBag,
+
+  build(bag: ParamBag, detail: DetailKey, view: View): BuildOut {
+    const p = asP(bag)
+    const d = DETAIL[detail]
+    const b = makeBody(p)
+
+    if (view === "flate") {
+      const m = shellMesh(b, d)
+      return { ...m, lines: EMPTY(), heavy: EMPTY() }
+    }
+
+    const g = buildGrid(b, d.step)
+    if (view === "lag") {
+      const m = lagMesh(g)
+      return { ...m, lines: EMPTY(), heavy: EMPTY() }
+    }
+
+    // Konturteikninga legg ribbene flatt ved sida av kvarandre og fyller
+    // difor eit anna rom enn objektet. Kameraet skal ramme inn det som
+    // faktisk vert teikna, så boksen vert lesen av linene sjølve.
+    const c = contourLines(g)
+    const min: Vec3 = [Infinity, Infinity, Infinity]
+    const max: Vec3 = [-Infinity, -Infinity, -Infinity]
+    for (const arr of [c.lines, c.heavy]) {
+      for (let i = 0; i < arr.length; i += 3) {
+        for (let k = 0; k < 3; k++) {
+          if (arr[i + k] < min[k]) min[k] = arr[i + k]
+          if (arr[i + k] > max[k]) max[k] = arr[i + k]
+        }
+      }
+    }
+    if (!Number.isFinite(min[0])) {
+      min[0] = min[1] = min[2] = 0
+      max[0] = max[1] = max[2] = 1
+    }
+    return {
+      positions: EMPTY(),
+      normals: EMPTY(),
+      tris: 0,
+      min,
+      max,
+      lines: c.lines,
+      heavy: c.heavy,
+    }
+  },
+
+  measure: (bag) => measure(asP(bag)),
+  rules: (bag, m) => checkRules(asP(bag), m),
+
+  exportFile(bag: ParamBag, what: ExportKind): ExportOut {
+    const p = asP(bag)
+    const b = makeBody(p)
+    if (what === "stl") {
+      const bytes = meshToStl(lagMesh(buildGrid(b, DETAIL.hog.step)), "vaffel")
+      return {
+        name: "vaffel.stl",
+        mime: "model/stl",
+        data: bytes.buffer.slice(0) as ArrayBuffer,
+      }
+    }
+    const g = buildGrid(b, DETAIL.mid.step)
+    if (what === "svg") {
+      return { name: "vaffel-profilar.svg", mime: "image/svg+xml", text: profileSvg(g) }
+    }
+    const pl = buildParts(g, p.material as Material)
+    const ns = nest(pl.parts)
+    if (what === "ark") {
+      return { name: "vaffel-ark1.svg", mime: "image/svg+xml", text: sheetSvg(ns, 0) }
+    }
+    return { name: "vaffel.dxf", mime: "application/dxf", text: partsToDxf(ns, p.ribbT) }
+  },
+}

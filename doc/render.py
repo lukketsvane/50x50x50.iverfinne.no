@@ -276,8 +276,65 @@ def p_front(pg, no):
 
 
 @page
+def p_four(pg, no):
+    """Fire måtar å byggje ei krum sitjeflate av flate plater.
+
+    Sida er grunnen til at sandkassen har fire motorar og ikkje éin form.
+    Det som skil dei er ikkje silhuetten — det er leddet, spillet og grensa."""
+    T = D.get("typologies") or []
+    y = pg.head(1, "Fire måtar", "Same spørsmål, fire svar: korleis byggjer "
+                "ein ei krum sitjeflate av flate plater?")
+    y = pg.para(pg.col1, y,
+        "Ein generator gjer det billeg å lage variasjon og dyrt å lage brot. "
+        "Difor er ikkje sandkassen eitt rom med fleire skyvarar — han er "
+        "fire rom med kvar sin produksjonsveg. Skilnaden mellom dei er ikkje "
+        "kva dei ser ut som, men kva som held dei saman, kor mykje plate dei "
+        "et, og kva dei ikkje kan.")
+    y += int(6 * MM)
+    if not T:
+        pg.para(pg.col1, y, "Typologidata manglar — køyr scripts/dump-doc.ts.",
+                color=WARN)
+        pg.foot(no)
+        return
+    w = (pg.body_w - int(6 * MM)) // 2
+    row = int(76 * MM)
+    for i, t in enumerate(T[:4]):
+        cx = pg.col1 + (i % 2) * (w + int(6 * MM))
+        cy = y + (i // 2) * row
+        img = shot(t["mesh"], "typ" + t["id"], az=300, el=16, size=(560, 600),
+                   ss=2, pad=3.9)
+        pg.img(cx, cy, int(40 * MM), int(44 * MM), img)
+        tx = cx + int(43 * MM)
+        tw = w - int(43 * MM)
+        pg.text(tx, cy + int(5 * MM), t["label"].upper(), size=9.5, weight=600)
+        ty = pg.para(tx, cy + int(10 * MM), t["note"], w=tw, size=7.2,
+                     color=INK_SOFT, leading=1.42)
+        m = t["metrics"]
+        rows = [
+            ("ytre mål", f"{fmt(m['envX'])} × {fmt(m['envY'])} × {fmt(m['envZ'])}"),
+            ("sitjehøgd", f"{fmt(m['sitZ'])} mm"),
+            ("veltevinkel", f"{fmt(m['tipAngle'],0)}°"),
+            (t["unitLabel"] + " · delar", f"{m['units']} · {m['parts']}"),
+            ("masse", f"{fmt(m['mass'],1)} kg"),
+            ("utnytting", f"{fmt(m['util'] * 100,0)} %"),
+            ("skyvarar · reglar", f"{t['knobs']} · {t['rules']['n']}"),
+        ]
+        pg.table(tx, ty + int(3 * MM), rows, w=tw, size=7.0,
+                 gap=int(3.4 * MM))
+        if t["rules"]["broken"]:
+            pg.text(cx, cy + int(50 * MM),
+                    "bryt: " + ", ".join(t["rules"]["broken"]),
+                    size=6.8, color=WARN)
+    pg.side(y,
+        "Objektet på dei neste sidene er henta ut av den fyrste av dei fire. "
+        "Dei tre andre står her fordi dei er alternativa som vart valde bort, "
+        "og fordi eit rom utan vegger ikkje er eit rom.")
+    pg.foot(no)
+
+
+@page
 def p_tool(pg, no):
-    y = pg.head(1, "Reiskapen", "Modellen og verktøyet er same kode. Det er "
+    y = pg.head(2, "Reiskapen", "Modellen og verktøyet er same kode. Det er "
                 "heile skilnaden frå førre gong.")
     y = pg.para(pg.col1, y,
         "Førre versjon av dette prosjektet hadde to ting: ein modell i Python som "
@@ -315,7 +372,7 @@ def p_tool(pg, no):
 
 @page
 def p_space(pg, no):
-    y = pg.head(2, "Rommet", "Åtte grupper, {} tal. Eitt objekt er eitt "
+    y = pg.head(3, "Rommet", "Åtte grupper, {} tal. Eitt objekt er eitt "
                 "punkt.".format(len(D["ranges"])))
     img = shot("skal.f32", "space", az=126, el=14, size=(470, 640), ss=2, pad=4.4)
     pg.img(pg.right - int(46 * MM), y, int(46 * MM), int(60 * MM), img)
@@ -345,7 +402,7 @@ def p_space(pg, no):
 
 @page
 def p_field(pg, no):
-    y = pg.head(3, "Feltet", "Rullar ein flata ut, vert objektet eit "
+    y = pg.head(4, "Feltet", "Rullar ein flata ut, vert objektet eit "
                 "rektangel. Kvar opning er ei likning i det rektangelet.")
     ax = pg.ax(pg.col1, y, pg.body_w, int(88 * MM))
     field_image(ax)
@@ -381,7 +438,7 @@ def p_field(pg, no):
 
 @page
 def p_laws(pg, no):
-    y = pg.head(4, "Snittet", "Snittet er ein superellipse. Det som gjer "
+    y = pg.head(5, "Snittet", "Snittet er ein superellipse. Det som gjer "
                 "objektet, er kva som skjer med snittet på vegen opp.")
     ax = pg.ax(pg.col1, y, int(56 * MM), int(80 * MM))
     law_curves(ax)
@@ -414,7 +471,7 @@ def p_laws(pg, no):
 
 @page
 def p_rules(pg, no):
-    y = pg.head(5, "Reglane", "Det som skil ein reiskap frå ein "
+    y = pg.head(6, "Reglane", "Det som skil ein reiskap frå ein "
                 "demonstrasjon, er om han seier nei.")
     y = pg.para(pg.col1, y,
         "Reiskapen nektar ikkje å teikne. Han teiknar kva som helst, men han "
@@ -446,7 +503,7 @@ def p_rules(pg, no):
 
 @page
 def p_object(pg, no):
-    y = pg.head(6, "Objektet", "Same objekt frå fire vinklar. Det er ikkje "
+    y = pg.head(7, "Objektet", "Same objekt frå fire vinklar. Det er ikkje "
                 "eit uhell at det er ulikt frå kvar — snittet roterer.")
     w = (pg.body_w - int(4 * MM)) // 2
     h = int(60 * MM)
@@ -485,7 +542,7 @@ def p_object(pg, no):
 
 @page
 def p_seat(pg, no):
-    y = pg.head(7, "Setet", "Setet er ikkje ei plate. Det er toppen av same "
+    y = pg.head(8, "Setet", "Setet er ikkje ei plate. Det er toppen av same "
                 "flata, med skåla skoren inn i dei øvste laga.")
     img = shot("skal.f32", "top", az=0, el=89, ortho=True, size=(820, 820),
                ss=2, shadow=False, pad=3.0)
@@ -524,7 +581,7 @@ def p_seat(pg, no):
 
 @page
 def p_layers(pg, no):
-    y = pg.head(8, "Laga", "Det einaste som kan målast på eit objekt utan "
+    y = pg.head(9, "Laga", "Det einaste som kan målast på eit objekt utan "
                 "rette kantar, er laga.")
     ax = pg.ax(pg.col1, y, int(84 * MM), int(84 * MM))
     contour_map(ax)
@@ -572,7 +629,7 @@ def p_layers(pg, no):
 
 @page
 def p_build(pg, no):
-    y = pg.head(9, "Kutta og slipt", "Til venstre slik det kjem ut av "
+    y = pg.head(10, "Kutta og slipt", "Til venstre slik det kjem ut av "
                 "fresen, til høgre slik det står ferdig.")
     w = (pg.body_w - int(4 * MM)) // 2
     # Same kamera og same avstand på begge: heile poenget er at det er
@@ -611,7 +668,7 @@ def p_build(pg, no):
 @page
 def p_sheet(pg, no):
     N = D["nesting"]
-    y = pg.head(10, "Kuttarket", "Alle delane på finérplate. Talet nedst er "
+    y = pg.head(11, "Kuttarket", "Alle delane på finérplate. Talet nedst er "
                 "det ærlege.")
     ax = pg.ax(pg.col1, y, pg.body_w, int(66 * MM))
     sheet_plot(ax, 0)
@@ -640,7 +697,7 @@ def p_sheet(pg, no):
 
 @page
 def p_calc(pg, no):
-    y = pg.head(11, "Rekning", "Skalet er ikkje dimensjonert av styrke. Det "
+    y = pg.head(12, "Rekning", "Skalet er ikkje dimensjonert av styrke. Det "
                 "er dimensjonert av plata.")
     ax = pg.ax(pg.col1, y, int(52 * MM), int(80 * MM))
     area_curve(ax)
@@ -675,7 +732,7 @@ def p_calc(pg, no):
 
 def _variant_page(pg, no, sel, first):
     if first:
-        y = pg.head(12, "Tolv variantar",
+        y = pg.head(13, "Tolv variantar",
                     "Kvar av dei svarar på eit spørsmål motoren stiller, og "
                     "kvar av dei har ein grunn til å bli forkasta.")
     else:
@@ -735,7 +792,7 @@ def p_var2(pg, no):
 
 @page
 def p_rest(pg, no):
-    y = pg.head(13, "Att", "Ærleg liste, i den rekkjefylgja eg ville teke dei.")
+    y = pg.head(14, "Att", "Ærleg liste, i den rekkjefylgja eg ville teke dei.")
     items = [
         ("Bygg det", "Slipinga er den halve arbeidstida og er ikkje prøvd. Alt anna "
                      "i dette dokumentet er rekna; sliping må gjerast."),
