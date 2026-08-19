@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef } from "react"
 import { useThree } from "@react-three/fiber"
 import * as THREE from "three"
-import type { BuildRes, View } from "@/lib/skal/worker"
+import type { BuildRes } from "@/lib/worker"
+import type { View } from "@/lib/core"
 
 /** millimeter til sceneeiningar: kuben på 500 mm vert 2 einingar brei */
 export const MM = 1 / 250

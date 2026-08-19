@@ -25,6 +25,7 @@ import { makeShell, planArcs, wrapPi, type Shell } from "./field"
 import { buildStack, type Stack, type Pt } from "./laminae"
 import { buildMesh, DETAIL, type MeshData } from "./surface"
 import { CUBE, MATERIALS, type Params } from "./params"
+import type { Metrics as Core } from "../core"
 
 const TAU = Math.PI * 2
 const DEG = Math.PI / 180
@@ -50,7 +51,7 @@ export type Metric = {
   text: string
 }
 
-export type Metrics = {
+export type Metrics = Core & {
   envX: number // ytre mål, mm
   envY: number
   envZ: number
@@ -543,6 +544,13 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     clearZ: CUBE - envZ,
     seatZ: sh.seatZ,
     sitZ,
+    // dei felles namna kontrakten i core.ts krev; SKAL kallar dei skål,
+    // av di det er ei skål, men panelet og dei andre motorane kjenner
+    // dei berre som sitjeflate
+    seatW: dishW,
+    seatD: dishD,
+    units: st.count,
+    unitLabel: "lag",
     dishW,
     dishD,
     dishDepth,
