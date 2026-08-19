@@ -35,8 +35,12 @@ export type Rule = {
 const TRAP_LO = 5
 const TRAP_HI = 25
 
-const mm = (v: number) => (Number.isFinite(v) ? v.toFixed(0) : "–")
-const mm1 = (v: number) => (Number.isFinite(v) ? v.toFixed(1) : "–")
+/** Norsk desimalskiljeteikn. Eit tal med punktum i ein norsk tabell er
+ *  eit tal frå eit anna dokument. */
+const nn = (v: number, d: number) =>
+  Number.isFinite(v) ? v.toFixed(d).replace(".", ",") : "–"
+const mm = (v: number) => nn(v, 0)
+const mm1 = (v: number) => nn(v, 1)
 
 /**
  * Midtplanet i kvart lag, med same lagdeling som `buildStack`: er resten
@@ -197,7 +201,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     label: "utnytting",
     hard: true,
     ok: m.util <= 1,
-    value: `${(m.util * 100).toFixed(0)} % · σc ${m.sigmaC.toFixed(2)} + σm ${m.sigmaM.toFixed(2)} MPa`,
+    value: `${mm(m.util * 100)} % · trykk ${nn(m.sigmaC, 2)} + bøying ${nn(m.sigmaM, 2)} MPa`,
     why: "Over 1,0 er lasta større enn materialet toler etter NS-EN 1995-1-1, og då er resten av teikninga likegyldig.",
   })
 

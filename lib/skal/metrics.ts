@@ -12,7 +12,7 @@
  */
 import { makeShell, planArcs, wrapPi, type Shell } from "./field"
 import { buildStack, type Stack, type Pt } from "./laminae"
-import { buildMesh, DETAIL } from "./surface"
+import { buildMesh, DETAIL, type MeshData } from "./surface"
 import { CUBE, MATERIALS, type Params } from "./params"
 
 const TAU = Math.PI * 2
@@ -245,8 +245,20 @@ function sandedArea(sh: Shell, st: Stack, sand: number): number {
 // =============================================================================
 // MÅLINGA
 // =============================================================================
-export function measure(p: Params): Metrics {
-  const sh = makeShell(p)
+/**
+ * Det arbeidaren alt har bygd, som målinga kan låne i staden for å byggje
+ * om att. Ei full runde bygde skalet tre gonger og stabelen to før dette
+ * fanst; 86 prosent av tida målinga tok gjekk med til arbeid som låg
+ * ferdig i minnet ein funksjon unna.
+ *
+ * `mesh` MÅ vera det ferdige skalet frå `buildMesh` — stabelmeshet er
+ * objektet slik det kjem ut av fresen, med slipemon og trapp, og ville
+ * gje eit for stort volum og ei for stor omhylling.
+ */
+export type Prebuilt = { shell?: Shell; mesh?: MeshData; stack?: Stack }
+
+export function measure(p: Params, pre: Prebuilt = {}): Metrics {
+  const sh = pre.shell ?? makeShell(p)
   const mat = MATERIALS[p.material]
 
   // --- ytre mål ------------------------------------------------------------
@@ -254,7 +266,7 @@ export function measure(p: Params): Metrics {
   // på trekantane, så bboxen er den same på «lav» som på «hog» til under ein
   // tidels millimeter. Det er ingen grunn til å byggja eit fint mesh berre
   // for å måle det.
-  const mesh = buildMesh(p, DETAIL.lav, sh)
+  const mesh = pre.mesh ?? buildMesh(p, DETAIL.lav, sh)
   const envX = mesh.max[0] - mesh.min[0]
   const envY = mesh.max[1] - mesh.min[1]
   const envZ = mesh.max[2] - mesh.min[2]
@@ -303,7 +315,7 @@ export function measure(p: Params): Metrics {
   // den trappa. Å rekne ferdig masse som kutta masse minus slipemonet i
   // planet gjev difor eit tal som er nesten dobbelt for høgt: monet er
   // to millimeter, men trappa er halve laghøgda der flata legg seg ned.
-  const st = buildStack(p, sh)
+  const st = pre.stack ?? buildStack(p, sh)
   const [volume, momZ] = meshVolume(mesh)
   const comZ = volume > 0 ? momZ / volume : 0
   const massCut = st.mass
@@ -448,13 +460,16 @@ export function measure(p: Params): Metrics {
   }
   const finRise = Number.isFinite(finTop) ? Math.max(0, finTop - p.seatZ) : 0
 
-  const mm = (v: number) => v.toFixed(0)
-  const mm1 = (v: number) => v.toFixed(1)
-  const cm2 = (v: number) => (v / 100).toFixed(0) + " cm²"
-  const dm3 = (v: number) => (v / 1e6).toFixed(2) + " dm³"
-  const pct = (v: number) => (v * 100).toFixed(0) + " %"
-  const kg = (v: number) => v.toFixed(2)
-  const mpa = (v: number) => v.toFixed(2)
+  // Norsk desimalskiljeteikn overalt: eit tal med punktum i ein norsk
+  // tabell les som eit tal henta frå eit anna dokument.
+  const nn = (v: number, d: number) => v.toFixed(d).replace(".", ",")
+  const mm = (v: number) => nn(v, 0)
+  const mm1 = (v: number) => nn(v, 1)
+  const cm2 = (v: number) => nn(v / 100, 0) + " cm²"
+  const dm3 = (v: number) => nn(v / 1e6, 2) + " dm³"
+  const pct = (v: number) => nn(v * 100, 0) + " %"
+  const kg = (v: number) => nn(v, 2)
+  const mpa = (v: number) => nn(v, 2)
 
   const raw = [
     { id: "envX", label: "ytre mål X", value: envX, unit: "mm", fmt: mm1 },

@@ -145,10 +145,22 @@ class Page:
                   weight=500, color=INK_FAINT)
         self.text(self.col1, self.MARGIN + 32, title, size=19, weight=600)
         self.rule(self.col0, self.right, self.MARGIN + 54)
+        self.side_y = self.MARGIN + int(22 * MM)
         if lead:
-            self.para(self.col0, self.MARGIN + 84, lead, w=self.SIDE_W,
-                      size=8.6, color=INK_SOFT, leading=1.5)
-        return self.MARGIN + int(22 * MM)
+            # Bisetninga er ulik lang frå side til side. Botnen hennar vert
+            # hugsa, slik at ei margnote lenger nede aldri kan gå oppi henne.
+            self.side_y = self.para(self.col0, self.MARGIN + 84, lead,
+                                    w=self.SIDE_W, size=8.6, color=INK_SOFT,
+                                    leading=1.5) + int(6 * MM)
+        # Saka byrjar under bisetninga, ikkje på ei fast høgd: ei lang
+        # bisetning skal skuve saka ned, ikkje bli skriven oppi henne.
+        return max(self.MARGIN + int(22 * MM), self.side_y)
+
+    def side(self, y, s, size=8.2, color=INK_SOFT):
+        """Margnote som aldri kolliderer med bisetninga i hovudet."""
+        y = max(y, getattr(self, "side_y", 0))
+        return self.para(self.col0, y, s, w=self.SIDE_W, size=size,
+                         color=color, leading=1.5)
 
     def foot(self, no, note=None):
         y = self.h - self.MARGIN - int(6 * MM)
@@ -176,9 +188,13 @@ class Page:
                 self.rule(x, x + w, yy + gap * 0.32, lw=0.5)
         return y + len(rows) * gap
 
-    def img(self, x, y, w, h, arr):
+    def img(self, x, y, w, h, arr, fit=True):
+        """`fit` held biletet sitt eige sideforhold og sentrerer det i ruta.
+        Utan det vert eit oppriss strekt ut i breidda, og då er det ikkje
+        lenger eit oppriss."""
         a = self.ax(x, y, w, h)
-        a.imshow(arr, interpolation="lanczos", aspect="auto")
+        a.imshow(arr, interpolation="lanczos", aspect="equal" if fit else "auto")
+        a.set_anchor("C")
         return a
 
     def save(self, path):

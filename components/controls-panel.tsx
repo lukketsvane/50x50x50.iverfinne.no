@@ -48,9 +48,13 @@ const EXPORTS: readonly { id: "stl" | "dxf" | "svg" | "ark"; label: string; hint
 
 const DASH = "–"
 
-const n0 = (v: number) => (Number.isFinite(v) ? v.toFixed(0) : DASH)
-const n1 = (v: number) => (Number.isFinite(v) ? v.toFixed(1) : DASH)
-const n2 = (v: number) => (Number.isFinite(v) ? v.toFixed(2) : DASH)
+/** Norsk desimalskiljeteikn. Grensesnittet er på nynorsk, og då er det
+ *  komma — eit punktum les som eit tal frå eit anna dokument. */
+const nn = (v: number, d: number) =>
+  Number.isFinite(v) ? v.toFixed(d).replace(".", ",") : DASH
+const n0 = (v: number) => nn(v, 0)
+const n1 = (v: number) => nn(v, 1)
+const n2 = (v: number) => nn(v, 2)
 
 /** Kor mange desimalar eit band fortener: steget seier det alt. */
 const decimals = (step: number) => (step >= 1 ? 0 : step >= 0.1 ? 1 : step >= 0.01 ? 2 : 3)
@@ -454,7 +458,7 @@ export function ControlsPanel(props: {
                           className="tab shrink-0 text-[11px] leading-4"
                           style={{ opacity: isLocked ? 0.55 : 0.85 }}
                         >
-                          {params[k].toFixed(decimals(r.step))}
+                          {params[k].toFixed(decimals(r.step)).replace(".", ",")}
                           <span className="pl-1 opacity-45">{r.unit ?? ""}</span>
                         </span>
                       </div>
