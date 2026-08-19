@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* Papir og blekk, styrt berre av systemet sitt fargeskjema. Ingen
+   veksleknapp i appen: eit møbel skal sjåast i det lyset rommet har. */
+:root {
+  --paper: #ffffff;
+  --ink: #111111;
+  --rule: #00000018;
+  --warn: #b91c1c;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0a0a0a;
+    --ink: #f4f4f4;
+    --rule: #ffffff1f;
+    --warn: #f87171;
+  }
+}
+
+html {
+  background: var(--paper);
+  color-scheme: light dark;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    /* lås sida så lerretet eig alle fingergestar */
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+  }
+  /* Alle tal i grensesnittet er måltal. Dei skal stå i kolonne. */
+  .tab {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+/* Skyvaren. Ei line og ein prikk — ingenting anna, fordi alt anna ville
+   konkurrere med objektet om merksemda. */
+.pslider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 1px;
+  width: 100%;
+  background: color-mix(in srgb, var(--ink) 34%, transparent);
+  outline: none;
+  cursor: ew-resize;
+  touch-action: pan-y;
+}
+.pslider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 13px;
+  width: 13px;
+  border-radius: 9999px;
+  background: var(--ink);
+  border: 3px solid var(--paper);
+}
+.pslider::-moz-range-thumb {
+  height: 13px;
+  width: 13px;
+  border-radius: 9999px;
+  background: var(--ink);
+  border: 3px solid var(--paper);
+}
+.pslider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.pslider.locked {
+  background: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.pslider.locked::-webkit-slider-thumb {
+  background: color-mix(in srgb, var(--ink) 40%, transparent);
+}
