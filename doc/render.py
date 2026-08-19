@@ -290,41 +290,44 @@ def p_four(pg, no):
         "fire rom med kvar sin produksjonsveg. Skilnaden mellom dei er ikkje "
         "kva dei ser ut som, men kva som held dei saman, kor mykje plate dei "
         "et, og kva dei ikkje kan.")
-    y += int(6 * MM)
+    y += int(7 * MM)
     if not T:
         pg.para(pg.col1, y, "Typologidata manglar — køyr scripts/dump-doc.ts.",
                 color=WARN)
         pg.foot(no)
         return
-    w = (pg.body_w - int(6 * MM)) // 2
-    row = int(76 * MM)
+
+    # Biletet står OVER tabellen og ikkje ved sida av han. Med to spaltar er
+    # ei rute 77 mm brei, og ein tabell med etikett til venstre og tal til
+    # høgre treng heile den breidda — står biletet ved sida, kolliderer dei.
+    gapx = int(7 * MM)
+    w = (pg.body_w - gapx) // 2
+    row = int(96 * MM)
     for i, t in enumerate(T[:4]):
-        cx = pg.col1 + (i % 2) * (w + int(6 * MM))
+        cx = pg.col1 + (i % 2) * (w + gapx)
         cy = y + (i // 2) * row
-        img = shot(t["mesh"], "typ" + t["id"], az=300, el=16, size=(560, 600),
-                   ss=2, pad=3.9)
-        pg.img(cx, cy, int(40 * MM), int(44 * MM), img)
-        tx = cx + int(43 * MM)
-        tw = w - int(43 * MM)
-        pg.text(tx, cy + int(5 * MM), t["label"].upper(), size=9.5, weight=600)
-        ty = pg.para(tx, cy + int(10 * MM), t["note"], w=tw, size=7.2,
-                     color=INK_SOFT, leading=1.42)
+        pg.text(cx, cy, t["label"].upper(), size=10, weight=600)
+        ty = pg.para(cx, cy + int(5 * MM), t["note"], w=w, size=7.4,
+                     color=INK_SOFT, leading=1.45)
+        img = shot(t["mesh"], "typ" + t["id"], az=302, el=17,
+                   size=(760, 620), ss=2, pad=3.4)
+        pg.img(cx, ty + int(2 * MM), w, int(38 * MM), img)
         m = t["metrics"]
         rows = [
-            ("ytre mål", f"{fmt(m['envX'])} × {fmt(m['envY'])} × {fmt(m['envZ'])}"),
+            ("ytre mål", f"{fmt(m['envX'])} × {fmt(m['envY'])} × {fmt(m['envZ'])} mm"),
             ("sitjehøgd", f"{fmt(m['sitZ'])} mm"),
-            ("veltevinkel", f"{fmt(m['tipAngle'],0)}°"),
+            ("veltevinkel", f"{fmt(m['tipAngle'], 1)}°"),
             (t["unitLabel"] + " · delar", f"{m['units']} · {m['parts']}"),
-            ("masse", f"{fmt(m['mass'],1)} kg"),
-            ("utnytting", f"{fmt(m['util'] * 100,0)} %"),
+            ("masse", f"{fmt(m['mass'], 2)} kg"),
+            ("utnytting", f"{fmt(m['util'] * 100, 0)} %"),
             ("skyvarar · reglar", f"{t['knobs']} · {t['rules']['n']}"),
         ]
-        pg.table(tx, ty + int(3 * MM), rows, w=tw, size=7.0,
-                 gap=int(3.4 * MM))
+        yy = pg.table(cx, ty + int(43 * MM), rows, w=w, size=7.4,
+                      gap=int(3.9 * MM))
         if t["rules"]["broken"]:
-            pg.text(cx, cy + int(50 * MM),
+            pg.text(cx, yy + int(1 * MM),
                     "bryt: " + ", ".join(t["rules"]["broken"]),
-                    size=6.8, color=WARN)
+                    size=6.9, color=WARN)
     pg.side(y,
         "Objektet på dei neste sidene er henta ut av den fyrste av dei fire. "
         "Dei tre andre står her fordi dei er alternativa som vart valde bort, "

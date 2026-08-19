@@ -181,7 +181,9 @@ console.log("byggjer dei fire typologiane …")
 const typologies = ENGINES.map((e) => {
   const m = e.measure(e.defaults)
   const r = e.rules(e.defaults, m)
-  const b = e.build(e.defaults, "lav", "flate")
+  // «lag» og ikkje «flate»: sida handlar om produksjonsvegen, og det er
+  // delane som viser han. Ei slipt flate ser lik ut same kva som ligg under.
+  const b = e.build(e.defaults, "mid", "lag")
   const mesh = writeMesh(`typ-${e.id}`, {
     positions: b.positions,
     normals: b.normals,
