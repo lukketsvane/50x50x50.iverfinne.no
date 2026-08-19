@@ -13,8 +13,11 @@
  */
 import type { EngineDef, EngineId } from "./core"
 import { SKAL } from "./skal/engine"
-// MOTORAR-UNDER-ARBEID: straum, ribbe og vaffel vert kopla inn her
-export const ENGINES: readonly EngineDef[] = [SKAL]
+import { STRAUM } from "./straum/engine"
+import { RIBBE } from "./ribbe/engine"
+import { VAFFEL } from "./vaffel/engine"
+
+export const ENGINES: readonly EngineDef[] = [SKAL, STRAUM, RIBBE, VAFFEL]
 
 export const ENGINE_IDS = ENGINES.map((e) => e.id) as readonly EngineId[]
 

@@ -1,0 +1,330 @@
+/**
+ * VAFFEL — ribbene og ledda.
+ *
+ * Ei ribbe er eit plansnitt gjennom kroppen, minus bogen, med spor der ho
+ * kryssar den andre familien. Profilen vert lesen ut av feltet med ei
+ * marsjerande rute i staden for å skrivast ned, av di forma hennar er eit
+ * spørsmål om kva grense som bit kvar — og svaret skifter frå ribbe til
+ * ribbe i same objektet.
+ *
+ * Kvar profil ligg i sitt eige plan med (t, z): t er y for ei X-ribbe og x
+ * for ei Y-ribbe. Det er same koordinat kuttfila brukar, så delen på plata
+ * og delen i nettet er den same lista med punkt.
+ *
+ * Ledda er halvt om halvt. X-ribbene har spor opne oppover, Y-ribbene spor
+ * opne nedover, og då kan ein leggje X-familien på bordet og senke
+ * Y-familien ned i han. Det er heile monteringa, og det finst ikkje ein
+ * skrue i møbelet.
+ */
+import { shoelace, type Pt } from "../core"
+import type { Body } from "./body"
+import { contour, simplify, type Loop } from "./contour"
+
+export type Slot = {
+  /** senter langs ribba, mm */
+  t: number
+  /** munnen på sporet */
+  zMouth: number
+  /** botnen i sporet */
+  zEnd: number
+  /** opnar sporet seg oppover? */
+  fromTop: boolean
+  /** sporbreidd, mm */
+  w: number
+  /** kor langt forbi munnen sporet må gå for å bryte gjennom over HEILE
+   *  breidda si. Kanten ribba opnar seg i er krum, så eit spor som stoggar
+   *  ved munnen midt i sporet står att med gods i kvar side — og eit spor
+   *  med gods i botnen er ikkje eit spor, det er eit hòl. */
+  zOut: number
+}
+
+export type Rib = {
+  axis: "x" | "y"
+  k: number
+  /** kvar planet står, mm */
+  pos: number
+  /** ytterkantane. Meir enn éin tyder at ribba er delt i lause stykke. */
+  outlines: Pt[][]
+  holes: Pt[][]
+  slots: Slot[]
+  /** netto areal etter spor og hòl, mm² */
+  area: number
+  /** høgda på ribba, mm */
+  height: number
+  /** breidda ribba treng på plata, mm */
+  width: number
+  /** smalaste godset ribba har på tvers av lastvegen, mm */
+  narrow: number
+}
+
+export type Grid = {
+  b: Body
+  ribs: Rib[]
+  /** ledd som faktisk vart skorne */
+  joints: number
+  /** minste opning mellom to naboribber, mm */
+  gapX: number
+  gapY: number
+}
+
+const roundMin = (a: number, c: number, r: number) => {
+  if (r <= 0) return Math.min(a, c)
+  if (a >= r || c >= r) return Math.min(a, c)
+  return r - Math.hypot(r - a, r - c)
+}
+
+/**
+ * Ribbeprofilen som lukka polygon i (t, z) — med spora skorne.
+ *
+ * Spora står i FELTET og ikkje i polygonet etterpå. Det er ikkje ein
+ * snarveg forbi ein boolsk operasjon: det er den einaste måten kuttfila og
+ * nettet ikkje kan kome i utakt på. Ein fres som fylgjer denne konturen
+ * skjer nøyaktig den ribba biletet viser, spor og alt.
+ */
+function profileOf(
+  b: Body,
+  axis: "x" | "y",
+  pos: number,
+  step: number,
+  slots: Slot[],
+): Loop[] {
+  const p = b.p
+  const n = p.planN
+  const lim = (axis === "x" ? b.B * b.rhoMax : b.A * b.rhoMax) + 8
+  const nt = Math.max(48, Math.ceil((2 * lim) / step))
+  const nz = Math.max(48, Math.ceil((b.zTop + 12) / step))
+  const t0 = -lim
+  const dt = (2 * lim) / nt
+  const z0 = -6
+  const dz = (b.zTop + 12) / nz
+
+  // Alt som berre avheng av kolonnen, éin gong per kolonne.
+  const perp = axis === "x" ? Math.abs(pos) / b.A : Math.abs(pos) / b.B
+  const cPerp = Math.pow(perp, n)
+  const tScale = axis === "x" ? b.B : b.A
+  const scale = (b.A + b.B) / 2
+  const gCol = new Float64Array(nt + 1)
+  const seatCol = new Float64Array(nt + 1)
+  const archCol = new Float64Array(nt + 1)
+  for (let i = 0; i <= nt; i++) {
+    const t = t0 + i * dt
+    gCol[i] = Math.pow(cPerp + Math.pow(Math.abs(t) / tScale, n), 1 / n)
+    seatCol[i] = axis === "x" ? b.seatSurf(pos, t) : b.seatSurf(t, pos)
+    archCol[i] = axis === "x" ? b.arch(pos, t) : b.arch(t, pos)
+  }
+  // …og alt som berre avheng av rada, éin gong per rad.
+  const rhoRow = new Float64Array(nz + 1)
+  for (let j = 0; j <= nz; j++) rhoRow[j] = b.rho((z0 + j * dz) / b.zTop)
+
+  // Sporet som eit rektangel med forteikn. Munnen vert dregen fem
+  // millimeter forbi kanten, så han bryt gjennom same kvar kanten ligg.
+  const boxes = slots.map((q) => {
+    const zlo = q.fromTop ? Math.min(q.zEnd, q.zMouth) : q.zOut
+    const zhi = q.fromTop ? q.zOut : Math.max(q.zEnd, q.zMouth)
+    return { t: q.t, half: q.w / 2, zlo, zhi }
+  })
+
+  const g = new Float64Array((nt + 1) * (nz + 1))
+  for (let j = 0; j <= nz; j++) {
+    const z = z0 + j * dz
+    const rr = rhoRow[j]
+    for (let i = 0; i <= nt; i++) {
+      const t = t0 + i * dt
+      const fPlan = (rr - gCol[i]) * scale
+      const fSeat = seatCol[i] - z
+      let v = Math.min(roundMin(fSeat, fPlan, p.kantR), z, z - archCol[i])
+      for (const q of boxes) {
+        if (v <= 0) break
+        const d = Math.max(Math.abs(t - q.t) - q.half, q.zlo - z, z - q.zhi)
+        if (d < v) v = d
+      }
+      g[j * (nt + 1) + i] = v
+    }
+  }
+  return contour(g, t0, dt, nt, z0, dz, nz)
+}
+
+/**
+ * Kor breitt ribba er i ei gjeven høgd, som vassrette stykke.
+ *
+ * Dette er det andre snittet gjennom same ribba, og det er dette som seier
+ * om eit ledd har skulder. Eit spor skore femten millimeter frå kanten
+ * kappar av ein flis som ikkje ber noko og ikkje kan limast — han fell av
+ * på fresebordet.
+ */
+function spanAt(b: Body, axis: "x" | "y", pos: number, z: number): [number, number][] {
+  const lim = (axis === "x" ? b.B * b.rhoMax : b.A * b.rhoMax) + 6
+  const N = 220
+  const out: [number, number][] = []
+  let t0 = NaN
+  let prev = false
+  for (let i = 0; i <= N; i++) {
+    const t = -lim + (i / N) * 2 * lim
+    const solid = (axis === "x" ? b.F(pos, t, z) : b.F(t, pos, z)) > 0
+    if (solid && !prev) t0 = t
+    else if (!solid && prev) out.push([t0, t])
+    prev = solid
+  }
+  if (prev) out.push([t0, lim])
+  return out
+}
+
+/** Alle loddrette stykke med material i ei søyle, med bogen teken bort. */
+function ribRuns(b: Body, axis: "x" | "y", pos: number, t: number): [number, number][] {
+  return axis === "x" ? b.runsAt(pos, t) : b.runsAt(t, pos)
+}
+
+/**
+ * Kor mykje gods ribba har att på det tynnaste, målt loddrett gjennom
+ * sporet. Det er dette talet som avgjer om ho knekk når nokon set seg —
+ * ikkje høgda hennar, og ikkje breidda. Eit spor som opnar seg oppover et
+ * frå toppen, så det som ber er det som ligg UNDER sporbotnen; eit spor
+ * nedanfrå et motsett veg.
+ */
+function narrowOf(r: Rib, span: (s: Slot) => [number, number] | null): number {
+  let worst = Infinity
+  for (const s of r.slots) {
+    const q = span(s)
+    if (!q) continue
+    const left = s.fromTop ? s.zEnd - q[0] : q[1] - s.zEnd
+    if (left < worst) worst = left
+  }
+  return Number.isFinite(worst) ? worst : r.height
+}
+
+export function buildGrid(b: Body, step = 2.6): Grid {
+  const p = b.p
+  const slotW = p.ribbT + p.pressfit
+  const ribs: Rib[] = []
+  const mk = (axis: "x" | "y", k: number, pos: number, slots: Slot[]): Rib => {
+    const loops = profileOf(b, axis, pos, step, slots)
+    const outlines: Pt[][] = []
+    const holes: Pt[][] = []
+    for (const l of loops) {
+      const s = simplify(l.pts, 0.25) as Pt[]
+      if (s.length < 3) continue
+      if (l.area > 0) outlines.push(s)
+      else holes.push(s)
+    }
+    let area = 0
+    for (const o of outlines) area += Math.abs(shoelace(o))
+    for (const h of holes) area -= Math.abs(shoelace(h))
+    let zMax = 0
+    let tMin = Infinity
+    let tMax = -Infinity
+    for (const o of outlines) {
+      for (const q of o) {
+        if (q[1] > zMax) zMax = q[1]
+        if (q[0] < tMin) tMin = q[0]
+        if (q[0] > tMax) tMax = q[0]
+      }
+    }
+    return {
+      axis,
+      k,
+      pos,
+      outlines,
+      holes,
+      slots,
+      area,
+      height: zMax,
+      width: Number.isFinite(tMin) ? tMax - tMin : 0,
+      narrow: 0,
+    }
+  }
+
+  // --- ledda fyrst -----------------------------------------------------------
+  // Eit ledd finst berre der begge ribbene har gods i same høgd. Under midja
+  // kan den eine familien vera ute av kroppen medan den andre står i han, og
+  // eit spor skore der er eit spor i lause lufta. Ledda må reknast FØR
+  // profilane, av di det er dei som skal skjerast i profilen.
+  const slotsX: Slot[][] = b.xs.map(() => [])
+  const slotsY: Slot[][] = b.ys.map(() => [])
+  let joints = 0
+  for (let i = 0; i < b.xs.length; i++) {
+    for (let j = 0; j < b.ys.length; j++) {
+      // Med felles kvelving er over- og underkanten den same for begge
+      // ribbene i krysset, so overlappet er heile stykket.
+      const a = ribRuns(b, "x", b.xs[i], b.ys[j])
+      const c = ribRuns(b, "y", b.ys[j], b.xs[i])
+      for (const [alo, ahi] of a) {
+        for (const [clo, chi] of c) {
+          const lo = Math.max(alo, clo)
+          const hi = Math.min(ahi, chi)
+          if (hi - lo < 8) continue
+          // Skulder: leddet treng gods på BEGGE sider av sporet, i begge
+          // ribbene, over heile den høgda sporet går i. Utan det kappar
+          // sporet av ein flis langs kanten.
+          const zm0 = lo + p.lapp * (hi - lo)
+          // Sporet stoggar midt i overlappet, og over botnen hans er ribba
+          // heil. Difor kan eit ledd ikkje kappe noko laust, og skulderen
+          // treng berre målast der ribba er open — ved munnen. Det er den
+          // felles kvelvinga som gjer dette sant: har kvar ribbe sin eigen
+          // boge, byrjar dei to i ulik høgd, og då må det eine sporet gå
+          // heilt ut til underkanten på ribba.
+          const shoulder = slotW / 2 + 10
+          const room = (axis: "x" | "y", rpos: number, t: number, zTest: number) => {
+            const runs = spanAt(b, axis, rpos, zTest)
+            for (const [a0, a1] of runs) {
+              if (t >= a0 && t <= a1) return t - a0 >= shoulder && a1 - t >= shoulder
+            }
+            return false
+          }
+          if (!room("x", b.xs[i], b.ys[j], (zm0 + hi) / 2)) continue
+          if (!room("y", b.ys[j], b.xs[i], (lo + zm0) / 2)) continue
+
+          const zm = zm0
+          // Kor langt sporet må gå for å koma ut på den krumme kanten.
+          const clear = (axis: "x" | "y", pos: number, t: number, up: boolean) => {
+            let e = up ? -Infinity : Infinity
+            for (let q = -3; q <= 3; q++) {
+              const tt = t + (q / 3) * (slotW / 2)
+              const rr = ribRuns(b, axis, pos, tt)
+              if (!rr.length) continue
+              const pick = up ? rr[rr.length - 1][1] : rr[0][0]
+              e = up ? Math.max(e, pick) : Math.min(e, pick)
+            }
+            if (!Number.isFinite(e)) e = up ? hi : lo
+            return up ? e + 3 : e - 3
+          }
+          slotsX[i].push({
+            t: b.ys[j], zMouth: hi, zEnd: zm, fromTop: true, w: slotW,
+            zOut: clear("x", b.xs[i], b.ys[j], true),
+          })
+          slotsY[j].push({
+            t: b.xs[i], zMouth: lo, zEnd: zm, fromTop: false, w: slotW,
+            zOut: clear("y", b.ys[j], b.xs[i], false),
+          })
+          joints++
+        }
+      }
+    }
+  }
+  for (const l of slotsX) l.sort((u, v) => u.t - v.t)
+  for (const l of slotsY) l.sort((u, v) => u.t - v.t)
+
+  for (let i = 0; i < b.xs.length; i++) ribs.push(mk("x", i, b.xs[i], slotsX[i]))
+  for (let j = 0; j < b.ys.length; j++) ribs.push(mk("y", j, b.ys[j], slotsY[j]))
+
+  for (const r of ribs) {
+    // Stykket sporet står i, ikkje heile ribba: eit spor i setestykket skal
+    // ikkje målast mot foten som ligg under midjeluka. Munnen på sporet
+    // ligg per definisjon på kanten av sitt eige stykke.
+    const span = (q: Slot): [number, number] | null => {
+      const runs = ribRuns(b, r.axis, r.pos, q.t)
+      for (const run of runs) {
+        if (q.zMouth >= run[0] - 0.6 && q.zMouth <= run[1] + 0.6) return run
+      }
+      return runs.length ? runs[runs.length - 1] : null
+    }
+    r.narrow = narrowOf(r, span)
+  }
+
+  return {
+    b,
+    ribs,
+    joints,
+    gapX: b.pitchX - p.ribbT,
+    gapY: b.pitchY - p.ribbT,
+  }
+}

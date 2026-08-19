@@ -27,6 +27,7 @@ import { measure } from "../lib/skal/metrics.ts"
 import { checkRules } from "../lib/skal/rules.ts"
 import { nest } from "../lib/skal/nest.ts"
 import { VARIANTS, variantParams } from "../lib/skal/variants.ts"
+import { ENGINES } from "../lib/engines.ts"
 
 const OUT = process.argv[2] ?? "doc/data"
 mkdirSync(OUT, { recursive: true })
@@ -172,7 +173,53 @@ const variants = VARIANTS.map((v) => {
   }
 })
 
+// --- dei fire typologiane ---------------------------------------------------
+// Kvar motor får eitt bilete og sine eigne måltal. Poenget med sida er ikkje
+// å samanlikne silhuettar, men å setje fire produksjonsvegar ved sida av
+// kvarandre med prisen sin: kva ledd, kor mange delar, kor mykje spill.
+console.log("byggjer dei fire typologiane …")
+const typologies = ENGINES.map((e) => {
+  const m = e.measure(e.defaults)
+  const r = e.rules(e.defaults, m)
+  const b = e.build(e.defaults, "lav", "flate")
+  const mesh = writeMesh(`typ-${e.id}`, {
+    positions: b.positions,
+    normals: b.normals,
+    tris: b.tris,
+    min: b.min,
+    max: b.max,
+  })
+  return {
+    id: e.id,
+    label: e.label,
+    note: e.note,
+    unitLabel: m.unitLabel,
+    params: e.defaults,
+    groups: e.groups.length,
+    knobs: e.keys.length,
+    metrics: {
+      envX: m.envX,
+      envY: m.envY,
+      envZ: m.envZ,
+      seatZ: m.seatZ,
+      sitZ: m.sitZ,
+      seatW: m.seatW,
+      seatD: m.seatD,
+      tipAngle: m.tipAngle,
+      mass: m.mass,
+      units: m.units,
+      parts: m.parts,
+      util: m.util,
+      plyArea: m.plyArea,
+    },
+    rules: { n: r.length, hard: r.filter((q) => q.hard).length, broken: r.filter((q) => !q.ok).map((q) => q.id) },
+    mesh: mesh.file,
+    tris: mesh.tris,
+  }
+})
+
 const doc = {
+  typologies,
   cube: CUBE,
   params: p,
   ranges: PARAM_RANGES,
