@@ -19,7 +19,7 @@ from matplotlib import font_manager
 HERE = os.path.dirname(os.path.abspath(__file__))
 DPI = 200
 MM = DPI / 25.4                      # piksel per millimeter
-A4 = (int(210 * MM), int(297 * MM))  # 1653 x 2339
+A4 = (int(210 * MM), int(297 * MM))  # 1653 x 2338
 
 INK       = "#111111"
 INK_SOFT  = "#5A6066"
@@ -92,20 +92,16 @@ class Page:
         return a
 
     def text(self, x, y, s, size=9.5, weight=400, color=INK, ha="left",
-             va="baseline", tracking=0.0, alpha=1.0, style="normal"):
-        t = self.fig.text(
+             va="baseline", alpha=1.0, style="normal"):
+        return self.fig.text(
             x / self.w, 1 - y / self.h, s, fontsize=size, color=color,
             ha=ha, va=va, alpha=alpha, style=style,
             fontweight=int(weight) if isinstance(weight, (int, float)) else weight,
         )
-        if tracking:
-            # matplotlib har ingen bokstavavstand; sperr manuelt
-            t.set_text(" ".join(s)) if False else None
-        return t
 
     def label(self, x, y, s, size=7.6, color=INK_FAINT, ha="left"):
-        """Etikett: sperra versalar. Bokstavavstanden vert lagd inn i
-        strengen fordi matplotlib ikkje kjenner letter-spacing."""
+        """Etikett: sperra versalar. matplotlib har ingen bokstavavstand,
+        så sperringa vert lagd inn i strengen manuelt."""
         return self.text(x, y, " ".join(s.upper()), size=size,
                          weight=500, color=color, ha=ha)
 
@@ -204,7 +200,7 @@ class Page:
 
 
 def draw_polys(ax, polys, lw=0.6, color=INK, fill=None, alpha=1.0):
-    """Teiknar lukka polygon i millimeter i eit akse med lik målestokk."""
+    """Teiknar lukka polygon i millimeter i ein akse med lik målestokk."""
     for p in polys:
         if len(p) < 2:
             continue

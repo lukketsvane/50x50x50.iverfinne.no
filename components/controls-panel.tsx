@@ -82,14 +82,14 @@ type Row = {
   rule?: string
 }
 
+/** dei fire tala som avgjer om objektet i det heile er eit sitjemøbel */
+const MOBILE_ROWS = new Set(["ytre mål", "sitjehøgd", "veltevinkel", "masse"])
+
 /**
  * Måltavla. Rekkjefylgja er ikkje tilfeldig: fyrst det oppgåva spør om
  * (kuben), så det kroppen spør om (setet), så det golvet spør om (foten),
  * og til sist det verkstaden spør om (lag, delar, masse, utnytting).
  */
-/** dei fire tala som avgjer om objektet i det heile er eit sitjemøbel */
-const MOBILE_ROWS = new Set(["ytre mål", "setehøgd", "veltevinkel", "masse"])
-
 function tableRows(m: Metrics | null, layers: number, parts: number): Row[] {
   if (!m) {
     const tom = (label: string, unit: string, rule?: string): Row => ({
@@ -101,7 +101,8 @@ function tableRows(m: Metrics | null, layers: number, parts: number): Row[] {
     return [
       tom("ytre mål", "mm", "kube"),
       tom("klaring", "mm", "kube"),
-      tom("setehøgd", "mm", "setehogd"),
+      tom("setekant", "mm"),
+      tom("sitjehøgd", "mm", "setehogd"),
       tom("brukbar skål", "mm", "skal"),
       tom("skåldjupn", "mm", "skaldjupn"),
       tom("fotavtrykk", "mm", "bein"),
@@ -125,7 +126,10 @@ function tableRows(m: Metrics | null, layers: number, parts: number): Row[] {
       unit: "mm",
       rule: "kube",
     },
-    { label: "setehøgd", value: n0(m.seatZ), unit: "mm", rule: "setehogd" },
+    { label: "setekant", value: n0(m.seatZ), unit: "mm" },
+    // Setekanten er ikkje der ein sit. På ei skål ligg dei tretti
+    // millimeter frå kvarandre, og det er sitjehøgda regelen les.
+    { label: "sitjehøgd", value: n0(m.sitZ), unit: "mm", rule: "setehogd" },
     { label: "brukbar skål", value: `${n0(m.dishW)} × ${n0(m.dishD)}`, unit: "mm", rule: "skal" },
     { label: "skåldjupn", value: n1(m.dishDepth), unit: "mm", rule: "skaldjupn" },
     { label: "fotavtrykk", value: `${n0(m.footX)} × ${n0(m.footY)}`, unit: "mm", rule: "bein" },
@@ -206,8 +210,8 @@ export function ControlsPanel(props: {
   const allRows = useMemo(() => tableRows(metrics, layers, parts), [metrics, layers, parts])
   // På mobilen tek arket halve skjermen om heile tavla står open, og då er
   // det objektet som forsvinn — som er det einaste ein eigentleg er her for
-  // å sjå. Samanlagt viser vi difor berre dei tala som kan gjere ein
-  // parameter ugyldig; resten kjem opp saman med skyvarane.
+  // å sjå. Er arket lagt saman, viser vi difor berre dei tala som kan gjere
+  // ein parameter ugyldig; resten kjem opp saman med skyvarane.
   const rowsOut = useMemo(
     () =>
       isDesktop || open
@@ -574,7 +578,7 @@ export function ControlsPanel(props: {
               className={btn}
               style={{ opacity: hiDetail ? 0.9 : 0.4 }}
             >
-              fin
+              fint nett
             </button>
           )}
         </div>

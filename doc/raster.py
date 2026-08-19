@@ -3,7 +3,7 @@
 SANDKASSE — rasterisatoren.
 
 Mappa skal ha 3D-bilete i same stilen som dei tidlegare mappene i serien,
-og dei skal kunne byggjast på ei kva som helst maskin, i eit byggjesteg
+og dei skal kunne byggjast på kva som helst maskin, i eit byggjesteg
 utan skjerm. Difor ligg heile biletkjeda her inne — projeksjon, z-buffer,
 skuggekart, omgjevingsokklusjon, nedskalering — i rein numpy. Ingen GPU,
 ingen OpenGL, ingen trimesh, ingen pyrender.
@@ -191,10 +191,10 @@ def _rasterize(sx, sy, zc, view: _View, attrs=None, near: float = 0.0):
     """Ei lykkje over trekantane, men alt inne i henne er numpy: kvar trekant
     vert fylt over si eiga avgrensingsboks med kantfunksjonar.
 
-    Kantfunksjonane er separable — kvart ledd er anten berre ei funksjon av
+    Kantfunksjonane er separable — kvart ledd er anten berre ein funksjon av
     kolonna eller berre av rada — så dei to todimensjonale mellomlagra er alt
     som vert allokert per trekant. Koordinatane vert flytte til hjørnet av
-    boksa fyrst; utan det taper differansen av to store produkt presisjon for
+    boksen fyrst; utan det taper differansen av to store produkt presisjon for
     små trekantar langt ute i biletet.
 
     Returnerer (zbuf, abuf) flate: (H*W,) og (H*W,K).
@@ -213,7 +213,7 @@ def _rasterize(sx, sy, zc, view: _View, attrs=None, near: float = 0.0):
     if not view.ortho:
         # Ingen klipping mot nærplanet: ein trekant som stikk bak kameraet
         # vert forkasta heilt. Det held så lenge kameraet står utanfor
-        # objektet, og feilmoden — eit hol i biletet — er tydeleg om det ikkje.
+        # objektet, og feilmoden — eit hòl i biletet — er tydeleg om det ikkje.
         ok &= zc.min(1) > near
     ar = ((sx[:, 1] - sx[:, 0]) * (sy[:, 2] - sy[:, 0])
           - (sx[:, 2] - sx[:, 0]) * (sy[:, 1] - sy[:, 0]))
@@ -299,9 +299,9 @@ def _rasterize(sx, sy, zc, view: _View, attrs=None, near: float = 0.0):
 # SKUGGEKART
 # =============================================================================
 class _Shadow:
-    """Djupna sett frå lyset, rendra ortografisk over objektets omsluttande
-    kule. Berre kastarane treng vera med: alt som fell utanfor kartet vert
-    rekna som opplyst, og golvet slepp difor å vera med i passet."""
+    """Djupna sett frå lyset, rendra ortografisk over den omsluttande kula
+    til objektet. Berre kastarane treng vera med: alt som fell utanfor kartet
+    vert rekna som opplyst, og golvet slepp difor å vera med i passet."""
 
     def __init__(self, tris, ldir, ctr, rad, res=2048):
         eye = ctr + _unit(ldir) * (rad * 3.0)
@@ -340,7 +340,7 @@ class _Shadow:
             self.disc = (0.0, 0.0, 0.0)     # lys i horisonten kastar ikkje golvskugge
 
     def _vis(self, x, y, z):
-        """PCF over 3×3 tekslar. Mjukare enn éin oppslag, men framleis éin
+        """PCF over 3×3 tekslar. Mjukare enn eitt oppslag, men framleis éin
         hard skugge — ingen kontaktflekk, ingen halvskugge.
 
         Komponentvis på x, y, z og ikkje på ei (n,3)-matrise: for golvet er
@@ -522,8 +522,8 @@ def render(tris, normals=None, cam: Camera | None = None,
     cov = np.zeros((H, W), dtype=np.float32) if alpha else None
 
     # Ei stripe som er tynnare enn ein piksel flimrar under nedskaleringa.
-    # Så heller ei litt for brei fug enn ei som kokar: golv breidda på det
-    # biletet faktisk kan oppløyse.
+    # Så heller ei litt for brei fug enn ei som kokar: set breidda ned mot
+    # det biletet faktisk kan oppløyse.
     mmpp = (cam.ortho_scale if cam.ortho
             else 2.0 * view.t * float(np.linalg.norm(view.eye - _v3(cam.target)))
             ) / max(min(Ws, Hs), 1)
@@ -550,11 +550,11 @@ def render(tris, normals=None, cam: Camera | None = None,
                               np.asarray(yv, dtype=np.float64), z)
             N = nbuf[y0:y1][yy, xx].astype(np.float64)
             N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
-            # Skalet er tynt og kutta opp; ei einsidig normal ville gjeve
-            # svarte flekkar der innsida vender mot kameraet. Snu ho i staden.
+            # Skalet er tynt og kutta opp; ein einsidig normal ville gjeve
+            # svarte flekkar der innsida vender mot kameraet. Snu han i staden.
             if cam.ortho:
                 # (1,3) og ikkje (n,3): synsretninga er den same for kvar
-                # piksel i ei parallellprojeksjon, og n er i millionar
+                # piksel i ein parallellprojeksjon, og n er i millionar
                 V = (-view.f)[None, :]
             else:
                 V = view.eye[None, :] - P

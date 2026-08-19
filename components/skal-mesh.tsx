@@ -10,7 +10,7 @@ export const MM = 1 / 250
 
 /**
  * Objektet i scena. Modellen reknar i millimeter med Z opp, som er
- * verkstadens koordinatsystem; scena har Y opp. Omrekninga skjer her og
+ * koordinatsystemet til verkstaden; scena har Y opp. Omrekninga skjer her og
  * ingen annan stad, slik at ingen tal i motoren nokon gong er i
  * «sceneeiningar».
  */
@@ -77,8 +77,8 @@ export function SkalMesh({
 
   if (!built || !box) return null
 
-  // Bjørk under kvitpigmentert olje: nesten kvit, ein anelse varm. I mørk
-  // modus vert han dempa, elles brenn objektet hol i skjermen.
+  // Bjørk under kvitpigmentert olje: nesten kvit, eit snev varm. I mørk
+  // modus vert han dempa, elles brenn objektet hòl i skjermen.
   const col = dark ? "#cfc7bb" : "#e8e1d4"
 
   return (

@@ -67,7 +67,7 @@ export const VARIANTS: readonly Variant[] = [
   {
     code: "D1",
     name: "utan sveip",
-    why: "Fjernar den fjerde opninga. Kroppen vert lukka over midja og les som ein massiv volum.",
+    why: "Fjernar den fjerde opninga. Kroppen vert lukka over midja og les som eit massivt volum.",
     against: "Baksida vert daud. Det er sveipet som gjer at objektet ikkje har ei side du ikkje viser fram.",
     over: { sweepSpan: 42, sweepH: 0.05 },
   },
@@ -75,7 +75,7 @@ export const VARIANTS: readonly Variant[] = [
     code: "D2",
     name: "opna sveip",
     why: "250 grader: opninga vert hovudsaka og skalet vert eit band.",
-    against: "Rimet mistar oppland. Setet heng på for lite gods, og regelen seier frå.",
+    against: "Rimet mistar opplegg. Setet heng på for lite gods, og regelen seier frå.",
     over: { sweepSpan: 248, sweepH: 0.24 },
   },
   {
@@ -95,14 +95,14 @@ export const VARIANTS: readonly Variant[] = [
   {
     code: "F1",
     name: "tynn plate",
-    why: "9 mm finér: 51 lag i staden for 31, og limfugene vert eit tettare mønster.",
+    why: "Tynnare plate gjev fleire lag og eit tettare mønster av limfuger — trappa på innsida vert nesten ei flate.",
     against: "Femti limfuger er femti sjansar til å bomme, og stabelen tek tre dagar til.",
     over: { plyT: 9, shellT: 10 },
   },
   {
     code: "F2",
     name: "tjukk plate",
-    why: "22 mm: 21 lag, halve limjobben, og trappa på innsida vert eit grovare og ærlegare uttrykk.",
+    why: "Tjukkare plate gjev halve limjobben, og trappa på innsida vert eit grovare og ærlegare uttrykk.",
     against: "Trappa vert så grov at ho tek over lesinga frå flata. Objektet ser stabla ut i staden for å vera det.",
     over: { plyT: 22, shellT: 18, sand: 3 },
   },

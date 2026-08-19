@@ -15,9 +15,9 @@ høgd.
 ## Kvifor dette finst
 
 Førre versjonen av prosjektet hadde to ting som ikkje var det same: ein
-modell i Python som kunne rekne, og eit verktøy i nettlesaren som kunne
-skruast på. Verktøyet kjende ikkje ryggrad, kutt eller opningar. Han var
-eit steg bak modellen — og det var verktøyet ein sat med.
+modell i Python som kunne rekne, og ein reiskap i nettlesaren som kunne
+skruast på. Reiskapen kjende ikkje ryggrad, kutt eller opningar. Han var
+eit steg bak modellen — og det var reiskapen ein sat med.
 
 Sandkassen lukkar det gapet. Feltet, flata, laga, målinga, reglane,
 kuttarket og PDF-mappa les alle frå den same koden. Eit tal på arket er
@@ -38,7 +38,7 @@ Same objekt, tre visingar, same likning:
 Det som skil ein reiskap frå ein demonstrasjon, er om han seier nei.
 Sandkassen teiknar kva som helst, men han seier frå og han seier kvifor:
 kuben, setehøgda, veltevinkelen, talet på bein, utnyttinga, eggkanten,
-den brukbare skåla, oppland for rimet, godset i den smalaste delen,
+den brukbare skåla, opplegg for rimet, godset i den smalaste delen,
 lagtalet, ryggen og klemfaren mellom delane. Harde reglar tyder at
 objektet bryt oppgåva eller ikkje kan byggjast; mjuke er val som skal stå
 på papiret i staden for i hovudet.

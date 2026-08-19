@@ -279,8 +279,8 @@ export function makeShell(p: Params): Shell {
     return n
   }
 
-  /** Skalet er 13 mm, men går ned mot 3 mm langs kanten av kvar opning.
-   *  Utan det les opningane som dører skorne i ein vegg. */
+  /** Skalet er `shellT` tjukt, men går ned mot `edgeT` langs kanten av
+   *  kvar opning. Utan det les opningane som dører skorne i ein vegg. */
   const EDGE_BAND = 0.26
   const wall = (th: number, z: number) => {
     const f = matAt(th, hOf(z)) - 1
@@ -290,10 +290,11 @@ export function makeShell(p: Params): Shell {
   }
 
   // --- setet ---------------------------------------------------------------
-  /** Radien der setet møter veggen. Han ligg 65 % inn i godset, ikkje på
-   *  innerflata: setet og veggen skal gjennomtrengja kvarandre, ikkje
-   *  tangere. To flater som berre tek borti kvarandre gjev ei skøyt som
-   *  korkje meshet, slicaren eller limfuga kan gjere noko fornuftig med. */
+  /** Radien der setet møter veggen. Han ligg på 35 % av veggtjukna, rekna
+   *  frå ytterflata, og ikkje på innerflata: setet og veggen skal
+   *  gjennomtrengja kvarandre, ikkje tangere. To flater som berre tek
+   *  borti kvarandre gjev ei skøyt som korkje meshet, slicaren eller
+   *  limfuga kan gjere noko fornuftig med. */
   const seatR = (th: number) => {
     const z = seatEdgeZ(th)
     return Math.max(10, rOuter(th, z) - wall(th, z) * 0.35)
@@ -362,58 +363,124 @@ export function makeShell(p: Params): Shell {
 // INNPASSING I KUBEN
 // =============================================================================
 /**
- * Kubekontrollen. Høgda er alt gjeve i millimeter, så det einaste som kan
- * bryta er planet: R vert skalert til objektet står inne i 500 mm med
- * ein liten klaring. Dette er kontrollen som gjer at ein kan skru fritt på
- * kvar skyvar utan å bryta oppgåva.
+ * Innpassinga i kuben.
+ *
+ * Berre planet vert passa inn. Høgda er alt gjeve i millimeter — setekanten
+ * og ryggen står nøyaktig der ein sette dei — og å skalere Z ville tyde at
+ * setehøgda ein bad om ikkje var setehøgda ein fekk. Eit for høgt objekt
+ * vert difor ikkje retta her; det vert fanga av den harde regelen «kuben»,
+ * og det er meininga: reiskapen skal seia frå, ikkje stille om.
+ *
+ * Éin omgang er nok, og det er ikkje flaks. Både ryggraden og radien er
+ * proporsjonale med R, og materialfeltet kjenner ikkje R i det heile — så
+ * heile plana skalerer eksakt lineært, og eit einaste kvotient set han rett.
+ *
+ * Marginen på 14 mm er derimot ikkje pynt. Rutenettet finn randa av kvar
+ * opning ved halvering, men det finst framleis toppar mellom to rader som
+ * eit grovt sveip ikkje ser. Målt over 31 tilfeldige objekt ligg det
+ * vidaste meshet 10,6 mm over det innpassinga trudde. Difor er dette eit
+ * anslag og ikkje ein garanti — garantien er den harde regelen «kuben».
  */
 function fitToCube(sh: Shell, box: { R: number }) {
-  const NT = 192
-  const NZ = 40
-  let minx = Infinity
-  let maxx = -Infinity
-  let miny = Infinity
-  let maxy = -Infinity
-  for (let j = 0; j <= NZ; j++) {
-    const z = (j / NZ) * sh.zTop
+  const NT = 288
+  const NZ = 56
+  const want = CUBE - 14
+
+  const span = () => {
+    let minx = Infinity
+    let maxx = -Infinity
+    let miny = Infinity
+    let maxy = -Infinity
+    const see = (x: number, y: number) => {
+      if (x < minx) minx = x
+      if (x > maxx) maxx = x
+      if (y < miny) miny = y
+      if (y > maxy) maxy = y
+    }
+    const on = (th: number, z: number) =>
+      z <= sh.rimZ(th) && sh.matAt(th, sh.hOf(z)) >= 1
+
+    // Randa av eit hòl er der ytterpunktet oftast ligg, og ho treffer
+    // sjeldan ei rad i rutenettet. Eit grovt sveip åleine bommar med opptil
+    // elleve millimeter — nok til å skyve objektet ut av kuben utan at
+    // innpassinga merkar det. Difor vert kvar overgang halvert fram, i
+    // BEGGE retningar: eit bein sluttar i ei viss høgd like ofte som ei
+    // opning sluttar i ein viss vinkel.
+    const th_ = (i: number) => (i / NT) * TAU
+    const z_ = (j: number) => (j / NZ) * sh.zTop
+    const grid: boolean[][] = []
     for (let i = 0; i < NT; i++) {
-      const th = (i / NT) * TAU
-      if (z > sh.rimZ(th) || sh.matAt(th, sh.hOf(z)) < 1) continue
-      const q = sh.outer(th, z)
-      if (q[0] < minx) minx = q[0]
-      if (q[0] > maxx) maxx = q[0]
-      if (q[1] < miny) miny = q[1]
-      if (q[1] > maxy) maxy = q[1]
-      // setekanten stikk lip millimeter lenger ut enn skalet
-      if (Math.abs(z - sh.seatEdgeZ(th)) < 1e-9) {
-        const k = (sh.rOuter(th, z) + sh.p.lip) / Math.max(sh.rOuter(th, z), 1e-6)
-        const c = sh.spine(sh.hOf(z))
-        const ex = c[0] + (q[0] - c[0]) * k
-        const ey = c[1] + (q[1] - c[1]) * k
-        if (ex < minx) minx = ex
-        if (ex > maxx) maxx = ex
-        if (ey < miny) miny = ey
-        if (ey > maxy) maxy = ey
+      const col: boolean[] = []
+      for (let j = 0; j <= NZ; j++) {
+        const yes = on(th_(i), z_(j))
+        col.push(yes)
+        if (yes) {
+          const q = sh.outer(th_(i), z_(j))
+          see(q[0], q[1])
+        }
+      }
+      grid.push(col)
+    }
+
+    for (let i = 0; i < NT; i++) {
+      const i1 = (i + 1) % NT
+      for (let j = 0; j <= NZ; j++) {
+        // overgang i vinkel
+        if (grid[i][j] !== grid[i1][j]) {
+          const z = z_(j)
+          let lo = th_(i)
+          let hi = i1 === 0 ? TAU : th_(i1)
+          const keep = grid[i][j]
+          for (let k = 0; k < 10; k++) {
+            const mid = (lo + hi) / 2
+            if (on(mid, z) === keep) lo = mid
+            else hi = mid
+          }
+          const q = sh.outer(keep ? lo : hi, z)
+          see(q[0], q[1])
+        }
+        // overgang i høgd
+        if (j < NZ && grid[i][j] !== grid[i][j + 1]) {
+          const th = th_(i)
+          let lo = z_(j)
+          let hi = z_(j + 1)
+          const keep = grid[i][j]
+          for (let k = 0; k < 10; k++) {
+            const mid = (lo + hi) / 2
+            if (on(th, mid) === keep) lo = mid
+            else hi = mid
+          }
+          const q = sh.outer(th, keep ? lo : hi)
+          see(q[0], q[1])
+        }
       }
     }
+
+    // Rimet er ei rand i høgda på same vis, og på eit objekt med rygg er
+    // det ofte der det vidaste punktet ligg.
+    for (let i = 0; i < NT; i++) {
+      const th = th_(i)
+      const z = sh.rimZ(th)
+      if (sh.matAt(th, sh.hOf(z)) < 1) continue
+      const q = sh.outer(th, z)
+      see(q[0], q[1])
+    }
+    // Setekanten stikk lip millimeter lenger ut enn skalet.
+    for (let i = 0; i < NT; i++) {
+      const th = th_(i)
+      const z = sh.seatEdgeZ(th)
+      if (sh.matAt(th, sh.hOf(z)) < 1) continue
+      const c = sh.spine(sh.hOf(z))
+      const r = sh.rOuter(th, z) + sh.p.lip
+      see(c[0] + r * Math.cos(th), c[1] + r * Math.sin(th))
+    }
+    if (!Number.isFinite(minx)) return 0
+    return Math.max(maxx - minx, maxy - miny)
   }
-  for (let i = 0; i < NT; i++) {
-    const th = (i / NT) * TAU
-    const z = sh.seatEdgeZ(th)
-    if (sh.matAt(th, sh.hOf(z)) < 1) continue
-    const c = sh.spine(sh.hOf(z))
-    const r = sh.rOuter(th, z) + sh.p.lip
-    const ex = c[0] + r * Math.cos(th)
-    const ey = c[1] + r * Math.sin(th)
-    if (ex < minx) minx = ex
-    if (ex > maxx) maxx = ex
-    if (ey < miny) miny = ey
-    if (ey > maxy) maxy = ey
-  }
-  if (!Number.isFinite(minx)) return
-  const span = Math.max(maxx - minx, maxy - miny)
-  const want = CUBE - 12
-  if (span > 0) box.R *= Math.min(2.4, want / span)
+
+  const w = span()
+  if (!(w > 0)) return
+  box.R *= Math.min(2.4, want / w)
 }
 
 // =============================================================================
@@ -421,8 +488,8 @@ function fitToCube(sh: Shell, box: { R: number }) {
 // =============================================================================
 /**
  * Den ytre plankonturen ved høgda z, sett saman av dei vinkelintervalla
- * der det faktisk er material. Kvart intervall er ein del: nede er dei tre
- * bein, oppe er dei éin lukka ring.
+ * der det faktisk er material. Kvart intervall er ein del: nede er dei eitt
+ * bein kvar — så mange som `legs` seier — og oppe er dei éin lukka ring.
  */
 export function planArcs(
   sh: Shell,

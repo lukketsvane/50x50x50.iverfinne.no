@@ -3,7 +3,7 @@
  *
  * Same objekt, lese som konstruksjon. Ein flate som er krum i to
  * retningar samstundes let seg ikkje bøyge av ei plate utan å kutte
- * henne opp; ho let seg derimot stable av flate lag og slipast ned.
+ * henne opp; ho let seg derimot stable av flate lag og slipe ned.
  *
  * Eit lag er eit vassrett snitt gjennom godset, med slipemon lagt på
  * ytterkanten og innerkanten ståande som kutta. Nede er snittet fleire
@@ -24,10 +24,10 @@ export type Part = {
   outline: Pt[]
   /** hòl inne i delen, som kutta */
   holes: Pt[][]
-  /** true når laget er ein lukka ring, false når delen er ei laus bit */
+  /** true når laget er ein lukka ring, false når delen er ein laus bit */
   ring: boolean
   /** kor mange vinkelsteg delen dekkjer — held paret mellom ytre og indre
-   *  kant eksplisitt, slik at delen kan trianguleras utan ei ear-clipping */
+   *  kant eksplisitt, slik at delen kan triangulerast utan ear-clipping */
   span: number
   area: number // mm², netto
   mass: number // kg
@@ -61,7 +61,7 @@ type Iv = { lo: number; hi: number } | null
  * normalen, ikkje vassrett, så eit vassrett snitt gjennom ein vegg som
  * ligg ned vert breitt og eitt gjennom ein vegg som står bratt vert
  * smalt — nett difor står limfugene tett der flata er bratt og spreidd
- * der ho legg seg. Vi må difor finne kva høgd på ytterflata som havnar
+ * der ho legg seg. Vi må difor finne kva høgd på ytterflata som hamnar
  * på z etter offsettet, ikkje berre trekkje frå tjukna.
  */
 function wallBand(sh: Shell, th: number, z: number, cx: number, cy: number): Iv {
@@ -119,7 +119,7 @@ function seatBand(
 export function buildStack(p: Params, shell?: Shell, nth = 360): Stack {
   const sh = shell ?? makeShell(p)
   const rho = MATERIALS[p.material].rho
-  // Høgda går sjeldan opp i platetjukna. Blir resten øvst mindre enn eit
+  // Høgda går sjeldan opp i platetjukna. Vert resten øvst mindre enn eit
   // halvt lag, vert han slått saman med laget under i staden for å bli ein
   // eigen del: ei flis på nokre millimeter let seg korkje kutta reint,
   // spenna opp eller lima på plass. Det øvste laget vert då eit fullt lag
@@ -172,6 +172,38 @@ export function buildStack(p: Params, shell?: Shell, nth = 360): Stack {
     }
 
     const parts: Part[] = []
+    /** deler eit radielt band i vinkelløp og legg ut kvart løp som ein del */
+    const emit = (hi: number[], lo: number[]) => {
+      const present = hi.map((v) => Number.isFinite(v))
+      if (present.every(Boolean)) {
+        push(
+          Array.from({ length: nth }, (_, k) => k),
+          hi,
+          lo,
+          true,
+        )
+        return
+      }
+      if (!present.some(Boolean)) return
+      let start = -1
+      for (let k = 0; k < nth; k++) {
+        if (!present[k] && present[(k + 1) % nth]) start = (k + 1) % nth
+      }
+      if (start < 0) return
+      let k = start
+      let run: number[] = []
+      const flush = () => {
+        if (!run.length) return
+        push(run, run.map((q) => hi[q]), run.map((q) => lo[q]), false)
+        run = []
+      }
+      for (let c = 0; c < nth; c++) {
+        if (present[k]) run.push(k)
+        else flush()
+        k = (k + 1) % nth
+      }
+      flush()
+    }
     const push = (
       run: number[],
       ro: number[],
@@ -190,12 +222,19 @@ export function buildStack(p: Params, shell?: Shell, nth = 360): Stack {
           const th = (run[q] / nth) * TAU
           outline.push([cx + ro[q] * Math.cos(th), cy + ro[q] * Math.sin(th)])
         }
-        const hole: Pt[] = []
-        for (let q = run.length - 1; q >= 0; q--) {
-          const th = (run[q] / nth) * TAU
-          hole.push([cx + ri[q] * Math.cos(th), cy + ri[q] * Math.sin(th)])
+        // Laget som inneheld botnen av skåla er ei full skive, ikkje ein
+        // ring. Eit hòl med null utstrekning ville kome ut i DXF-en som ein
+        // lukka bane med tre hundre hjørne i eitt og same punkt — ein
+        // kuttinstruksjon som får fresen til å dukke og stå stille.
+        const rmax = Math.max(...ri)
+        if (rmax > 2) {
+          const hole: Pt[] = []
+          for (let q = run.length - 1; q >= 0; q--) {
+            const th = (run[q] / nth) * TAU
+            hole.push([cx + ri[q] * Math.cos(th), cy + ri[q] * Math.sin(th)])
+          }
+          holes.push(hole)
         }
-        holes.push(hole)
       } else {
         for (let q = 0; q < run.length; q++) {
           const th = (run[q] / nth) * TAU
@@ -221,41 +260,15 @@ export function buildStack(p: Params, shell?: Shell, nth = 360): Stack {
       })
     }
 
-    const present = outerR.map((v) => Number.isFinite(v))
-    if (present.every(Boolean)) {
-      push(
-        Array.from({ length: nth }, (_, k) => k),
-        outerR,
-        innerR,
-        true,
-      )
-    } else if (present.some(Boolean)) {
-      let start = -1
-      for (let k = 0; k < nth; k++) if (!present[k] && present[(k + 1) % nth]) start = (k + 1) % nth
-      if (start >= 0) {
-        let k = start
-        let run: number[] = []
-        for (let c = 0; c < nth; c++) {
-          if (present[k]) run.push(k)
-          else if (run.length) {
-            push(run, run.map((q) => outerR[q]), run.map((q) => innerR[q]), false)
-            run = []
-          }
-          k = (k + 1) % nth
-        }
-        if (run.length) push(run, run.map((q) => outerR[q]), run.map((q) => innerR[q]), false)
-      }
-    }
-
-    // setet som eigen ring der det ikkje heng saman med veggen
-    if (ringHi.every((v) => Number.isFinite(v))) {
-      push(
-        Array.from({ length: nth }, (_, k) => k),
-        ringHi.map((v) => v + p.sand),
-        ringLo,
-        true,
-      )
-    }
+    // Både veggen og setet vert delte i vinkelløp på same vis. Setet fekk
+    // fyrst berre koma ut som ein heil ring, og der rimbylgja gjorde at han
+    // hang saman med veggen over ein del av omkrinsen, fall heile delen ut
+    // av kuttlista — materialet stod i feltet, men på ingen plate.
+    emit(outerR, innerR)
+    emit(
+      ringHi.map((v) => (Number.isFinite(v) ? v + p.sand : NaN)),
+      ringLo,
+    )
 
     for (const q of parts) totArea += q.area
     nParts += parts.length
