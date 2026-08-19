@@ -1,0 +1,113 @@
+/// <reference lib="webworker" />
+/**
+ * SANDKASSE — motoren i eigen tråd.
+ *
+ * Hovudtråden teiknar, og gjer ikkje anna. Alt som rører geometri ligg her,
+ * og arbeidaren veit ikkje kva typologi han byggjer: han slår opp motoren i
+ * registeret og kallar kontrakten. Difor kostar ein ny typologi ei mappe og
+ * ei line i `lib/engines.ts`, og ingen ting i grensesnittet.
+ */
+import { getEngine, isEngineId } from "./engines"
+export type { DetailKey } from "./core"
+import type {
+  DetailKey,
+  EngineId,
+  ExportKind,
+  Metrics,
+  ParamBag,
+  Rule,
+  Vec3,
+  View,
+} from "./core"
+
+export type BuildReq = {
+  kind: "build"
+  id: number
+  engine: EngineId
+  params: ParamBag
+  detail: DetailKey
+  view: View
+}
+export type ExportReq = {
+  kind: "export"
+  id: number
+  engine: EngineId
+  params: ParamBag
+  what: ExportKind
+}
+export type Req = BuildReq | ExportReq
+
+export type BuildRes = {
+  kind: "build"
+  id: number
+  engine: EngineId
+  view: View
+  positions: Float32Array<ArrayBufferLike>
+  normals: Float32Array<ArrayBufferLike>
+  tris: number
+  min: Vec3
+  max: Vec3
+  lines: Float32Array<ArrayBufferLike>
+  heavy: Float32Array<ArrayBufferLike>
+  metrics: Metrics
+  rules: Rule[]
+}
+export type ExportRes = {
+  kind: "export"
+  id: number
+  name: string
+  mime: string
+  text?: string
+  data?: ArrayBuffer
+}
+export type Res = BuildRes | ExportRes
+
+function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
+  const eng = getEngine(req.engine)
+  // Målinga går uansett kva lesemåte som står på: eit tal som berre finst i
+  // «flate» ville forsvinne når ein byter til «lag», og då er tabellen ikkje
+  // lenger den same tabellen.
+  const metrics = eng.measure(req.params)
+  const rules = eng.rules(req.params, metrics)
+  const out = eng.build(req.params, req.detail, req.view)
+
+  const res: BuildRes = {
+    kind: "build",
+    id: req.id,
+    engine: req.engine,
+    view: req.view,
+    ...out,
+    metrics,
+    rules,
+  }
+  // Berre bufferar med innhald vert overførte, og kvar buffer berre éin gong:
+  // same buffer to gonger i lista er ein DataCloneError, og han tek heile
+  // meldinga med seg.
+  const transfer: Transferable[] = []
+  for (const a of [out.positions, out.normals, out.lines, out.heavy]) {
+    if (a.byteLength && !transfer.includes(a.buffer)) transfer.push(a.buffer)
+  }
+  return { res, transfer }
+}
+
+function doExport(req: ExportReq): { res: ExportRes; transfer: Transferable[] } {
+  const out = getEngine(req.engine).exportFile(req.params, req.what)
+  return {
+    res: { kind: "export", id: req.id, ...out },
+    transfer: out.data ? [out.data] : [],
+  }
+}
+
+self.onmessage = (e: MessageEvent<Req>) => {
+  const req = e.data
+  if (!isEngineId(req.engine)) return
+  try {
+    const out = req.kind === "build" ? build(req) : doExport(req)
+    ;(self as unknown as Worker).postMessage(out.res, out.transfer)
+  } catch (err) {
+    // Ein parameterkombinasjon som får motoren til å gje opp er ein feil i
+    // motoren, ikkje i brukaren. Meld frå i konsollen og lat den førre
+    // bygginga bli ståande, i staden for å svartleggje lerretet.
+    console.error("sandkasse: bygginga slo feil", err)
+  }
+}

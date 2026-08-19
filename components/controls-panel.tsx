@@ -3,17 +3,16 @@
 import { useCallback, useMemo, useRef, useState, type JSX, type PointerEvent } from "react"
 import {
   CUBE,
-  GROUPS,
   MATERIALS,
-  PARAM_RANGES,
+  type EngineId,
   type Material,
-  type ParamKey,
-  type Params,
+  type Metrics,
+  type ParamBag,
   type Range,
-} from "@/lib/skal/params"
-import type { Metrics } from "@/lib/skal/metrics"
-import type { Rule } from "@/lib/skal/rules"
-import type { Stack } from "@/lib/skal/laminae"
+  type Rule,
+  type View,
+} from "@/lib/core"
+import { ENGINES, getEngine } from "@/lib/engines"
 
 /**
  * SANDKASSE — kontrollflata.
@@ -29,14 +28,14 @@ import type { Stack } from "@/lib/skal/laminae"
  * poenget med sandkassen borte.
  */
 
-export type View = "flate" | "lag" | "kontur"
-
 /** Dei tre lesemåtane. Same objekt, tre måtar å sjå det på — ikkje tre
- *  innstillingar, difor står dei øvst og ikkje inne i ein meny. */
+ *  innstillingar, difor står dei øvst og ikkje inne i ein meny. Kva dei
+ *  tyder er opp til motoren: «lag» er stabelen i SKAL, finnane i STRAUM og
+ *  blada i RIBBE, men lesinga er den same — dette er delane. */
 const VIEWS: readonly { id: View; label: string; hint: string }[] = [
-  { id: "flate", label: "flate", hint: "ytterflata slik ho står ferdig slipt" },
-  { id: "lag", label: "lag", hint: "kvart finérlag som eigen kropp" },
-  { id: "kontur", label: "kontur", hint: "lagkantane sedde rett ovanfrå" },
+  { id: "flate", label: "flate", hint: "flata objektet nærmar seg, ferdig" },
+  { id: "lag", label: "lag", hint: "delane slik dei faktisk er, montert" },
+  { id: "kontur", label: "kontur", hint: "dei flate kuttprofilane, ovanfrå" },
 ]
 
 const EXPORTS: readonly { id: "stl" | "dxf" | "svg" | "ark"; label: string; hint: string }[] = [
@@ -63,16 +62,8 @@ const decimals = (step: number) => (step >= 1 ? 0 : step >= 0.1 ? 1 : step >= 0.
 const snap = (v: number, r: Range) =>
   !Number.isFinite(v) ? r.min : r.int ? Math.round(v) : +v.toFixed(4)
 
-/**
- * Params har berre talfelt utanom `material`, og ParamKey utelukkar nettopp
- * det feltet — indekseringa er difor trygg, men typane kjem ikkje fram til
- * det utan denne omvegen. Same grep som `setNum` i params.ts.
- */
-function withParam(p: Params, k: ParamKey, v: number): Params {
-  const next: Params = { ...p }
-  ;(next as unknown as Record<ParamKey, number>)[k] = v
-  return next
-}
+const num = (p: ParamBag, k: string, fallback: number) =>
+  typeof p[k] === "number" ? (p[k] as number) : fallback
 
 type Row = {
   label: string
@@ -90,7 +81,7 @@ const MOBILE_ROWS = new Set(["ytre mål", "sitjehøgd", "veltevinkel", "masse"])
  * (kuben), så det kroppen spør om (setet), så det golvet spør om (foten),
  * og til sist det verkstaden spør om (lag, delar, masse, utnytting).
  */
-function tableRows(m: Metrics | null, layers: number, parts: number): Row[] {
+function tableRows(m: Metrics | null): Row[] {
   if (!m) {
     const tom = (label: string, unit: string, rule?: string): Row => ({
       label,
@@ -103,13 +94,12 @@ function tableRows(m: Metrics | null, layers: number, parts: number): Row[] {
       tom("klaring", "mm", "kube"),
       tom("setekant", "mm"),
       tom("sitjehøgd", "mm", "setehogd"),
-      tom("brukbar skål", "mm", "skal"),
-      tom("skåldjupn", "mm", "skaldjupn"),
+      tom("sitjeflate", "mm", "skal"),
       tom("fotavtrykk", "mm", "bein"),
       tom("støtteflate", "cm²", "bein"),
       tom("veltevinkel", "°", "velte"),
       tom("masse", "kg"),
-      tom("lag · delar", "stk", "lagtal"),
+      tom("delar", "stk", "lagtal"),
       tom("utnytting", "%", "utnytting"),
     ]
   }
@@ -130,53 +120,57 @@ function tableRows(m: Metrics | null, layers: number, parts: number): Row[] {
     // Setekanten er ikkje der ein sit. På ei skål ligg dei tretti
     // millimeter frå kvarandre, og det er sitjehøgda regelen les.
     { label: "sitjehøgd", value: n0(m.sitZ), unit: "mm", rule: "setehogd" },
-    { label: "brukbar skål", value: `${n0(m.dishW)} × ${n0(m.dishD)}`, unit: "mm", rule: "skal" },
-    { label: "skåldjupn", value: n1(m.dishDepth), unit: "mm", rule: "skaldjupn" },
+    { label: "sitjeflate", value: `${n0(m.seatW)} × ${n0(m.seatD)}`, unit: "mm", rule: "skal" },
     { label: "fotavtrykk", value: `${n0(m.footX)} × ${n0(m.footY)}`, unit: "mm", rule: "bein" },
     { label: "støtteflate", value: n0(m.footArea / 100), unit: "cm²", rule: "bein" },
     { label: "veltevinkel", value: n1(m.tipAngle), unit: "°", rule: "velte" },
     // ferdig masse, ikkje som kutta: slipemonet ligg att som støv på golvet
     { label: "masse", value: n2(m.mass), unit: "kg" },
-    { label: "lag · delar", value: `${n0(layers)} · ${n0(parts)}`, unit: "stk", rule: "lagtal" },
+    {
+      label: `${m.unitLabel} · delar`,
+      value: `${n0(m.units)} · ${n0(m.parts)}`,
+      unit: "stk",
+      rule: "lagtal",
+    },
     { label: "utnytting", value: n0(m.util * 100), unit: "%", rule: "utnytting" },
   ]
 }
 
+
 export function ControlsPanel(props: {
-  params: Params
+  engine: EngineId
+  params: ParamBag
   metrics: Metrics | null
   rules: Rule[]
-  stack: Stack | null
-  /** same tala som stabelen, når studioet berre har fått samandraget frå tråden */
-  stat?: { layers: number; parts: number; area: number; mass: number } | null
   view: View
   seed: string
-  locked: ReadonlySet<ParamKey>
+  locked: ReadonlySet<string>
   hiDetail: boolean
   isDesktop: boolean
   busy: boolean
-  onChange: (p: Params) => void
+  onEngine: (e: EngineId) => void
+  onChange: (p: ParamBag) => void
   onView: (v: View) => void
   onSeed: (s: string) => void
   onShuffle: () => void
   onReset: () => void
-  onToggleLock: (k: ParamKey) => void
+  onToggleLock: (k: string) => void
   onToggleDetail: () => void
   onExport: (kind: "stl" | "dxf" | "svg" | "ark") => void
   onShare: () => void
 }): JSX.Element {
   const {
+    engine,
     params,
     metrics,
     rules,
-    stack,
-    stat,
     view,
     seed,
     locked,
     hiDetail,
     isDesktop,
     busy,
+    onEngine,
     onChange,
     onView,
     onSeed,
@@ -205,9 +199,8 @@ export function ControlsPanel(props: {
 
   const failed = useMemo(() => rules.filter((r) => !r.ok), [rules])
 
-  const layers = stack?.count ?? stat?.layers ?? metrics?.layers ?? NaN
-  const parts = stack?.parts ?? stat?.parts ?? metrics?.parts ?? NaN
-  const allRows = useMemo(() => tableRows(metrics, layers, parts), [metrics, layers, parts])
+  const eng = getEngine(engine)
+  const allRows = useMemo(() => tableRows(metrics), [metrics])
   // På mobilen tek arket halve skjermen om heile tavla står open, og då er
   // det objektet som forsvinn — som er det einaste ein eigentleg er her for
   // å sjå. Er arket lagt saman, viser vi difor berre dei tala som kan gjere
@@ -221,8 +214,9 @@ export function ControlsPanel(props: {
   )
 
   const setParam = useCallback(
-    (k: ParamKey, raw: string) => onChange(withParam(params, k, snap(Number(raw), PARAM_RANGES[k]))),
-    [params, onChange],
+    (k: string, raw: string) =>
+      onChange({ ...params, [k]: snap(Number(raw), eng.ranges[k]) }),
+    [params, onChange, eng],
   )
 
   // Arket nedst på mobilen. Draget og klikket deler same knapp, så eit drag
@@ -303,6 +297,36 @@ export function ControlsPanel(props: {
             style={{ background: "color-mix(in srgb, var(--ink) 45%, transparent)" }}
           />
         </button>
+
+        {/* --- typologien --------------------------------------------- */}
+        {/* Nedtrekket byter MOTOR og ikkje form. Dei fire er fire måtar å
+            byggje ei krum sitjeflate av flate plater, og kvar av dei har sitt
+            eige parameterrom, sine eigne ledd og si eiga grense. Kvar motor
+            held på sitt eige punkt: byter du fram og attende, står objektet
+            der du forlét det. */}
+        <div className="mb-3 flex shrink-0 items-baseline justify-between gap-3 border-b pb-2"
+             style={{ borderColor: "var(--rule)" }}>
+          <label
+            htmlFor="sandkasse-motor"
+            className="shrink-0 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35"
+          >
+            typologi
+          </label>
+          <select
+            id="sandkasse-motor"
+            value={engine}
+            onChange={(e) => onEngine(e.target.value as EngineId)}
+            className="min-w-0 flex-1 cursor-pointer appearance-none bg-transparent text-right text-[12px] leading-none tracking-[0.06em] outline-none"
+            style={{ color: "var(--ink)" }}
+          >
+            {ENGINES.map((e) => (
+              <option key={e.id} value={e.id} style={{ color: "#111" }}>
+                {e.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="mb-3 shrink-0 text-[10px] leading-[1.5] opacity-45">{eng.note}</p>
 
         {/* --- dei tre lesemåtane -------------------------------------- */}
         <div className="flex shrink-0 items-center justify-between gap-2">
@@ -425,13 +449,13 @@ export function ControlsPanel(props: {
             id="sandkasse-skruar"
             className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pb-1"
           >
-            {GROUPS.map((g) => (
+            {eng.groups.map((g) => (
               <div key={g.id} className="mb-4">
                 <h3 className="mb-2 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
                   {g.label}
                 </h3>
                 {g.keys.map((k) => {
-                  const r = PARAM_RANGES[k]
+                  const r = eng.ranges[k]
                   const isLocked = locked.has(k)
                   return (
                     <div key={k} className="mb-2">
@@ -462,7 +486,9 @@ export function ControlsPanel(props: {
                           className="tab shrink-0 text-[11px] leading-4"
                           style={{ opacity: isLocked ? 0.55 : 0.85 }}
                         >
-                          {params[k].toFixed(decimals(r.step)).replace(".", ",")}
+                          {num(params, k, r.min)
+                            .toFixed(decimals(r.step))
+                            .replace(".", ",")}
                           <span className="pl-1 opacity-45">{r.unit ?? ""}</span>
                         </span>
                       </div>

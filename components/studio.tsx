@@ -1,19 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  DEFAULT_PARAMS,
-  NUDGE_PARAMS,
-  PARAM_RANGES,
-  clampParams,
-  randomParams,
-  seeded,
-  type ParamKey,
-  type Params,
-} from "@/lib/skal/params"
-import type { BuildRes, DetailKey, Req, Res, View } from "@/lib/skal/worker"
-import type { Metrics } from "@/lib/skal/metrics"
-import type { Rule } from "@/lib/skal/rules"
+import { ENGINES, getEngine, isEngineId } from "@/lib/engines"
+import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
+import { seeded } from "@/lib/core"
+import type { BuildRes, DetailKey, Req, Res } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
 import { ControlsPanel } from "./controls-panel"
 import type { NudgeAxis } from "./gesture-params"
@@ -45,11 +36,24 @@ function useIsDesktop() {
   return desktop
 }
 
+type Bags = Record<string, ParamBag>
+type Locks = Record<string, ReadonlySet<string>>
+
+const initialBags = (): Bags =>
+  Object.fromEntries(ENGINES.map((e) => [e.id, { ...e.defaults }]))
+const initialLocks = (): Locks =>
+  Object.fromEntries(ENGINES.map((e) => [e.id, new Set<string>()]))
+
 export function Studio() {
-  const [params, setParams] = useState<Params>(DEFAULT_PARAMS)
+  // Kvar motor held på sitt eige punkt. Byter du frå SKAL til STRAUM og
+  // attende, står SKAL-objektet der du forlét det — eit tal i eitt
+  // parameterrom tyder ikkje noko i eit anna, så det finst ingen fornuftig
+  // måte å ta med seg eit design over ei motorgrense på.
+  const [engine, setEngine] = useState<EngineId>("skal")
+  const [bags, setBags] = useState<Bags>(initialBags)
+  const [locks, setLocks] = useState<Locks>(initialLocks)
   const [view, setView] = useState<View>("flate")
-  const [seed, setSeed] = useState("SKAL")
-  const [locked, setLocked] = useState<ReadonlySet<ParamKey>>(new Set())
+  const [seed, setSeed] = useState("")
   const [hiDetail, setHiDetail] = useState(false)
   const [cube, setCube] = useState(true)
   const [light, setLight] = useState<LightDir>({ az: 0.62, el: 0.92 })
@@ -59,40 +63,44 @@ export function Studio() {
   const dark = useSystemDark()
   const isDesktop = useIsDesktop()
 
+  const eng = getEngine(engine)
+  const params = bags[engine] ?? eng.defaults
+  const locked = locks[engine] ?? new Set<string>()
+
   const worker = useRef<Worker | null>(null)
   const reqId = useRef(0)
   const shown = useRef(0)
 
-  // Hashen er ikkje til å stole på: kvart felt vert lese for seg og klemt
-  // inn i sitt eige band av clampParams, så inga laga lenkje kan skyve
-  // NaN eller fiendtlege verdiar inn i motoren.
+  // Hashen er ikkje til å stole på: kvart felt vert lese for seg og klemt inn
+  // i sitt eige band av motoren sin eigen clamp, så inga laga lenkje kan
+  // skyve NaN eller framande verdiar inn i geometrien.
   useEffect(() => {
     setMounted(true)
     try {
       const h = window.location.hash.slice(1)
-      if (h.startsWith("p=")) {
-        const obj = JSON.parse(decodeURIComponent(h.slice(2)))
-        setParams((prev) => clampParams(obj, prev))
-        const v = (obj as { view?: string }).view
-        if (v === "lag" || v === "kontur" || v === "flate") setView(v)
-      }
+      if (!h.startsWith("p=")) return
+      const obj = JSON.parse(decodeURIComponent(h.slice(2))) as Record<string, unknown>
+      const id = isEngineId(obj.engine) ? obj.engine : "skal"
+      const e = getEngine(id)
+      setEngine(id)
+      setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
+      const v = obj.view
+      if (v === "lag" || v === "kontur" || v === "flate") setView(v)
     } catch {
-      // øydelagd hash — la standardobjektet stå
+      // øydelagd hash — lat standardobjektet stå
     }
   }, [])
 
   useEffect(() => {
-    // ES-modul-worker: bundlaren treng type-flagget for å gje tråden sin
-    // eigen modulgraf. Utan det peikar han på ein chunk som aldri vart skriven.
-    const w = new Worker(new URL("../lib/skal/worker.ts", import.meta.url), {
+    const w = new Worker(new URL("../lib/worker.ts", import.meta.url), {
       type: "module",
     })
     worker.current = w
     w.onmessage = (e: MessageEvent<Res>) => {
       const r = e.data
       if (r.kind === "build") {
-        // eit svar som er eldre enn det sist viste er alltid forelda:
-        // meldingane kjem ikkje nødvendigvis i den rekkjefylgja dei vart sende
+        // Eit svar som er eldre enn det sist viste er alltid forelda:
+        // meldingane kjem ikkje nødvendigvis i den rekkjefylgja dei vart sende.
         if (r.id < shown.current) return
         shown.current = r.id
         setData(r)
@@ -118,19 +126,18 @@ export function Studio() {
 
   const detail: DetailKey = hiDetail && isDesktop ? "hog" : isDesktop ? "mid" : "lav"
 
-  // Bygginga vert utsett ein knapp ramme: ein skyvar som vert dregen
-  // sender elles tjue førespurnader i sekundet, og motoren rekk berre
-  // å kaste dei.
+  // Bygginga vert utsett ein knapp ramme: ein skyvar som vert dregen sender
+  // elles tjue førespurnader i sekundet, og motoren rekk berre å kaste dei.
   useEffect(() => {
     if (!mounted) return
     setBusy(true)
     const t = window.setTimeout(() => {
       const id = ++reqId.current
-      const msg: Req = { kind: "build", id, params, detail, view }
+      const msg: Req = { kind: "build", id, engine, params, detail, view }
       worker.current?.postMessage(msg)
     }, 90)
     return () => window.clearTimeout(t)
-  }, [params, detail, view, mounted])
+  }, [engine, params, detail, view, mounted])
 
   // URL-en kodar alltid det objektet som står på skjermen
   useEffect(() => {
@@ -139,21 +146,32 @@ export function Studio() {
       window.history.replaceState(
         null,
         "",
-        "#p=" + encodeURIComponent(JSON.stringify({ ...params, view })),
+        "#p=" + encodeURIComponent(JSON.stringify({ engine, ...params, view })),
       )
     }, 500)
     return () => window.clearTimeout(t)
-  }, [params, view, mounted])
+  }, [engine, params, view, mounted])
 
-  const nudge = useCallback((axis: NudgeAxis, deltaPx: number) => {
-    const key = NUDGE_PARAMS[axis]
-    const r = PARAM_RANGES[key]
-    const frac = deltaPx / NUDGE_RANGE_PX
-    setParams((p) => {
-      const v = Math.min(r.max, Math.max(r.min, p[key] + frac * (r.max - r.min)))
-      return { ...p, [key]: +v.toFixed(4) }
-    })
-  }, [])
+  const setParams = useCallback(
+    (p: ParamBag) => setBags((b) => ({ ...b, [engine]: p })),
+    [engine],
+  )
+
+  const nudge = useCallback(
+    (axis: NudgeAxis, deltaPx: number) => {
+      const key = eng.nudge[axis]
+      const r = eng.ranges[key]
+      if (!r) return
+      const frac = deltaPx / NUDGE_RANGE_PX
+      setBags((b) => {
+        const cur = b[engine] ?? eng.defaults
+        const at = typeof cur[key] === "number" ? (cur[key] as number) : r.min
+        const v = Math.min(r.max, Math.max(r.min, at + frac * (r.max - r.min)))
+        return { ...b, [engine]: { ...cur, [key]: +v.toFixed(4) } }
+      })
+    },
+    [engine, eng],
+  )
 
   const nudgeLight = useCallback((dx: number, dy: number) => {
     setLight((l) => ({
@@ -162,35 +180,53 @@ export function Studio() {
     }))
   }, [])
 
+  // Terningen kryssar aldri ei motorgrense.
   const shuffle = useCallback(() => {
-    setParams((p) => randomParams(seeded(seed + ":" + Date.now()), p, locked))
-  }, [seed, locked])
+    setBags((b) => ({
+      ...b,
+      [engine]: eng.random(
+        seeded(engine + ":" + seed + ":" + Date.now()),
+        b[engine] ?? eng.defaults,
+        locks[engine] ?? new Set<string>(),
+      ),
+    }))
+  }, [engine, eng, seed, locks])
 
-  // Frøet er ikkje ein terning: same tekst gjev alltid same objekt, så
-  // «Iver» er eitt bestemt punkt i rommet og kan skrivast ned.
+  // Frøet er ikkje ein terning: same tekst gjev alltid same objekt, så «Iver»
+  // er eitt bestemt punkt i rommet og kan skrivast ned.
   useEffect(() => {
-    if (!mounted || seed === "SKAL") return
-    setParams((p) => randomParams(seeded(seed), p, locked))
-    // frøet skal berre slå til når teksten endrar seg
+    if (!mounted || !seed) return
+    setBags((b) => ({
+      ...b,
+      [engine]: eng.random(
+        seeded(engine + ":" + seed),
+        b[engine] ?? eng.defaults,
+        locks[engine] ?? new Set<string>(),
+      ),
+    }))
+    // frøet skal berre slå til når teksten eller motoren endrar seg
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seed])
+  }, [seed, engine])
 
-  const toggleLock = useCallback((k: ParamKey) => {
-    setLocked((s) => {
-      const n = new Set(s)
-      if (n.has(k)) n.delete(k)
-      else n.add(k)
-      return n
-    })
-  }, [])
+  const toggleLock = useCallback(
+    (k: string) => {
+      setLocks((L) => {
+        const cur = new Set(L[engine] ?? [])
+        if (cur.has(k)) cur.delete(k)
+        else cur.add(k)
+        return { ...L, [engine]: cur }
+      })
+    },
+    [engine],
+  )
 
   const doExport = useCallback(
     (what: "stl" | "dxf" | "svg" | "ark") => {
       setBusy(true)
-      const msg: Req = { kind: "export", id: ++reqId.current, params, what }
+      const msg: Req = { kind: "export", id: ++reqId.current, engine, params, what }
       worker.current?.postMessage(msg)
     },
-    [params],
+    [engine, params],
   )
 
   const share = useCallback(() => {
@@ -199,15 +235,19 @@ export function Studio() {
     else void navigator.clipboard?.writeText(url)
   }, [])
 
-  const metrics: Metrics | null = data?.metrics ?? null
-  const rules: Rule[] = useMemo(() => data?.rules ?? [], [data])
+  // Eit svar frå ein annan motor enn den som står på er forelda uansett kor
+  // nytt det er: byter ein motor midt i ei bygging, skal ikkje det gamle
+  // objektet bli ståande på scena med den nye tabellen ved sida av.
+  const live = data && data.engine === engine ? data : null
+  const metrics: Metrics | null = live?.metrics ?? null
+  const rules: Rule[] = useMemo(() => live?.rules ?? [], [live])
 
   return (
     <main className="fixed inset-0 overflow-hidden" style={{ background: "var(--paper)" }}>
       <div className="absolute inset-0">
         {mounted && (
           <Viewer
-            data={data}
+            data={live}
             view={view}
             dark={dark}
             hiDetail={hiDetail && isDesktop}
@@ -247,22 +287,22 @@ export function Studio() {
       </header>
 
       <ControlsPanel
+        engine={engine}
         params={params}
         metrics={metrics}
         rules={rules}
-        stack={null}
-        stat={data?.stat ?? null}
         view={view}
         seed={seed}
         locked={locked}
         hiDetail={hiDetail}
         isDesktop={isDesktop}
         busy={busy}
+        onEngine={setEngine}
         onChange={setParams}
         onView={setView}
         onSeed={setSeed}
         onShuffle={shuffle}
-        onReset={() => setParams(DEFAULT_PARAMS)}
+        onReset={() => setParams({ ...eng.defaults })}
         onToggleLock={toggleLock}
         onToggleDetail={() => setHiDetail((d) => !d)}
         onExport={doExport}
