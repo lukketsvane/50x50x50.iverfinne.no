@@ -66,7 +66,11 @@ export type ExportRes = {
   text?: string
   data?: ArrayBuffer
 }
-export type Res = BuildRes | MaalRes | ExportRes
+/** Eit bygg som kasta. Svaret finst av éin grunn: porten i studioen slepp
+ *  ikkje neste førespurnad før han har fått svar på den førre, og eit
+ *  unntak utan svar ville låse heile appen for alltid. */
+export type FeilRes = { kind: "feil"; id: number }
+export type Res = BuildRes | MaalRes | ExportRes | FeilRes
 
 function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
   const out = getEngine(req.engine).build(req.params, req.detail, req.view)
@@ -141,8 +145,12 @@ self.onmessage = (e: MessageEvent<Req>) => {
     }, 100)
   } catch (err) {
     // Ein parameterkombinasjon som får motoren til å gje opp er ein feil i
-    // motoren, ikkje i brukaren. Meld frå i konsollen og lat den førre
-    // bygginga bli ståande, i staden for å svartleggje lerretet.
+    // motoren, ikkje i brukaren. Meld frå i konsollen, lat den førre
+    // bygginga bli ståande — og SVAR, alltid: porten på hovudtråden ventar
+    // på dette svaret, og utan det står appen fastlåst til sida vert lasta
+    // på nytt.
     console.error("sandkasse: bygginga slo feil", err)
+    const res: FeilRes = { kind: "feil", id: req.id }
+    ;(self as unknown as Worker).postMessage(res)
   }
 }

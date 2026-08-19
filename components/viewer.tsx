@@ -2,7 +2,7 @@
 
 import { Canvas, useThree } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
-import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
 import type { BuildRes } from "@/lib/worker"
 import type { View } from "@/lib/core"
@@ -107,6 +107,15 @@ export function Viewer({
     return [h * Math.cos(light.az), R * Math.sin(light.el), h * Math.sin(light.az)]
   }, [light])
   const [fit, setFit] = useState<{ r: number; cy: number } | null>(null)
+  // Stabil identitet heile vegen, elles går scena i sjølvsving: ein
+  // onFit-lambda laga på nytt per teikning fyrer ObjectMesh sin effekt på
+  // nytt, effekten lagar eit nytt fit-objekt, det nye objektet teiknar
+  // Viewer på nytt — og løkkja et heile hovudtråden, for alltid. På ein
+  // rask maskin merkast det som varme; på ein telefon som at sida frys.
+  // Same verdiar gjev difor same objekt att, og då stoggar React runden.
+  const handleFit = useCallback((r: number, cy: number) => {
+    setFit((prev) => (prev && prev.r === r && prev.cy === cy ? prev : { r, cy }))
+  }, [])
 
   return (
     <Canvas
@@ -144,7 +153,7 @@ export function Viewer({
             data={data}
             view={view}
             dark={dark}
-            onFit={(r, cy) => setFit({ r, cy })}
+            onFit={handleFit}
           />
           <CubeCage show={cube} dark={dark} />
           {!dark && (

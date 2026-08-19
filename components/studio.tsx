@@ -133,6 +133,13 @@ export function Studio() {
         if (r.id >= reqId.current) setBusy(false)
         return
       }
+      if (r.kind === "feil") {
+        // bygget kasta: slepp porten fri og lat det førre objektet stå
+        inFlight.current = false
+        pump()
+        if (r.id >= reqId.current) setBusy(false)
+        return
+      }
       const blob = r.text
         ? new Blob([r.text], { type: r.mime })
         : new Blob([r.data as ArrayBuffer], { type: r.mime })
