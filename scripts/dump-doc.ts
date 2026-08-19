@@ -91,15 +91,20 @@ function areaProfile(p: Params, n = 160) {
 function fieldGrid(p: Params, nth = 360, nh = 180) {
   const sh = makeShell(p)
   const v = new Array<number>(nth * nh)
+  // Over rimet er det korkje material eller opning — det er utanfor
+  // objektet. Held ein ikkje dei to frå kvarandre, les rektangelet som om
+  // heile lufta over ryggen var eit hòl nokon hadde skore.
+  const above = new Array<number>(nth * nh)
   for (let j = 0; j < nh; j++) {
     const h = j / (nh - 1)
     for (let i = 0; i < nth; i++) {
       const th = (i / nth) * TAU
-      const above = h * sh.zTop > sh.rimZ(th)
-      v[j * nth + i] = above ? 0 : sh.matAt(th, h)
+      const over = h * sh.zTop > sh.rimZ(th)
+      above[j * nth + i] = over ? 1 : 0
+      v[j * nth + i] = sh.matAt(th, h)
     }
   }
-  return { nth, nh, values: v.map((x) => +x.toFixed(3)) }
+  return { nth, nh, values: v.map((x) => +x.toFixed(3)), above }
 }
 
 /** ryggrad, vriding, midje og akseforhold gjennom høgda */

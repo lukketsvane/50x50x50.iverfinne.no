@@ -68,10 +68,15 @@ const EMPTY = new Float32Array(0)
 function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
   const sh = makeShell(req.params)
   const stack: Stack = buildStack(req.params, sh)
-  const metrics = measure(req.params)
+
+  // Skalet vert bygd uansett kva lesemåte som står på, av di målinga
+  // treng det: eit tal som berre finst i «flate» ville forsvinne når ein
+  // byter til «lag», og då er tabellen ikkje lenger den same tabellen.
+  const skin = buildMesh(req.params, DETAIL[req.detail], sh)
+  const metrics = measure(req.params, { shell: sh, mesh: skin, stack })
   const rules = checkRules(req.params, metrics)
 
-  let mesh: MeshData
+  let mesh: MeshData = skin
   let lines: Float32Array<ArrayBufferLike> = EMPTY
   let heavy: Float32Array<ArrayBufferLike> = EMPTY
   if (req.view === "lag") {
@@ -84,11 +89,9 @@ function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
       positions: EMPTY,
       normals: EMPTY,
       tris: 0,
-      min: [stack.layers.length ? -1 : 0, 0, 0],
-      max: [0, 0, sh.zTop],
+      min: [sh.R * -1, sh.R * -1, 0],
+      max: [sh.R, sh.R, sh.zTop],
     }
-  } else {
-    mesh = buildMesh(req.params, DETAIL[req.detail], sh)
   }
 
   const res: BuildRes = {
