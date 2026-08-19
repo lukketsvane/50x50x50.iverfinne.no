@@ -14,6 +14,7 @@
  *   h  z normalisert mot toppen av objektet, [0,1]
  *   r  radius frå ryggraden si plassering i det planet
  */
+import { keep } from "../core"
 import { CUBE, type Params } from "./params"
 
 const TAU = Math.PI * 2
@@ -97,7 +98,14 @@ function superR(thLocal: number, n: number, asp: number): number {
 // =============================================================================
 // KONSTRUKSJON
 // =============================================================================
+const SKAL_HUGS = keep<Shell>(3)
+/** Skalet for eit punkt vert reist éin gong og lese tre gonger: av bygget,
+ *  av målinga og av reglane. Hugsen er det som gjer dei tre til éin. */
 export function makeShell(p: Params): Shell {
+  return SKAL_HUGS(JSON.stringify(p), () => makeShellRaw(p))
+}
+
+function makeShellRaw(p: Params): Shell {
   const finDir = p.finDir * DEG
   const finHalf = Math.max(6 * DEG, (p.finWide * DEG) / 2)
   const rimPhase = p.rimPhase * DEG

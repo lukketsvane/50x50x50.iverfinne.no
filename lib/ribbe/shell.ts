@@ -16,7 +16,7 @@
  * treng 22·15/2π = 52,5 mm radius berre for å stå ved sida av kvarandre;
  * den indre kanten vert klemd mot det talet og ikkje mot ein ynskjeverdi.
  */
-import { CUBE, smooth, superR } from "../core"
+import { CUBE, keep, smooth, superR } from "../core"
 import type { Params } from "./params"
 
 const TAU = Math.PI * 2
@@ -59,7 +59,12 @@ export type Shell = {
   seatSurf(th: number, r: number): number
 }
 
+const SKAL_HUGS = keep<Shell>(3)
 export function makeShell(p: Params): Shell {
+  return SKAL_HUGS(JSON.stringify(p), () => makeShellRaw(p))
+}
+
+function makeShellRaw(p: Params): Shell {
   const n = Math.max(3, Math.round(p.blades))
   const tw = p.twist * DEG
   const zBlade = Math.max(60, p.seatZ - p.seatT)

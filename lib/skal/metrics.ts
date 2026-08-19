@@ -25,7 +25,7 @@ import { makeShell, planArcs, wrapPi, type Shell } from "./field"
 import { buildStack, type Stack, type Pt } from "./laminae"
 import { buildMesh, DETAIL, type MeshData } from "./surface"
 import { CUBE, MATERIALS, type Params } from "./params"
-import type { Metrics as Core } from "../core"
+import { keep, type Metrics as Core } from "../core"
 
 const TAU = Math.PI * 2
 const DEG = Math.PI / 180
@@ -255,6 +255,8 @@ function meshVolume(m: { positions: Float32Array; tris: number }): [number, numb
 }
 
 
+const MAAL_NETT = keep<MeshData>(2)
+
 export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   const sh = pre.shell ?? makeShell(p)
   const mat = MATERIALS[p.material]
@@ -264,7 +266,9 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   // på trekantane, så bboxen er den same på «lav» som på «hog» til under ein
   // tidels millimeter. Det er ingen grunn til å byggja eit fint mesh berre
   // for å måle det.
-  const mesh = pre.mesh ?? buildMesh(p, DETAIL.lav, sh)
+  // Nettet her er målinga sitt eige og vert ALDRI sendt nokon stad —
+  // difor er det trygt å hugse, i motsetnad til nettet bygget leverer.
+  const mesh = pre.mesh ?? MAAL_NETT(JSON.stringify(p), () => buildMesh(p, DETAIL.lav, sh))
   const envX = mesh.max[0] - mesh.min[0]
   const envY = mesh.max[1] - mesh.min[1]
   const envZ = mesh.max[2] - mesh.min[2]

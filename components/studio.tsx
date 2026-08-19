@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ENGINES, getEngine, isEngineId } from "@/lib/engines"
 import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
 import { seeded } from "@/lib/core"
-import type { BuildRes, DetailKey, Req, Res } from "@/lib/worker"
+import type { BuildRes, DetailKey, MaalRes, Req, Res } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
 import { ControlsPanel } from "./controls-panel"
 import type { NudgeAxis } from "./gesture-params"
@@ -58,6 +58,10 @@ export function Studio() {
   const [cube, setCube] = useState(true)
   const [light, setLight] = useState<LightDir>({ az: 0.62, el: 0.92 })
   const [data, setData] = useState<BuildRes | null>(null)
+  // Måltala kjem i eiga melding etter nettet, og berre for det siste
+  // punktet: under eit drag står den førre tavla dimma til fingeren
+  // stoggar, i staden for at kvart einaste mellombilete vert rekna på.
+  const [tal, setTal] = useState<MaalRes | null>(null)
   const [busy, setBusy] = useState(true)
   const [mounted, setMounted] = useState(false)
   const dark = useSystemDark()
@@ -70,6 +74,20 @@ export function Studio() {
   const worker = useRef<Worker | null>(null)
   const reqId = useRef(0)
   const shown = useRef(0)
+  // Siste-vinn-porten: aldri meir enn eitt bygg i lufta. Ein skyvar som
+  // vert dregen lagar punkt fortare enn motoren byggjer dei, og utan port
+  // stiller kvart einaste mellombilete seg i kø i arbeidaren — som so
+  // byggjer nett ingen kjem til å sjå. Med porten vert eit uteståande
+  // punkt berre BYTT UT til bygget i lufta er ferdig, og draget går i
+  // nøyaktig den takta maskina faktisk klarar.
+  const inFlight = useRef(false)
+  const pending = useRef<Req | null>(null)
+  const pump = useCallback(() => {
+    if (inFlight.current || !pending.current) return
+    inFlight.current = true
+    worker.current?.postMessage(pending.current)
+    pending.current = null
+  }, [])
 
   // Hashen er ikkje til å stole på: kvart felt vert lese for seg og klemt inn
   // i sitt eige band av motoren sin eigen clamp, så inga laga lenkje kan
@@ -99,11 +117,19 @@ export function Studio() {
     w.onmessage = (e: MessageEvent<Res>) => {
       const r = e.data
       if (r.kind === "build") {
+        // porten opnar att, og eit venta punkt får gå
+        inFlight.current = false
+        pump()
         // Eit svar som er eldre enn det sist viste er alltid forelda:
         // meldingane kjem ikkje nødvendigvis i den rekkjefylgja dei vart sende.
         if (r.id < shown.current) return
         shown.current = r.id
         setData(r)
+        return
+      }
+      if (r.kind === "maal") {
+        setTal(r)
+        // fyrst når rekninga for det siste punktet er inne, er motoren ferdig
         if (r.id >= reqId.current) setBusy(false)
         return
       }
@@ -122,22 +148,32 @@ export function Studio() {
       w.terminate()
       worker.current = null
     }
+    // pump er stabil (useCallback utan avhengnader)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const detail: DetailKey = hiDetail && isDesktop ? "hog" : isDesktop ? "mid" : "lav"
 
-  // Bygginga vert utsett ein knapp ramme: ein skyvar som vert dregen sender
-  // elles tjue førespurnader i sekundet, og motoren rekk berre å kaste dei.
+  // To steg: eit grovt nett med det same, det fine når fingeren stoggar.
+  // Under eit drag er det grove alt ein rekk å sjå, og det fine ville berre
+  // stå i kø og gjere alt tregare. Vert punktet endra før det fine steget
+  // fyrer, vert det avlyst av oppryddinga — det er heile logikken.
   useEffect(() => {
     if (!mounted) return
     setBusy(true)
-    const t = window.setTimeout(() => {
+    const enqueue = (d: DetailKey) => {
       const id = ++reqId.current
-      const msg: Req = { kind: "build", id, engine, params, detail, view }
-      worker.current?.postMessage(msg)
-    }, 90)
-    return () => window.clearTimeout(t)
-  }, [engine, params, detail, view, mounted])
+      pending.current = { kind: "build", id, engine, params, detail: d, view }
+      pump()
+    }
+    const t1 = window.setTimeout(() => enqueue("lav"), 40)
+    const t2 =
+      detail !== "lav" ? window.setTimeout(() => enqueue(detail), 420) : null
+    return () => {
+      window.clearTimeout(t1)
+      if (t2 !== null) window.clearTimeout(t2)
+    }
+  }, [engine, params, detail, view, mounted, pump])
 
   // URL-en kodar alltid det objektet som står på skjermen
   useEffect(() => {
@@ -223,6 +259,7 @@ export function Studio() {
   const doExport = useCallback(
     (what: "stl" | "dxf" | "svg" | "ark") => {
       setBusy(true)
+      // utanom porten: eit klikk, ikkje ein straum — og svaret slepp porten fri
       const msg: Req = { kind: "export", id: ++reqId.current, engine, params, what }
       worker.current?.postMessage(msg)
     },
@@ -239,8 +276,9 @@ export function Studio() {
   // nytt det er: byter ein motor midt i ei bygging, skal ikkje det gamle
   // objektet bli ståande på scena med den nye tabellen ved sida av.
   const live = data && data.engine === engine ? data : null
-  const metrics: Metrics | null = live?.metrics ?? null
-  const rules: Rule[] = useMemo(() => live?.rules ?? [], [live])
+  const liveTal = tal && tal.engine === engine ? tal : null
+  const metrics: Metrics | null = liveTal?.metrics ?? null
+  const rules: Rule[] = useMemo(() => liveTal?.rules ?? [], [liveTal])
 
   return (
     <main className="fixed inset-0 overflow-hidden" style={{ background: "var(--paper)" }}>

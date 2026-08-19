@@ -41,6 +41,7 @@ import {
   type Metric,
   type Metrics,
   type Pt,
+  keep,
 } from "../core"
 import { crossings, makeBody, spans, type Body } from "./body"
 import { buildParts, type Build } from "./parts"
@@ -66,6 +67,8 @@ type Seg = {
   w: number
 }
 
+const MAAL_NETT = keep<ReturnType<typeof buildMesh>>(2)
+
 export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   const bd = pre.body ?? makeBody(p)
   const B = pre.build ?? buildParts(bd)
@@ -78,7 +81,8 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   // ein tidels millimeter, men volumet av den massive kroppen er det
   // ikkje — eit grovt nett skriv inn ytterflata og skriv ut hola, og då
   // slår begge feila same vegen.
-  const mesh = buildMesh(p, DETAIL.mid, bd)
+  // målinga sitt eige nett — vert aldri sendt, og kan difor hugsast
+  const mesh = MAAL_NETT(JSON.stringify(p), () => buildMesh(p, DETAIL.mid, bd))
   const envX = mesh.max[0] - mesh.min[0]
   const envY = mesh.max[1] - mesh.min[1]
   const envZ = mesh.max[2] - mesh.min[2]
