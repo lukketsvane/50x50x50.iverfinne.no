@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack && node scripts/sjekk-worker.mjs",
     "start": "next start",
     "doc:data": "node --experimental-strip-types scripts/dump-doc.ts",
     "doc:pdf": "python3 doc/render.py"
