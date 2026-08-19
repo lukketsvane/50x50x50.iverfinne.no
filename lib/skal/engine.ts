@@ -58,8 +58,13 @@ export const SKAL: EngineDef = {
   build(bag: ParamBag, detail: DetailKey, view: View): BuildOut {
     const p = asP(bag)
     const sh = makeShell(p)
+    // Stabelen fylgjer detaljnivået i vinkeloppløysing: medan skyvaren er i
+    // rørsle er 144 punkt kring omkrinsen meir enn auget rekk å lesa. Dei
+    // fine stega brukar 360 — det SAME som målinga, so stabelen frå det
+    // fine bygget og stabelen kuttlista les er eitt og same hugsa objekt.
+    const nth = detail === "lav" ? 144 : 360
     if (view === "kontur") {
-      const c = contourLines(buildStack(p, sh))
+      const c = contourLines(buildStack(p, sh, nth))
       return {
         positions: EMPTY(),
         normals: EMPTY(),
@@ -70,7 +75,8 @@ export const SKAL: EngineDef = {
         heavy: c.heavy,
       }
     }
-    const m = view === "lag" ? stackMesh(buildStack(p, sh)) : buildMesh(p, DETAIL[detail], sh)
+    const m =
+      view === "lag" ? stackMesh(buildStack(p, sh, nth)) : buildMesh(p, DETAIL[detail], sh)
     return { ...m, lines: EMPTY(), heavy: EMPTY() }
   },
 

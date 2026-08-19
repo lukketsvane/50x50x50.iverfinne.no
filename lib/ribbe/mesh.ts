@@ -9,7 +9,7 @@
  * Skilnaden mellom `flate` og `lag` er heile typologien. Alt anna i
  * prosjektet handlar om kva den skilnaden kostar.
  */
-import type { BuildOut, DetailKey, Vec3, View } from "../core"
+import { keep, type BuildOut, type DetailKey, type Vec3, type View } from "../core"
 import type { Params } from "./params"
 import { makeShell, type Shell } from "./shell"
 import { bladeGeom, type BladeGeom } from "./blade"
@@ -37,7 +37,12 @@ export type Built = {
 
 /** Heile objektet som geometri, ein gong, slik at nett, delar, mål og
  *  reglar les det same og ikkje kvar sin versjon av det. */
+const BYGG_HUGS = keep<Built>(3)
 export function buildAll(p: Params, d: { nz: number; nt: number }, sh0?: Shell): Built {
+  return BYGG_HUGS(`${JSON.stringify(p)}|${d.nz}x${d.nt}`, () => buildAllRaw(p, d, sh0))
+}
+
+function buildAllRaw(p: Params, d: { nz: number; nt: number }, sh0?: Shell): Built {
   const sh = sh0 ?? makeShell(p)
   const blades: BladeGeom[] = []
   for (let k = 0; k < sh.angles.length; k++) blades.push(bladeGeom(sh, k, d.nz))

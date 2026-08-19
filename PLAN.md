@@ -405,32 +405,46 @@ tabellen ikkje lenger den same tabellen.
 (615 ms av 1 352). Det er etappe 3. Og `checkRules` byggjer framleis sitt
 eige skal — 80 ms, verd ei line når nokon er i fila likevel.
 
-### 2 · Tal fyrst, mesh etterpå
+### 2 · Nett fyrst, tal etterpå — GJORD
 
-**Kvifor.** Tabellen ventar på eit mesh han ikkje les. Etter etappe 1 er
-tal-delen 142 ms av ei runde som elles er 1 450.
+**Kva det vart, mot planen.** Planen sa «tal fyrst» av di talrekninga var
+billeg etter etappe 1. Motorregisteret snudde reknestykket: kontrakten gav
+kvar motor sjølvstendige `build`/`measure`/`rules`, og dermed reiste kvart
+kall den same kroppen frå botnen att — SKAL-runda voks til 1 750 ms per
+skyvartrykk. Løysinga vart tredelt, og ho snudde òg rekkjefylgja: nettet
+er det ein ser under eit drag, so nettet går fyrst.
 
-**Kva.** To svar per førespurnad: `tal` (måling, reglar, stabelstatistikk),
-så `mesh`. Panelet merkar seg sjølv som førebels medan meshet er undervegs.
-Same melding får generasjonsteljaren som let arbeidaren droppe ei forelda
-bygging mellom fasane.
+1. **Hugs i konstruktørane** (`keep` i `lib/core.ts`): skal (skalet,
+   stabelen), straum (kroppen, delane), ribbe (skalet, bygget), vaffel
+   (kroppen, rutenettet) hugsar dei siste punkta sine. Bygg, mål og reglar
+   for same punkt les no same objekt. Berre mellombygg vert hugsa — aldri
+   eit nett som går gjennom postMessage, for overføringa koplar frå
+   bufferane.
+2. **Målinga i eiga melding, med frist.** Arbeidaren byggjer og sender
+   nettet strakst; målinga fyrer 100 ms seinare og teier om eit nyare
+   punkt har teke over. Fristen er ikkje pynt: klienten sender neste punkt
+   fyrst når svaret på det førre er framme, so ei måling utan frist ville
+   alltid vinne kappløpet mot rundturen og målt kvart mellombilete.
+3. **Siste-vinn-porten i studioen.** Aldri meir enn eitt bygg i lufta; eit
+   uteståande punkt vert bytt ut, ikkje lagt i kø. Utan porten bygde
+   arbeidaren kvart einaste mellombilete i draget — nett ingen såg.
 
-**Synleg resultat.** Tabellen skiftar om lag 250 ms etter at skyvaren
-slepper, òg på `hog`.
+**Målt** (`scripts/`-benk, same maskin): SKAL flate-drag 1 750 → 260 ms
+per steg; STRAUM 532 → 263 («flate» bygde delane til 24 finnar ingen
+såg — dei er late no); VAFFEL flate-drag 15 ms. Oppgjeret når fingeren
+stoggar: SKAL ~1,5 s, dei tre andre 130–690 ms — og tavla står dimma til
+det er framme, so eit førebels tal aldri liknar eit ferdig.
 
-### 3 · Grov stabel medan fingeren er nede
+### 3 · Grov stabel medan fingeren er nede — GJORD
 
-**Kvifor.** `buildStack` med `nth = 360` kostar 583 ms; med 120 kostar han
-198 ms, og massen skil 1,2 % (5,121 mot 5,184 kg). Under eit drag er 1,2 %
-ingen ting; i eit kuttark er det alt.
-
-**Kva.** `nth = 120` medan skyvaren er nede, 360 når fingeren slepper, og
-alltid 360 i eksport og i mappa. Det førebelse talet får eit merke.
-
-**Synleg resultat.** Runda under drag går under 500 ms.
-
-**Risiko, sagt høgt.** To tal for same objekt. Regelen som held det ærleg:
-**eit førebels tal går aldri inn i ein eksport eller i PDF-en.**
+**Kva det vart, mot planen.** Som planlagt, med to endringar. `nth` fylgjer
+detaljnivået i staden for ein eigen drag-modus: 144 på «lav» (draget og
+mobilen), 360 på «mid» og «hog». Og det fine steget brukar nøyaktig same
+`nth` som målinga, so stabelen frå det fine bygget og stabelen kuttlista
+les er eitt og same hugsa objekt — det er hugsen frå etappe 2 som gjer den
+delinga gratis. SKAL lag-drag 730 → 315 ms per steg. Regelen står:
+**eit førebels tal går aldri inn i ein eksport eller i PDF-en** — eksport
+og mappe byggjer alltid sjølve, på 360.
 
 ### 4 · Indekser meshet
 

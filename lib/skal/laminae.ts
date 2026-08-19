@@ -10,6 +10,7 @@
  * lause delar — beina — og oppe er det éin lukka ring. Ingen del er krum
  * før ho er limt.
  */
+import { keep } from "../core"
 import { makeShell, wrapPi, type Shell } from "./field"
 import { MATERIALS, type Params } from "./params"
 
@@ -124,7 +125,14 @@ function seatBand(
   return { lo: Math.max(0, qLo * rTop - d), hi: qHi * rTop + d }
 }
 
+const STABEL_HUGS = keep<Stack>(2)
+/** Stabelen er det dyraste mellombygget i motoren, og «lag», «kontur»,
+ *  målinga og kuttlista spør alle etter den same. */
 export function buildStack(p: Params, shell?: Shell, nth = 360): Stack {
+  return STABEL_HUGS(JSON.stringify(p) + "|" + nth, () => buildStackRaw(p, shell, nth))
+}
+
+function buildStackRaw(p: Params, shell?: Shell, nth = 360): Stack {
   const sh = shell ?? makeShell(p)
   const rho = MATERIALS[p.material].rho
   // Høgda går sjeldan opp i platetjukna. Vert resten øvst mindre enn eit

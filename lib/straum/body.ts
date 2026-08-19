@@ -17,7 +17,7 @@
  * langs planormalen; normalen ligg `skraa` grader over vassrett, og planet
  * dreiar om høgda `planSenter`. Difor er kvar finne framleis flat.
  */
-import { CUBE, superR, smooth, type Pt, type Vec3 } from "../core"
+import { CUBE, keep, superR, smooth, type Pt, type Vec3 } from "../core"
 import type { Params } from "./params"
 
 const TAU = Math.PI * 2
@@ -151,7 +151,13 @@ const UP_FRAC = [0.22, 0.46, 0.75]
 /** senterskyven, som del av (fot − midje) på djupna */
 const SHIFT_PROFILE = [0, 0.02, 0.09, 0.2, 0.16, 0.07, -0.04, -0.18]
 
+const KROPP_HUGS = keep<Body>(3)
+/** Kroppen for eit punkt vert reist éin gong og lese av bygg, mål og reglar. */
 export function makeBody(p: Params): Body {
+  return KROPP_HUGS(JSON.stringify(p), () => makeBodyRaw(p))
+}
+
+function makeBodyRaw(p: Params): Body {
   const H = p.hogd
   const wT = Math.min(0.72, Math.max(0.12, p.midjeH))
   const alpha = p.skraa * DEG

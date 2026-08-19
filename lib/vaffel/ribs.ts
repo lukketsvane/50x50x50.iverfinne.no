@@ -192,7 +192,24 @@ function narrowOf(r: Rib, span: (s: Slot) => [number, number] | null): number {
   return Number.isFinite(worst) ? worst : r.height
 }
 
+/** Rutenettet er det dyraste mellombygget i motoren. Kroppen er hugsa på
+ *  innhald, so same punkt gjev same kropps-instans — og då held eit
+ *  identitetsoppslag her: bygg, mål og reglar les det same rutenettet. */
+const NETT_HUGS = new WeakMap<Body, Map<number, Grid>>()
 export function buildGrid(b: Body, step = 2.6): Grid {
+  let per = NETT_HUGS.get(b)
+  if (!per) {
+    per = new Map()
+    NETT_HUGS.set(b, per)
+  }
+  const hit = per.get(step)
+  if (hit) return hit
+  const v = buildGridRaw(b, step)
+  per.set(step, v)
+  return v
+}
+
+function buildGridRaw(b: Body, step = 2.6): Grid {
   const p = b.p
   const slotW = p.ribbT + p.pressfit
   const ribs: Rib[] = []

@@ -333,7 +333,18 @@ function cutRing(bd: Body, rows: Row[], poly: Pt[], d: number) {
 // =============================================================================
 // HEILE BYGGET
 // =============================================================================
+/** Same kropp gjev alltid same delar — og med kroppen hugsa er dette
+ *  oppslaget på identitet, ikkje på innhald. */
+const DELAR_HUGS = new WeakMap<Body, Build>()
 export function buildParts(bd: Body): Build {
+  const hit = DELAR_HUGS.get(bd)
+  if (hit) return hit
+  const v = buildPartsRaw(bd)
+  DELAR_HUGS.set(bd, v)
+  return v
+}
+
+function buildPartsRaw(bd: Body): Build {
   const p = bd.p
   const rho = MATERIALS[(p.material as Material) in MATERIALS ? (p.material as Material) : "bjork"].rho
   const { n, cosF, sinF } = bd.frame

@@ -16,7 +16,7 @@
  * grensene — planet, setet, bogen og golvet — er skrivne i millimeter, så
  * nullstaden let seg finne med rett interpolasjon uansett kva som bit.
  */
-import { CUBE, smooth } from "../core"
+import { CUBE, keep, smooth } from "../core"
 import type { Params } from "./params"
 
 /** Marg til kuben. Det som står att er til finérflis og til at ein 500-kube
@@ -74,7 +74,12 @@ const roundMin = (a: number, b: number, r: number) => {
   return r - Math.hypot(dx, dy)
 }
 
+const KROPP_HUGS = keep<Body>(3)
 export function makeBody(p: Params): Body {
+  return KROPP_HUGS(JSON.stringify(p), () => makeBodyRaw(p))
+}
+
+function makeBodyRaw(p: Params): Body {
   const zTop = p.hogd
   const n = p.planN
 

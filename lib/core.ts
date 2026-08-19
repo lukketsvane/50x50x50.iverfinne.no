@@ -430,3 +430,36 @@ export function metric(
 ): Metric {
   return { id, label, value, unit, text }
 }
+
+// =============================================================================
+// HUGS
+// =============================================================================
+/**
+ * Hugsar dei siste resultata per nøkkel — ein bitteliten LRU.
+ *
+ * Grunnen til at han finst: for eitt og same punkt spør arbeidaren om bygg,
+ * måltal og reglar etter kvarandre, og kvar av dei tre startar med å reise
+ * den same kroppen frå dei same tala. Utan hugs kostar kvart skyvartrykk
+ * tre konstruksjonar; med han kostar det éin. Nøkkelen er parametrane som
+ * tekst, så to like punkt ER same punkt — og to-tre plassar er nok, for
+ * arbeidaren driv aldri med meir enn eitt punkt om gongen.
+ *
+ * Berre mellombygg (kropp, skal, stabel, rutenett) skal hugsast — ALDRI eit
+ * nett som vert sendt gjennom postMessage: overføringa koplar frå bufferane,
+ * og eit hugsa nett med fråkopla bufferar er eit usynleg objekt.
+ */
+export function keep<T>(size = 3): (key: string, make: () => T) => T {
+  const m = new Map<string, T>()
+  return (key, make) => {
+    if (m.has(key)) {
+      const hit = m.get(key) as T
+      m.delete(key)
+      m.set(key, hit)
+      return hit
+    }
+    const v = make()
+    m.set(key, v)
+    if (m.size > size) m.delete(m.keys().next().value as string)
+    return v
+  }
+}

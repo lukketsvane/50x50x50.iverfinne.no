@@ -51,13 +51,13 @@ const asP = (p: ParamBag) => p as unknown as Params
  * 23 plan på nytt. Ein sats på eitt einaste punkt tek halve tida bort, og
  * han kan ikkje bli gammal: nykelen er heile parametersatsen.
  */
-let last: { key: string; body: Body; build: Build } | null = null
-function ctx(p: Params): { body: Body; build: Build } {
-  const key = JSON.stringify(p)
-  if (last && last.key === key) return last
+/** Delane vert fyrst bygde når nokon spør etter dei: «flate» treng berre
+ *  kroppen, og å kutte 24 finnar for eit nett som ikkje viser dei er å
+ *  betale for noko ingen ser. Kropp og delar er dessutan hugsa i sine
+ *  eigne modular, så oppslaget her er billeg same kva. */
+function ctx(p: Params): { body: Body; parts: () => Build } {
   const body = makeBody(p)
-  last = { key, body, build: buildParts(body) }
-  return last
+  return { body, parts: () => buildParts(body) }
 }
 /** Kvar tom Float32Array må vera si eiga: ein delt konstant vert frakopla
  *  fyrste gongen han går gjennom postMessage, og då døyr kvar melding
@@ -83,16 +83,16 @@ export const STRAUM: EngineDef = {
 
   build(bag: ParamBag, detail: DetailKey, view: View): BuildOut {
     const p = asP(bag)
-    const { body: bd, build: B } = ctx(p)
+    const { body: bd, parts } = ctx(p)
     if (view === "flate") {
       const m = buildMesh(p, DETAIL[detail], bd)
       return { ...m, lines: EMPTY(), heavy: EMPTY() }
     }
     if (view === "lag") {
-      const m = assemblyMesh(B)
+      const m = assemblyMesh(parts())
       return { ...m, lines: EMPTY(), heavy: EMPTY() }
     }
-    const c = contourLines(B)
+    const c = contourLines(parts())
     return {
       positions: EMPTY(),
       normals: EMPTY(),
@@ -104,12 +104,20 @@ export const STRAUM: EngineDef = {
     }
   },
 
-  measure: (bag) => measure(asP(bag), ctx(asP(bag))),
-  rules: (bag, m) => checkRules(asP(bag), m, ctx(asP(bag))),
+  measure: (bag) => {
+    const p = asP(bag)
+    const c = ctx(p)
+    return measure(p, { body: c.body, build: c.parts() })
+  },
+  rules: (bag, m) => {
+    const p = asP(bag)
+    const c = ctx(p)
+    return checkRules(p, m, { body: c.body, build: c.parts() })
+  },
 
   exportFile(bag: ParamBag, what: ExportKind): ExportOut {
     const p = asP(bag)
-    const { body: bd, build: B } = ctx(p)
+    const { body: bd, parts } = ctx(p)
     if (what === "stl") {
       const bytes = meshToStl(buildMesh(p, DETAIL.hog, bd), "straum")
       return {
@@ -122,20 +130,20 @@ export const STRAUM: EngineDef = {
       return {
         name: "straum.dxf",
         mime: "application/dxf",
-        text: partsToDxf(nest(B.parts)),
+        text: partsToDxf(nest(parts().parts)),
       }
     }
     if (what === "ark") {
       return {
         name: "straum-ark1.svg",
         mime: "image/svg+xml",
-        text: sheetSvg(nest(B.parts), 0),
+        text: sheetSvg(nest(parts().parts), 0),
       }
     }
     return {
       name: "straum-kontur.svg",
       mime: "image/svg+xml",
-      text: contourMapSvg(B),
+      text: contourMapSvg(parts()),
     }
   },
 }
