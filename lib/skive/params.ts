@@ -31,13 +31,16 @@ export type Params = {
   ryggV: number // bakoverlening, grader
   ryggB: number // ryggboge: kor mykje ryggen bular bakover på midten, mm
   ryggT: number // ryggtjukn i profilen, mm
+  grep: number // berehòl i ryggen, lengd langs ryggaksen, mm — null er inkje hòl
 
   // --- BEIN OG BOGE -------------------------------------------------------
   frambein: number // framfoten si breidd på golvet, mm
   bakbein: number // bakfoten si breidd på golvet, mm
-  bogeH: number // kor høgt opninga under setet når, mm
+  bogeH: number // kor høgt opninga under setet når, mm — null er ein PIDESTALL
   bogeN: number // bogeeksponent: 2 er ellipse, 4 er nesten firkant
+  mellomfot: number // midtfot som kløyver bogen i to — akvedukten, mm brei
   flare: number // kor brått framkanten flarar ut mot foten
+  bakflare: number // kor langt bakkanten sparkar bakover ned mot golvet, del av bakbein
 
   // --- SKIVENE ------------------------------------------------------------
   skiver: number // kor mange skiver
@@ -65,12 +68,15 @@ export const PARAM_RANGES: Record<string, Range> = {
   ryggV: { min: 0, max: 28, step: 0.5, label: "rygglening", unit: "°" },
   ryggB: { min: 0, max: 40, step: 0.5, label: "ryggboge", unit: "mm" },
   ryggT: { min: 40, max: 110, step: 1, label: "ryggtjukn", unit: "mm" },
+  grep: { min: 0, max: 110, step: 1, label: "berehòl", unit: "mm" },
 
   frambein: { min: 90, max: 210, step: 1, label: "framfot", unit: "mm" },
   bakbein: { min: 90, max: 220, step: 1, label: "bakfot", unit: "mm" },
-  bogeH: { min: 120, max: 330, step: 1, label: "bogehøgd", unit: "mm" },
+  bogeH: { min: 0, max: 330, step: 1, label: "bogehøgd", unit: "mm" },
   bogeN: { min: 1.6, max: 5, step: 0.05, label: "bogeform" },
-  flare: { min: 1.2, max: 3.6, step: 0.05, label: "flare" },
+  mellomfot: { min: 0, max: 130, step: 1, label: "midtfot", unit: "mm" },
+  flare: { min: 0.8, max: 3.6, step: 0.05, label: "flare" },
+  bakflare: { min: 0, max: 0.8, step: 0.01, label: "bakflare" },
 
   skiver: { min: 7, max: 21, step: 1, label: "skiver", int: true },
   plyT: { min: 9, max: 24, step: 0.5, label: "skivetjukn", unit: "mm" },
@@ -87,11 +93,11 @@ export const PARAM_RANGES: Record<string, Range> = {
 
 export const GROUPS: readonly Group[] = [
   { id: "sete", label: "sete", keys: ["hogd", "djup", "grop", "nase"] },
-  { id: "rygg", label: "rygg", keys: ["ryggH", "ryggV", "ryggB", "ryggT"] },
+  { id: "rygg", label: "rygg", keys: ["ryggH", "ryggV", "ryggB", "ryggT", "grep"] },
   {
     id: "bein",
     label: "bein",
-    keys: ["frambein", "bakbein", "bogeH", "bogeN", "flare"],
+    keys: ["frambein", "bakbein", "bogeH", "bogeN", "mellomfot", "flare", "bakflare"],
   },
   {
     id: "skiver",
@@ -120,12 +126,15 @@ export const DEFAULT_PARAMS: Params = {
   ryggV: 13,
   ryggB: 14,
   ryggT: 50,
+  grep: 0,
 
   frambein: 112,
   bakbein: 116,
   bogeH: 290,
   bogeN: 2.6,
+  mellomfot: 0,
   flare: 2.2,
+  bakflare: 0.35,
 
   skiver: 11,
   plyT: 14,
@@ -142,10 +151,12 @@ export const DEFAULT_PARAMS: Params = {
 }
 
 /**
- * Kuraterte posar: fire handdesigna utgangspunkt terningen jittrar kring
+ * Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring
  * annakvar gong. Grotta er den mørke referansen — bogen krympar og sig på
  * skrå gjennom stabelen; benken er rein og rygglaus; stolen er den blå
  * referansen med høg kuppel; den lette er luft og nesten ingenting anna.
+ * Pidestallen, akvedukten og sleden er dei tre nye familiane: sokkelen
+ * utan boge, midtfoten som kløyver bogen, og bereholet i ryggen.
  */
 export const POSES: readonly Partial<Params>[] = [
   // grotta
@@ -186,6 +197,27 @@ export const POSES: readonly Partial<Params>[] = [
     innsving: -0.08, djup: 324, hogd: 398, frambein: 100, bakbein: 104,
     skiver: 11, plyT: 14, luft: 30, ryggH: 74, kuppel: 0.3, bogeH: 300,
   },
+  // pidestallen: ingen boge — møbelet er ein massiv sokkel av få, tjukke
+  // skiver med mykje luft. Lufta er den einaste opninga som finst.
+  {
+    bogeH: 0, ryggH: 0, skiver: 7, plyT: 12, luft: 58, hogd: 414,
+    djup: 330, grop: 20, sidefall: 14, frambein: 92, bakbein: 92,
+    flare: 0.9, bakflare: 0.05, innsving: 0.1, nase: 20,
+  },
+  // akvedukten: midtfoten kløyver bogen i to — og drifta let han VANDRE
+  // gjennom stabelen, so dei to boga byter storleik frå skive til skive
+  {
+    mellomfot: 85, bogeH: 250, bogeN: 3, bogedrift: 20, djup: 360,
+    ryggH: 0, hogd: 402, frambein: 120, bakbein: 120, bakflare: 0.12,
+    skiver: 9, plyT: 12, luft: 42, grop: 24, sidefall: 16, kuppel: 0,
+  },
+  // sleden: bakkanten sparkar langt bakover og grepet sit i ryggen —
+  // stolen ein ber med eine handa og set frå seg på skrå
+  {
+    grep: 80, ryggH: 100, ryggT: 68, ryggV: 15, hogd: 394,
+    bakflare: 0.5, bakbein: 150, bogeH: 260, bogedrift: -30,
+    skiver: 12, plyT: 12, luft: 28, kuppel: 0.28, grop: 16, djup: 320,
+  },
 ]
 
 /** kva to fingrar på lerretet skrur på */
@@ -220,9 +252,9 @@ export function randomParams(
     }
   }
   if (q.hogd + q.ryggH > 494) fix("ryggH", 494 - q.hogd)
-  // djupna: nase + flare framme og rygg + flare bak et av kuben i X
-  const envX = q.djup + 0.25 * q.frambein + q.ryggT + 0.35 * q.bakbein
-  if (envX > 492) fix("djup", 492 - 0.25 * q.frambein - q.ryggT - 0.35 * q.bakbein)
+  // djupna: nase + flare framme og rygg + bakflare bak et av kuben i X
+  const envX = q.djup + 0.25 * q.frambein + q.ryggT + q.bakflare * q.bakbein
+  if (envX > 492) fix("djup", 492 - 0.25 * q.frambein - q.ryggT - q.bakflare * q.bakbein)
   // gropa skal ikkje dra sitjehøgda under bandet
   if (q.hogd - 0.6 * (q.grop + q.sidefall) < 382) fix("grop", Math.max(0, (q.hogd - 382) / 0.6 - q.sidefall))
   return q
