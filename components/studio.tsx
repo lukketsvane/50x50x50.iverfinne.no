@@ -283,6 +283,11 @@ export function Studio() {
   // nytt det er: byter ein motor midt i ei bygging, skal ikkje det gamle
   // objektet bli ståande på scena med den nye tabellen ved sida av.
   const live = data && data.engine === engine ? data : null
+  // Limfugene i visaren gjeld typologien der laga ER vassrette: SKAL sitt
+  // «lag» er høgda delt på plata. For dei tre andre ligg platene kvar sin
+  // veg per del, og ei global z-stripe ville lyge om materialet.
+  const stripe =
+    eng.unitLabel === "lag" && typeof params.plyT === "number" ? params.plyT : 0
   const liveTal = tal && tal.engine === engine ? tal : null
   const metrics: Metrics | null = liveTal?.metrics ?? null
   const rules: Rule[] = useMemo(() => liveTal?.rules ?? [], [liveTal])
@@ -295,6 +300,7 @@ export function Studio() {
             data={live}
             view={view}
             dark={dark}
+            stripePly={stripe}
             hiDetail={hiDetail && isDesktop}
             mobile={!isDesktop}
             cube={cube}

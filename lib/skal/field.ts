@@ -175,6 +175,22 @@ function makeShellRaw(p: Params): Shell {
     return 1 + p.legStretch * Math.pow(g, 2.2) * fz * fz
   }
 
+  /**
+   * Labbane. Kroppen bular ut i KVART bein og dreg seg inn att mellom dei,
+   * so planet ved golvet er fleirloba og ikkje ein sirkel med hòl i. Det er
+   * skilnaden mellom eit bein og ein veggrest: utan lobe er beinet berre den
+   * stripa av skalet som opningane let stå att, og han les som blekk. Bumpen
+   * fylgjer beinvinklane (midt mellom opningane) og døyr ut mot setet i same
+   * takt som opningane sjølve.
+   */
+  const legN0 = Math.max(3, Math.round(p.legs))
+  const lobeAt = (th: number, h: number) => {
+    if (p.lobe <= 0) return 1
+    const g = Math.max(0, Math.cos(legN0 * wrapPi(th - legDir)))
+    const fz = Math.max(0, 1 - h / Math.max(p.legRise * 1.35, 1e-6))
+    return 1 + p.lobe * Math.pow(g, 1.6) * fz * fz
+  }
+
   /** ryggraden: fyrst litt attende, så framover — ein S */
   const spineS = (h: number) => {
     const back = Math.exp(-Math.pow((h - p.spineBias) / 0.3, 2))
@@ -194,7 +210,9 @@ function makeShellRaw(p: Params): Shell {
       hw: Math.max(4 * DEG, ((p.legGap * DEG) / 2) * skew),
       hc: -0.06,
       hh: p.legRise + 0.06,
-      m: 2.2,
+      // spissare enn 2 gjev tåreforma opningar med spiss topp — det er
+      // forma referansane har, og den fresen likar: inga bratt endeflate
+      m: p.legPoint,
     })
   }
   holes.push({
@@ -244,6 +262,7 @@ function makeShellRaw(p: Params): Shell {
       superR(local, nAt(h), aspAt(h)) *
       rhoAt(h) *
       legPull(th, h) *
+      lobeAt(th, h) *
       finLeanAt(th, z)
     )
   }

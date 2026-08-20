@@ -51,6 +51,8 @@ export type Params = {
 
   // --- BEIN ---------------------------------------------------------------
   legs: number // tal bein (3–5)
+  lobe: number // labb: kor mykje kroppen bular ut i kvart bein, del av radien
+  legPoint: number // eksponent for beinopninga: < 2 gjev spiss topp
   legGap: number // opningsbreidd mellom beina, grader
   legRise: number // kor høgt beinopningane rekk, normalisert
   legStretch: number // eitt bein dratt lenger ut, del av radien
@@ -125,14 +127,16 @@ export const PARAM_RANGES: Record<ParamKey, Range> = {
   shoulder: { min: 0, max: 0.34, step: 0.005, label: "skulder" },
 
   legs: { min: 3, max: 5, step: 1, label: "bein", int: true },
+  lobe: { min: 0, max: 0.5, step: 0.005, label: "labb" },
+  legPoint: { min: 1.2, max: 3, step: 0.02, label: "beinspiss" },
   legGap: { min: 34, max: 118, step: 1, label: "beinopning", unit: "°" },
   legRise: { min: 0.18, max: 0.78, step: 0.005, label: "beinhøgd" },
   legStretch: { min: 0, max: 0.5, step: 0.005, label: "strekt bein" },
   legDir: { min: 0, max: 360, step: 1, label: "beinretning", unit: "°" },
   legSkew: { min: 0, max: 0.5, step: 0.005, label: "ulike bein" },
 
-  sweepSpan: { min: 40, max: 250, step: 1, label: "sveip", unit: "°" },
-  sweepZ: { min: 0.34, max: 0.94, step: 0.005, label: "sveiphøgd" },
+  sweepSpan: { min: 14, max: 250, step: 1, label: "sveip", unit: "°" },
+  sweepZ: { min: 0.16, max: 0.94, step: 0.005, label: "sveiphøgd" },
   sweepH: { min: 0.04, max: 0.32, step: 0.002, label: "sveipbreidd" },
   sweepDrift: { min: -140, max: 140, step: 1, label: "sveipvandring", unit: "°" },
   sweepExp: { min: 1.1, max: 3.4, step: 0.02, label: "sveipeksponent" },
@@ -159,63 +163,72 @@ export const PARAM_RANGES: Record<ParamKey, Range> = {
 }
 
 /**
- * SKAL — objektet i mappa, målt tilbake inn i dette rommet. Det er
- * utgangspunktet, ikkje ein «preset»: sandkassen har ingen meny av former,
- * berre eitt punkt du alt står i.
+ * Standardobjektet: ein trelabba krakk med lauvforma opningar.
+ *
+ * Kroppen er fleirloba — han bular ut i kvart bein og dreg seg inn att
+ * mellom dei — med tre høge bogeopningar, eit lite auge lågt i det fremste
+ * beinet, og ein sal som reiser seg i ein rygg bak. Skåla har flat botn
+ * med definert kant (dishExp over 3): det er den flate delen ein sit på,
+ * og det er den regelen «skal» måler.
+ *
+ * Det er utgangspunktet, ikkje ein «preset»: sandkassen har ingen meny av
+ * former, berre eitt punkt du alt står i.
  */
 export const DEFAULT_PARAMS: Params = {
-  secN0: 3.1,
-  secN1: 2.6,
-  asp0: 0.06,
-  asp1: 0.36,
-  asp2: 0.04,
+  secN0: 2.8,
+  secN1: 3.0,
+  asp0: 0.05,
+  asp1: 0.1,
+  asp2: 0.05,
 
-  spineBack: 0.062,
-  spineFwd: 0.115,
-  spineDir: 18,
+  spineBack: 0.035,
+  spineFwd: 0.055,
+  spineDir: 10,
   spineBias: 0.44,
 
-  twist: 78,
+  twist: 10,
   twistBias: 1.15,
 
-  waist: 0.28,
-  waistZ: 0.56,
-  waistWide: 0.42,
-  flare: 0.05,
-  foot: 0.3,
-  shoulder: 0.08,
+  waist: 0.23,
+  waistZ: 0.51,
+  waistWide: 0.54,
+  flare: 0.08,
+  foot: 0.06,
+  shoulder: 0.045,
 
   legs: 3,
-  legGap: 70,
-  legRise: 0.4,
-  legStretch: 0.34,
-  legDir: 24,
-  legSkew: 0.16,
+  lobe: 0.28,
+  legPoint: 2.12,
+  legGap: 85,
+  legRise: 0.65,
+  legStretch: 0.06,
+  legDir: 202,
+  legSkew: 0.12,
 
-  sweepSpan: 175,
-  sweepZ: 0.63,
-  sweepH: 0.135,
+  sweepSpan: 18,
+  sweepZ: 0.22,
+  sweepH: 0.07,
   sweepDrift: 58,
-  sweepExp: 1.72,
-  sweepDir: 196,
+  sweepExp: 2.6,
+  sweepDir: 202,
 
-  rimWave: 40,
-  rimPhase: 116,
-  finRise: 90,
-  finLean: 0.3,
-  finWide: 110,
+  rimWave: 22,
+  rimPhase: 105,
+  finRise: 70,
+  finLean: 0.14,
+  finWide: 132,
   finDir: 206,
 
-  seatZ: 405,
-  dish: 40,
-  dishExp: 2.4,
-  saddle: 0.26,
-  saddleDir: 34,
-  lip: 1,
+  seatZ: 414,
+  dish: 47.5,
+  dishExp: 3.3,
+  saddle: 0.2,
+  saddleDir: 14,
+  lip: 2.2,
 
   plyT: 15,
-  shellT: 14,
-  edgeT: 3,
+  shellT: 24,
+  edgeT: 12,
   sand: 2.2,
   material: "bjork",
 }
@@ -235,7 +248,7 @@ export const GROUPS: readonly { id: string; label: string; keys: ParamKey[] }[] 
   {
     id: "bein",
     label: "bein",
-    keys: ["legs", "legGap", "legRise", "legStretch", "legDir", "legSkew"],
+    keys: ["legs", "lobe", "legPoint", "legGap", "legRise", "legStretch", "legDir", "legSkew"],
   },
   {
     id: "sveip",

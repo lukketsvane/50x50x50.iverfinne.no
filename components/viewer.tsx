@@ -79,6 +79,7 @@ export function Viewer({
   data,
   view,
   dark,
+  stripePly,
   hiDetail,
   mobile,
   cube,
@@ -89,6 +90,8 @@ export function Viewer({
   data: BuildRes | null
   view: View
   dark: boolean
+  /** platetjukn for limfugene; 0 slår dei av */
+  stripePly: number
   hiDetail: boolean
   mobile: boolean
   cube: boolean
@@ -153,6 +156,7 @@ export function Viewer({
             data={data}
             view={view}
             dark={dark}
+            stripePly={stripePly}
             onFit={handleFit}
           />
           <CubeCage show={cube} dark={dark} />
