@@ -45,6 +45,9 @@ export function Studio() {
   // objektet, og det er dei som skil typologiane frå kvarandre. Den slipte
   // flata er eit klikk unna.
   const [view, setView] = useState<View>("lag")
+  // Dobbelttrykk på nedtrekket låser terningen til den valde modulen.
+  // Ulåst får terningen kaste over ALLE modulane — motor og form i eitt.
+  const [engineLock, setEngineLock] = useState(false)
   // beis er ferdig handsaming, som lakk: han bur i visinga og hashen, aldri
   // i parameterrommet — masse og styrke bryr seg ikkje om farge
   const [beis, setBeis] = useState("natur")
@@ -227,17 +230,22 @@ export function Studio() {
     }))
   }, [])
 
-  // Terningen kryssar aldri ei motorgrense.
+  // Terningen: låst kastar han innanfor modulen, ulåst kastar han over
+  // ALLE modulane — fyrst kva for ein, so forma hans. Parameterlåsane
+  // per modul står uansett.
   const shuffle = useCallback(() => {
+    const rnd = seeded(engine + ":" + Date.now())
+    const target = engineLock ? eng : ENGINES[Math.floor(rnd() * ENGINES.length)]
+    setEngine(target.id)
     setBags((b) => ({
       ...b,
-      [engine]: eng.random(
-        seeded(engine + ":" + Date.now()),
-        b[engine] ?? eng.defaults,
-        locks[engine] ?? new Set<string>(),
+      [target.id]: target.random(
+        rnd,
+        b[target.id] ?? target.defaults,
+        locks[target.id] ?? new Set<string>(),
       ),
     }))
-  }, [engine, eng, locks])
+  }, [engine, eng, engineLock, locks])
 
   const toggleLock = useCallback(
     (k: string) => {
@@ -326,11 +334,13 @@ export function Studio() {
         rules={rules}
         view={view}
         beis={beis}
+        engineLock={engineLock}
         locked={locked}
         hiDetail={hiDetail}
         isDesktop={isDesktop}
         busy={busy}
         onEngine={setEngine}
+        onToggleEngineLock={() => setEngineLock((v) => !v)}
         onChange={setParams}
         onView={setView}
         onBeis={setBeis}

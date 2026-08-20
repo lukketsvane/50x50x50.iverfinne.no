@@ -12,14 +12,14 @@
  * parameterrom ikkje tyder noko i eit anna.
  */
 import type { EngineDef, EngineId } from "./core"
-import { SKAL } from "./skal/engine"
 import { STRAUM } from "./straum/engine"
 import { RIBBE } from "./ribbe/engine"
 import { VAFFEL } from "./vaffel/engine"
 
-// VAFFEL fyrst: han er standardobjektet og øvst i nedtrekket — den einaste
-// av dei fire som held seg sjølv utan lim og skruar, og den raskaste å byggje.
-export const ENGINES: readonly EngineDef[] = [VAFFEL, SKAL, STRAUM, RIBBE]
+// VAFFEL fyrst: han er standardobjektet og øvst i nedtrekket. SKAL er
+// teken ut av registeret — kjelda hans står att for dokumentpipelinen,
+// men han er ikkje lenger ein modul i sandkassen.
+export const ENGINES: readonly EngineDef[] = [VAFFEL, STRAUM, RIBBE]
 
 export const ENGINE_IDS = ENGINES.map((e) => e.id) as readonly EngineId[]
 

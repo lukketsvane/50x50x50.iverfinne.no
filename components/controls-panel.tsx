@@ -247,11 +247,14 @@ export function ControlsPanel(props: {
   rules: Rule[]
   view: View
   beis: string
+  /** terningen låst til den valde modulen (dobbelttrykk på veljaren) */
+  engineLock: boolean
   locked: ReadonlySet<string>
   hiDetail: boolean
   isDesktop: boolean
   busy: boolean
   onEngine: (e: EngineId) => void
+  onToggleEngineLock: () => void
   onChange: (p: ParamBag) => void
   onView: (v: View) => void
   onBeis: (b: string) => void
@@ -269,11 +272,13 @@ export function ControlsPanel(props: {
     rules,
     view,
     beis,
+    engineLock,
     locked,
     hiDetail,
     isDesktop,
     busy,
     onEngine,
+    onToggleEngineLock,
     onChange,
     onView,
     onBeis,
@@ -288,6 +293,24 @@ export function ControlsPanel(props: {
   // lukka → halv (lesemåtar, materiale, tavla, eksport) → full (skyveveggen)
   const [mode, setMode] = useState<"lukka" | "halv" | "full">("lukka")
   const open = mode !== "lukka"
+
+  // Modulveljaren: eitt trykk vil opne menyen, to raske vil låse. Det
+  // fyrste trykket VENTAR difor eit lite vindauga (260 ms) på tvillingen
+  // sin — kjem han, er det ein lås og ingen meny.
+  const [menuOpen, setMenuOpen] = useState(false)
+  const tapWait = useRef<number | null>(null)
+  const onEngineTap = useCallback(() => {
+    if (tapWait.current !== null) {
+      window.clearTimeout(tapWait.current)
+      tapWait.current = null
+      onToggleEngineLock()
+      return
+    }
+    tapWait.current = window.setTimeout(() => {
+      tapWait.current = null
+      setMenuOpen((o) => !o)
+    }, 260)
+  }, [onToggleEngineLock])
 
   // Arket er eit iOS-ark: dra i grepet eller hovudlina, opp for meir og
   // ned for mindre. Fingeren får eit lite gummiband som svar medan han
@@ -395,19 +418,70 @@ export function ControlsPanel(props: {
           )}
           {/* hovudlina — motoren, rekninga, terningen og opnaren */}
           <div className="flex items-center gap-1.5 p-2.5">
-          <select
-            value={engine}
-            onChange={(e) => onEngine(e.target.value as EngineId)}
-            aria-label="typologi"
-            className="h-9 shrink-0 cursor-pointer appearance-none rounded-full border bg-transparent pl-3 pr-2.5 text-[11px] uppercase tracking-[0.18em] outline-none"
-            style={{ ...HAIR, color: "var(--ink)" }}
-          >
-            {ENGINES.map((e) => (
-              <option key={e.id} value={e.id} style={{ color: "#111", background: "#fff" }}>
-                {e.label}
-              </option>
-            ))}
-          </select>
+          {/* Modulveljaren: eitt trykk opnar menyen (etter eit lite
+              vindauga), DOBBELTTRYKK låser terningen til den valde
+              modulen. Låst står pilla svart med prikk — same språket som
+              låsane på skyvarane. */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              aria-label={engineLock ? "typologi — låst, dobbelttrykk låser opp" : "typologi — dobbelttrykk låser"}
+              aria-pressed={engineLock}
+              aria-expanded={menuOpen}
+              onClick={onEngineTap}
+              className="flex h-9 items-center gap-1.5 rounded-full border pl-3 pr-2.5 text-[11px] uppercase tracking-[0.18em] transition active:scale-95"
+              style={
+                engineLock
+                  ? { background: "var(--ink)", color: "var(--paper)", borderColor: "transparent" }
+                  : { ...HAIR, color: "var(--ink)" }
+              }
+            >
+              {engineLock && (
+                <span
+                  aria-hidden="true"
+                  className="block h-[5px] w-[5px] rounded-full"
+                  style={{ background: "var(--paper)" }}
+                />
+              )}
+              {eng.label}
+            </button>
+            {menuOpen && (
+              <>
+                <button
+                  type="button"
+                  aria-label="lukk menyen"
+                  className="fixed inset-0 z-10 cursor-default"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <div
+                  role="menu"
+                  className="absolute bottom-full left-0 z-20 mb-2 min-w-32 rounded-2xl border p-1"
+                  style={{ ...HAIR, background: "var(--paper)" }}
+                >
+                  {ENGINES.map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={engine === e.id}
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onEngine(e.id)
+                      }}
+                      className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[11px] uppercase tracking-[0.18em] transition active:scale-[0.98]"
+                      style={
+                        engine === e.id
+                          ? { background: "var(--ink)", color: "var(--paper)" }
+                          : { color: "var(--ink)" }
+                      }
+                    >
+                      {e.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
 
           <span className="tab min-w-0 flex-1 truncate pl-1.5 text-[11px] tracking-[0.06em]">
             {headline.length === 0 ? (
