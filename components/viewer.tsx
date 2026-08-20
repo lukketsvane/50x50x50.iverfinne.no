@@ -21,9 +21,12 @@ const FLOOR_TAN = 0.1637
 function FitCamera({
   fit,
   lift,
+  reframe,
 }: {
   fit: { r: number; cy: number } | null
   lift: number
+  /** teljar frå dobbelttrykket: kvart hopp rammar inn på nytt, utansett */
+  reframe: number
 }) {
   const camera = useThree((s) => s.camera)
   const controls = useThree((s) => s.controls) as
@@ -31,8 +34,16 @@ function FitCamera({
     | null
   const invalidate = useThree((s) => s.invalidate)
   const lastR = useRef(0)
+  const lastReframe = useRef(0)
   useEffect(() => {
     if (!fit || !controls) return
+    // Dobbelttrykk: nullstill vaktene so innramminga alltid vert gjord om,
+    // og legg kameraet heim i standardvinkelen — trykket TYDER «kom heim».
+    const homing = lastReframe.current !== reframe
+    if (homing) {
+      lastReframe.current = reframe
+      lastR.current = 0
+    }
     if (lastR.current && Math.abs(fit.r - lastR.current) / lastR.current < 0.1) return
     lastR.current = fit.r
     const persp = camera as THREE.PerspectiveCamera
@@ -47,32 +58,15 @@ function FitCamera({
     // over den nedste kanten.
     const mid = GROUND_Y + fit.cy
     controls.target.set(0, Math.min(GROUND_Y + dist * FLOOR_TAN, mid) - lift * fit.cy, 0)
-    const dir = camera.position.clone().sub(controls.target)
+    const dir = homing
+      ? new THREE.Vector3(2.4, 1.7, 6.4)
+      : camera.position.clone().sub(controls.target)
     if (dir.lengthSq() < 1e-6) dir.set(2.4, 1.7, 6.4)
     camera.position.copy(controls.target).add(dir.setLength(dist))
     controls.update?.()
     invalidate()
-  }, [fit, lift, controls, camera, invalidate])
+  }, [fit, lift, reframe, controls, camera, invalidate])
   return null
-}
-
-/** Kuben oppgåva gjev: 500 mm på kvar kant, teikna som tolv strekar. */
-function CubeCage({ show, dark }: { show: boolean; dark: boolean }) {
-  const geo = useMemo(() => {
-    const s = 500 * MM
-    const g = new THREE.BoxGeometry(s, s, s)
-    return new THREE.EdgesGeometry(g)
-  }, [])
-  if (!show) return null
-  return (
-    <lineSegments geometry={geo} position={[0, (250 * MM), 0]}>
-      <lineBasicMaterial
-        color={dark ? "#ffffff" : "#000000"}
-        transparent
-        opacity={0.16}
-      />
-    </lineSegments>
-  )
 }
 
 export function Viewer({
@@ -83,7 +77,6 @@ export function Viewer({
   beis,
   hiDetail,
   mobile,
-  cube,
   light,
   onNudge,
   onLight,
@@ -97,7 +90,6 @@ export function Viewer({
   beis: string
   hiDetail: boolean
   mobile: boolean
-  cube: boolean
   light: LightDir
   onNudge: (axis: NudgeAxis, deltaPx: number) => void
   onLight: (dxPx: number, dyPx: number) => void
@@ -122,6 +114,9 @@ export function Viewer({
   const handleFit = useCallback((r: number, cy: number) => {
     setFit((prev) => (prev && prev.r === r && prev.cy === cy ? prev : { r, cy }))
   }, [])
+  // dobbelttrykk på lerretet: ramm inn på nytt, heim i standardvinkelen
+  const [reframe, setReframe] = useState(0)
+  const handleDoubleTap = useCallback(() => setReframe((n) => n + 1), [])
 
   return (
     <Canvas
@@ -165,7 +160,6 @@ export function Viewer({
             beis={beis}
             onFit={handleFit}
           />
-          <CubeCage show={cube} dark={dark} />
           {!dark && (
             <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
               <planeGeometry args={[60, 60]} />
@@ -178,8 +172,8 @@ export function Viewer({
       {/* Panelet er no ei lukka line nedst, ikkje eit halvt ark: lyftet
           skal berre sleppe objektet fri frå den lina, ikkje ein tredel av
           skjermen. */}
-      <FitCamera fit={fit} lift={mobile ? 0.3 : 0} />
-      <GestureParams onNudge={onNudge} onLight={onLight} />
+      <FitCamera fit={fit} lift={mobile ? 0.3 : 0} reframe={reframe} />
+      <GestureParams onNudge={onNudge} onLight={onLight} onDoubleTap={handleDoubleTap} />
       <OrbitControls
         target={[0, 0.35, 0]}
         enablePan={false}

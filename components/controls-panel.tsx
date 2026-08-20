@@ -1,8 +1,7 @@
 "use client"
 
-import { useCallback, useMemo, useState, type CSSProperties, type JSX, type ReactNode } from "react"
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type JSX } from "react"
 import {
-  CUBE,
   MATERIALS,
   type EngineId,
   type Material,
@@ -42,7 +41,7 @@ const EXPORTS: readonly { id: "stl" | "dxf" | "svg" | "ark"; label: string; hint
   { id: "stl", label: "stl", hint: "flata som trekantnett, til rendering og 3D-print" },
   { id: "dxf", label: "dxf", hint: "alle delar som kurver, til fresen" },
   { id: "svg", label: "svg", hint: "konturkart av delane" },
-  { id: "ark", label: "kuttark", hint: "delane nesta på plate" },
+  { id: "ark", label: "ark", hint: "delane nesta på plate" },
 ]
 
 /** Finértonar til materialprikkane. Fargen er ikkje pynt: han er den eine
@@ -112,6 +111,19 @@ const IcoDown = (
 const IcoUp = (
   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...STROKE}>
     <path d="m18 15-6-6-6 6" />
+  </svg>
+)
+const IcoReset = (
+  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...STROKE}>
+    <path d="M3 12a9 9 0 1 0 2.6-6.36" />
+    <path d="M3 4v4.5h4.5" />
+  </svg>
+)
+const IcoShare = (
+  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...STROKE}>
+    <path d="M12 3v12" />
+    <path d="m8 7 4-4 4 4" />
+    <path d="M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" />
   </svg>
 )
 
@@ -227,20 +239,6 @@ function SliderRow({
   )
 }
 
-/** Ei rekkje i halvarket: etikett til venstre, innhaldet til høgre. */
-function PanelRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span
-        className="w-20 shrink-0 text-[10px] uppercase tracking-[0.18em]"
-        style={{ color: "var(--ink)" }}
-      >
-        {label}
-      </span>
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">{children}</div>
-    </div>
-  )
-}
 
 export function ControlsPanel(props: {
   engine: EngineId
@@ -248,7 +246,6 @@ export function ControlsPanel(props: {
   metrics: Metrics | null
   rules: Rule[]
   view: View
-  seed: string
   beis: string
   locked: ReadonlySet<string>
   hiDetail: boolean
@@ -257,7 +254,6 @@ export function ControlsPanel(props: {
   onEngine: (e: EngineId) => void
   onChange: (p: ParamBag) => void
   onView: (v: View) => void
-  onSeed: (s: string) => void
   onBeis: (b: string) => void
   onShuffle: () => void
   onReset: () => void
@@ -272,7 +268,6 @@ export function ControlsPanel(props: {
     metrics,
     rules,
     view,
-    seed,
     beis,
     locked,
     hiDetail,
@@ -281,7 +276,6 @@ export function ControlsPanel(props: {
     onEngine,
     onChange,
     onView,
-    onSeed,
     onBeis,
     onShuffle,
     onReset,
@@ -294,6 +288,41 @@ export function ControlsPanel(props: {
   // lukka → halv (lesemåtar, materiale, tavla, eksport) → full (skyveveggen)
   const [mode, setMode] = useState<"lukka" | "halv" | "full">("lukka")
   const open = mode !== "lukka"
+
+  // Arket er eit iOS-ark: dra i grepet eller hovudlina, opp for meir og
+  // ned for mindre. Fingeren får eit lite gummiband som svar medan han
+  // dreg, og slepp han forbi terskelen, byter arket steg.
+  const MODES = ["lukka", "halv", "full"] as const
+  const stepMode = useCallback((dir: 1 | -1) => {
+    setMode((m) => MODES[Math.min(2, Math.max(0, MODES.indexOf(m) + dir))])
+    // MODES er ein konstant
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const dragging = useRef<{ y0: number; id: number } | null>(null)
+  const [pull, setPull] = useState(0)
+  const onSheetDown = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") return
+    dragging.current = { y0: e.clientY, id: e.pointerId }
+  }
+  const onSheetMove = (e: React.PointerEvent) => {
+    const d = dragging.current
+    if (!d || e.pointerId !== d.id) return
+    const dy = e.clientY - d.y0
+    setPull(Math.max(-26, Math.min(26, dy * 0.3)))
+  }
+  // eit drag skal ikkje OGSÅ vera eit trykk: kryssa fingeren terskelen,
+  // vert klikket som elles ville fylgt svelgt
+  const swallowClick = useRef(false)
+  const onSheetUp = (e: React.PointerEvent) => {
+    const d = dragging.current
+    if (!d || e.pointerId !== d.id) return
+    dragging.current = null
+    setPull(0)
+    const dy = e.clientY - d.y0
+    swallowClick.current = Math.abs(dy) > 12
+    if (dy < -34) stepMode(1)
+    else if (dy > 34) stepMode(-1)
+  }
 
   const eng = getEngine(engine)
 
@@ -331,10 +360,41 @@ export function ControlsPanel(props: {
         aria-label="kontrollar for sandkassen"
         aria-busy={busy}
         className="pointer-events-auto w-full max-w-md rounded-3xl border"
-        style={{ ...HAIR, background: "var(--paper)", color: "var(--ink)" }}
+        style={{
+          ...HAIR,
+          background: "var(--paper)",
+          color: "var(--ink)",
+          transform: pull ? `translateY(${pull}px)` : undefined,
+          transition: dragging.current ? undefined : "transform 180ms ease",
+        }}
       >
-        {/* hovudlina — motoren, rekninga, terningen og opnaren */}
-        <div className="flex items-center gap-1.5 p-2.5">
+        {/* dragsona: grepet og hovudlina. Fingeren dreg arket mellom dei
+            tre stega; knappane verkar som før av di eit trykk utan drag
+            ikkje kryssar terskelen. */}
+        <div
+          onPointerDown={onSheetDown}
+          onPointerMove={onSheetMove}
+          onPointerUp={onSheetUp}
+          onPointerCancel={onSheetUp}
+          onClickCapture={(e) => {
+            if (swallowClick.current) {
+              swallowClick.current = false
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          }}
+          style={{ touchAction: "none" }}
+        >
+          {open && (
+            <div className="flex justify-center pt-1.5" aria-hidden="true">
+              <div
+                className="h-1 w-9 rounded-full"
+                style={{ background: "color-mix(in srgb, var(--ink) 22%, transparent)" }}
+              />
+            </div>
+          )}
+          {/* hovudlina — motoren, rekninga, terningen og opnaren */}
+          <div className="flex items-center gap-1.5 p-2.5">
           <select
             value={engine}
             onChange={(e) => onEngine(e.target.value as EngineId)}
@@ -402,12 +462,14 @@ export function ControlsPanel(props: {
           >
             {open ? IcoDown : IcoSliders}
           </button>
+          </div>
         </div>
 
         {/* det utvidbare arket */}
         {open && (
-          <div className="max-h-[56vh] overflow-y-auto overscroll-contain px-4 pb-4">
-            <PanelRow label="visning">
+          <div className="max-h-[56vh] overflow-y-auto overscroll-contain px-3 pb-3">
+            {/* lesemåtane — tre ord held; kva dei tyder ligg i title */}
+            <div className="flex flex-wrap items-center gap-1.5 py-1">
               {VIEWS.map((v) => (
                 <button
                   key={v.id}
@@ -421,9 +483,25 @@ export function ControlsPanel(props: {
                   {v.label}
                 </button>
               ))}
-            </PanelRow>
+              {isDesktop && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hiDetail}
+                  onClick={onToggleDetail}
+                  title="fleire trekantar i flata; tyngre å rekne"
+                  className={CHIP + " ml-auto"}
+                  style={chipStyle(hiDetail)}
+                >
+                  fint nett
+                </button>
+              )}
+            </div>
 
-            <PanelRow label="materiale">
+            {/* materialet og beisen i EI rad: fargen ER etiketten, namna
+                ligg i title. Beisen sit på plateflatene; kutta står som rå
+                finér — kvar motor merkjer sjølv kva som er kva. */}
+            <div className="flex flex-wrap items-center gap-1.5 py-1.5">
               {(Object.keys(MATERIALS) as Material[]).map((mk) => (
                 <button
                   key={mk}
@@ -440,11 +518,7 @@ export function ControlsPanel(props: {
                   }}
                 />
               ))}
-            </PanelRow>
-
-            {/* beisen sit på plateflatene; kutta står som rå finér. Kvar
-                motor merkjer sjølv kva som er kva, so fargen gjeld alle. */}
-            <PanelRow label="beis">
+              <span aria-hidden="true" className="mx-1 h-4 w-px" style={{ background: "var(--rule)" }} />
               {BEIS.map((b) => (
                 <button
                   key={b.id}
@@ -461,7 +535,7 @@ export function ControlsPanel(props: {
                   }}
                 />
               ))}
-            </PanelRow>
+            </div>
 
             {/* reglane som ryk: éi line kvar, grunngjevinga i title. Panelet
                 seier KVA som er gale; KVIFOR ligg eit fingertrykk unna. */}
@@ -486,43 +560,9 @@ export function ControlsPanel(props: {
               </ul>
             )}
 
-            {/* frøet: same tekst gjev alltid same objekt — «Iver» er eitt
-                bestemt punkt i rommet og kan skrivast ned */}
-            <div className="flex items-center gap-2 py-1.5">
-              <input
-                type="text"
-                value={seed}
-                placeholder="frø"
-                spellCheck={false}
-                autoComplete="off"
-                aria-label="frø"
-                onChange={(e) => onSeed(e.target.value)}
-                className="tab w-full min-w-0 flex-1 border-b bg-transparent pb-[2px] text-[11px] leading-4 tracking-[0.08em] outline-none placeholder:uppercase placeholder:tracking-[0.18em] placeholder:opacity-45"
-                style={{ ...HAIR, color: "var(--ink)" }}
-              />
-              <button
-                type="button"
-                onClick={onReset}
-                className={CHIP}
-                style={chipStyle(false)}
-                title="tilbake til standardobjektet"
-              >
-                nullstill
-              </button>
-              <button
-                type="button"
-                onClick={onShare}
-                className={CHIP}
-                style={chipStyle(false)}
-                title="lenkja ber heile objektet i hashen"
-              >
-                del
-              </button>
-            </div>
-
-            {/* eksporten får heile breidda: fire piller på éi line er meir
-                lesbart enn tre og ein dinglande fjerdemann */}
-            <div className="flex flex-wrap items-center gap-1.5 py-1.5">
+            {/* eksporten og verktøya i EI rad: fire filformat, attende til
+                standard, del lenkja */}
+            <div className="flex flex-wrap items-center gap-1.5 py-1">
               {EXPORTS.map((x) => (
                 <button
                   key={x.id}
@@ -536,52 +576,45 @@ export function ControlsPanel(props: {
                   {x.label}
                 </button>
               ))}
-            </div>
-
-            {isDesktop && (
               <button
                 type="button"
-                role="switch"
-                aria-checked={hiDetail}
-                onClick={onToggleDetail}
-                title="fleire trekantar i flata; tyngre å rekne"
-                className="my-2 flex w-full items-center justify-between rounded-2xl border px-3 py-2 transition active:scale-[0.99]"
-                style={HAIR}
+                onClick={onReset}
+                aria-label="tilbake til standardobjektet"
+                title="tilbake til standardobjektet"
+                className={CHIP + " ml-auto"}
+                style={chipStyle(false)}
               >
-                <span className="text-[10px] uppercase tracking-[0.18em]">fint nett</span>
-                <span
-                  className="relative h-5 w-9 rounded-full border transition"
-                  style={{ ...HAIR, background: hiDetail ? "var(--ink)" : "transparent" }}
-                >
-                  <span
-                    className="absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all"
-                    style={{
-                      left: hiDetail ? 18 : 2,
-                      background: hiDetail ? "var(--paper)" : "var(--ink)",
-                    }}
-                  />
-                </span>
+                {IcoReset}
               </button>
-            )}
+              <button
+                type="button"
+                onClick={onShare}
+                aria-label="del — lenkja ber heile objektet"
+                title="del — lenkja ber heile objektet"
+                className={CHIP}
+                style={chipStyle(false)}
+              >
+                {IcoShare}
+              </button>
+            </div>
 
-            {/* utvidaren mellom halvt og heilt ope — skyveveggen bak han */}
+            {/* utvidaren mellom halvt og heilt ope — skyveveggen bak han.
+                Berre pila: kva ho gjer, viser ho. */}
             <button
               type="button"
               aria-expanded={mode === "full"}
+              aria-label={mode === "full" ? "færre kontrollar" : "alle parametrar"}
               onClick={() => setMode(mode === "full" ? "halv" : "full")}
-              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-2xl border py-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-70 transition active:scale-[0.99]"
+              className="mt-1.5 flex w-full items-center justify-center rounded-2xl border py-1.5 opacity-60 transition active:scale-[0.99]"
               style={HAIR}
             >
-              {mode === "full" ? <>færre kontrollar {IcoUp}</> : <>alle parametrar {IcoDown}</>}
+              {mode === "full" ? IcoUp : IcoDown}
             </button>
 
             {mode === "full" && (
               <>
-                <h2 className="pt-4 text-[10px] uppercase leading-none tracking-[0.24em] opacity-40">
-                  mål · {CUBE}-kuben
-                </h2>
             <dl
-              className="mt-1.5"
+              className="mt-3"
               style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
             >
               {rows.map((row) => {

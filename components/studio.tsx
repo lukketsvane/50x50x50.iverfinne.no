@@ -45,13 +45,10 @@ export function Studio() {
   // objektet, og det er dei som skil typologiane frå kvarandre. Den slipte
   // flata er eit klikk unna.
   const [view, setView] = useState<View>("lag")
-  const [seed, setSeed] = useState("")
   // beis er ferdig handsaming, som lakk: han bur i visinga og hashen, aldri
   // i parameterrommet — masse og styrke bryr seg ikkje om farge
   const [beis, setBeis] = useState("natur")
   const [hiDetail, setHiDetail] = useState(false)
-  // kuben er kontrollen, ikkje scena — han skal hentast fram, ikkje bort
-  const [cube, setCube] = useState(false)
   const [light, setLight] = useState<LightDir>({ az: 0.62, el: 0.92 })
   const [data, setData] = useState<BuildRes | null>(null)
   // Måltala kjem i eiga melding etter nettet, og berre for det siste
@@ -235,28 +232,12 @@ export function Studio() {
     setBags((b) => ({
       ...b,
       [engine]: eng.random(
-        seeded(engine + ":" + seed + ":" + Date.now()),
+        seeded(engine + ":" + Date.now()),
         b[engine] ?? eng.defaults,
         locks[engine] ?? new Set<string>(),
       ),
     }))
-  }, [engine, eng, seed, locks])
-
-  // Frøet er ikkje ein terning: same tekst gjev alltid same objekt, så «Iver»
-  // er eitt bestemt punkt i rommet og kan skrivast ned.
-  useEffect(() => {
-    if (!mounted || !seed) return
-    setBags((b) => ({
-      ...b,
-      [engine]: eng.random(
-        seeded(engine + ":" + seed),
-        b[engine] ?? eng.defaults,
-        locks[engine] ?? new Set<string>(),
-      ),
-    }))
-    // frøet skal berre slå til når teksten eller motoren endrar seg
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seed, engine])
+  }, [engine, eng, locks])
 
   const toggleLock = useCallback(
     (k: string) => {
@@ -315,7 +296,6 @@ export function Studio() {
             beis={beisHex}
             hiDetail={hiDetail && isDesktop}
             mobile={!isDesktop}
-            cube={cube}
             light={light}
             onNudge={nudge}
             onLight={nudgeLight}
@@ -323,30 +303,20 @@ export function Studio() {
         )}
       </div>
 
+      {/* Eitt ord og ei lenkje. Alt anna sida har å seie, seier objektet. */}
       <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-5 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <div className="text-[11px] leading-4" style={{ color: "var(--ink)" }}>
-          <div className="tracking-[0.22em]">SANDKASSE</div>
-          <div className="opacity-55">50 × 50 × 50 · sitjemøbel</div>
+        <div className="text-[11px] tracking-[0.22em]" style={{ color: "var(--ink)" }}>
+          SANDKASSE
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setCube((c) => !c)}
-            className="pointer-events-auto text-[11px] tracking-wide opacity-60 hover:opacity-100"
-            style={{ color: "var(--ink)" }}
-          >
-            {cube ? "skjul kuben" : "vis kuben"}
-          </button>
-          <a
-            href="https://iverfinne.no"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="pointer-events-auto text-[11px] tracking-wide opacity-60 hover:opacity-100"
-            style={{ color: "var(--ink)" }}
-          >
-            iverfinne.no
-          </a>
-        </div>
+        <a
+          href="https://iverfinne.no"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pointer-events-auto text-[11px] tracking-wide opacity-60 hover:opacity-100"
+          style={{ color: "var(--ink)" }}
+        >
+          iverfinne.no
+        </a>
       </header>
 
       <ControlsPanel
@@ -355,7 +325,6 @@ export function Studio() {
         metrics={metrics}
         rules={rules}
         view={view}
-        seed={seed}
         beis={beis}
         locked={locked}
         hiDetail={hiDetail}
@@ -364,7 +333,6 @@ export function Studio() {
         onEngine={setEngine}
         onChange={setParams}
         onView={setView}
-        onSeed={setSeed}
         onBeis={setBeis}
         onShuffle={shuffle}
         onReset={() => setParams({ ...eng.defaults })}
