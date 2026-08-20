@@ -185,6 +185,8 @@ export function slabMesh(sl: Slab, pl: Placer, s: Soup) {
     const rb = rows[j + 1]
     let pa = ra.lo
     let pb = rb.lo
+    // banda er dei to store plateflatene (±h); dei tek beis
+    s.k = 0
     const band = (qa: number, qb: number) => {
       s.quad(
         pl.at(pa, ra.v, h),
@@ -207,6 +209,8 @@ export function slabMesh(sl: Slab, pl: Placer, s: Soup) {
     band(ra.hi, rb.hi)
   }
 
+  // omrisset er kuttet gjennom plata — rå finér
+  s.k = 1
   for (const ring of [sl.rings.outline, ...sl.rings.holes]) {
     for (let i = 0; i < ring.length; i++) {
       const p = ring[i]

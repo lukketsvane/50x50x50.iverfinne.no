@@ -15,11 +15,15 @@ import type { Layer, Part, Pt, Stack } from "./laminae"
 import type { MeshData } from "./surface"
 import type { Vec3 } from "./field"
 
-type Soup = { pos: number[]; nor: number[]; min: Vec3; max: Vec3 }
+// `k` er flate/kant-merket for det som vert lagt inn NO: 0 er lokket på
+// eit lag (plateflate, tek beis), 1 er eit kutt (rå finér). Sjå BuildOut.
+type Soup = { pos: number[]; nor: number[]; kan: number[]; k: number; min: Vec3; max: Vec3 }
 
 const newSoup = (): Soup => ({
   pos: [],
   nor: [],
+  kan: [],
+  k: 1,
   min: [Infinity, Infinity, Infinity],
   max: [-Infinity, -Infinity, -Infinity],
 })
@@ -27,6 +31,7 @@ const newSoup = (): Soup => ({
 function put(s: Soup, p: Vec3, n: Vec3) {
   s.pos.push(p[0], p[1], p[2])
   s.nor.push(n[0], n[1], n[2])
+  s.kan.push(s.k)
   for (let k = 0; k < 3; k++) {
     if (p[k] < s.min[k]) s.min[k] = p[k]
     if (p[k] > s.max[k]) s.max[k] = p[k]
@@ -113,14 +118,18 @@ export function stackMesh(stack: Stack, gap = 0): MeshData {
     for (const part of L.parts) {
       const pr = pair(part)
       if (!pr) continue
+      // veggene er kutt gjennom plata; lokka er plateflater
+      s.k = 1
       wall(s, part.outline, z0, z1, true, part.ring || pr.closed === false)
       if (part.ring) for (const h of part.holes) wall(s, h, z0, z1, false, true)
+      s.k = 0
       caps(s, pr.out, pr.inn, z0, z1, pr.closed)
     }
   }
   return {
     positions: new Float32Array(s.pos),
     normals: new Float32Array(s.nor),
+    kant: new Float32Array(s.kan),
     tris: s.pos.length / 9,
     min: s.min,
     max: s.max,

@@ -295,9 +295,10 @@ export function Studio() {
   // veg per del, og ei global z-stripe ville lyge om materialet.
   const stripe =
     eng.unitLabel === "lag" && typeof params.plyT === "number" ? params.plyT : 0
-  // beisen fylgjer same grensa som fugene: han er sann berre der laga er
-  // vassrette, og det er skiljet flate/kant i shaderen som ber han
-  const beisHex = stripe > 0 ? (BEIS.find((b) => b.id === beis)?.hex ?? "") : ""
+  // Beisen gjeld ALLE typologiane: kvar motor merkjer sjølv kva som er
+  // plateflate og kva som er kutt, so fargen sit rett same kva veg
+  // platene ligg.
+  const beisHex = BEIS.find((b) => b.id === beis)?.hex ?? ""
   const liveTal = tal && tal.engine === engine ? tal : null
   const metrics: Metrics | null = liveTal?.metrics ?? null
   const rules: Rule[] = useMemo(() => liveTal?.rules ?? [], [liveTal])

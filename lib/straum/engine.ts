@@ -86,11 +86,11 @@ export const STRAUM: EngineDef = {
     const { body: bd, parts } = ctx(p)
     if (view === "flate") {
       const m = buildMesh(p, DETAIL[detail], bd)
-      return { ...m, lines: EMPTY(), heavy: EMPTY() }
+      return { ...m, kant: EMPTY(), lines: EMPTY(), heavy: EMPTY() }
     }
     if (view === "lag") {
       const m = assemblyMesh(parts())
-      return { ...m, lines: EMPTY(), heavy: EMPTY() }
+      return { ...m, kant: m.kant ?? EMPTY(), lines: EMPTY(), heavy: EMPTY() }
     }
     const c = contourLines(parts())
     return {
@@ -101,6 +101,7 @@ export const STRAUM: EngineDef = {
       max: c.max,
       lines: c.positions,
       heavy: c.heavy,
+      kant: EMPTY(),
     }
   },
 

@@ -29,9 +29,11 @@ export type Station = { u: number; a: number; b: number }
 /** (u, v, w) → verda. Må vera høgrehendt, elles set ein `flip`. */
 export type Frame = (u: number, v: number, w: number) => Vec3
 
-export type Soup = { pos: number[]; nor: number[] }
+/** `k` er flate/kant-merket for det som vert lagt inn no: 0 er ei
+ *  plateflate (tek beis), 1 er eit kutt (rå finér). Sjå BuildOut i core. */
+export type Soup = { pos: number[]; nor: number[]; kan: number[]; k: number }
 
-export const newSoup = (): Soup => ({ pos: [], nor: [] })
+export const newSoup = (): Soup => ({ pos: [], nor: [], kan: [], k: 1 })
 
 export type StripOpts = {
   /** lukka løkkje i u — ein ring har ingen endeflater */
@@ -77,6 +79,7 @@ function tri(s: Soup, A: Vec3, B: Vec3, C: Vec3, flip: boolean) {
     s.pos.push(A[0], A[1], A[2], B[0], B[1], B[2], C[0], C[1], C[2])
     s.nor.push(nx, ny, nz, nx, ny, nz, nx, ny, nz)
   }
+  s.kan.push(s.k, s.k, s.k)
 }
 
 const same = (A: Vec3, B: Vec3) =>
@@ -116,15 +119,20 @@ export function strip(s: Soup, st: Station[], f: Frame, o: StripOpts) {
     const A = st[i]
     const Bt = st[(i + 1) % n]
     if (Math.abs(Bt.u - A.u) > EPS) {
+      // topp og botn er plateFLATENE (w-retninga er tjukna) — dei tek beis
+      s.k = 0
       // topp: utover er +w, altså mot klokka i (u, v)
       quad(s, P(A.u, A.a, true), P(Bt.u, Bt.a, true), P(Bt.u, Bt.b, true), P(A.u, A.b, true), flip)
       // botn: same flate, motsett veg
       quad(s, P(A.u, A.b, false), P(Bt.u, Bt.b, false), P(Bt.u, Bt.a, false), P(A.u, A.a, false), flip)
+      // sidene er kutt gjennom plata — rå finér
+      s.k = 1
       // sida v = b: utover er +v, altså langs +w og så +u
       if (hi) quad(s, P(A.u, A.b, false), P(A.u, A.b, true), P(Bt.u, Bt.b, true), P(Bt.u, Bt.b, false), flip)
       // sida v = a: utover er −v
       if (lo) quad(s, P(A.u, A.a, true), P(A.u, A.a, false), P(Bt.u, Bt.a, false), P(Bt.u, Bt.a, true), flip)
     } else {
+      s.k = 1
       // sprang: den nedre grensa som stig, og den øvre som fell, er begge
       // material som finst før og ikkje etter — dei vender i +u
       step(s, P, A.u, A.a, Bt.a, Bt.a > A.a, flip)
@@ -135,6 +143,7 @@ export function strip(s: Soup, st: Station[], f: Frame, o: StripOpts) {
   if (!o.closed) {
     const A = st[0]
     const Z = st[n - 1]
+    s.k = 1
     // enden i −u
     quad(s, P(A.u, A.a, true), P(A.u, A.b, true), P(A.u, A.b, false), P(A.u, A.a, false), flip)
     // enden i +u
@@ -169,6 +178,7 @@ function step(
 export function soupToMesh(s: Soup): {
   positions: Float32Array
   normals: Float32Array
+  kant: Float32Array
   tris: number
   min: Vec3
   max: Vec3
@@ -188,6 +198,7 @@ export function soupToMesh(s: Soup): {
   }
   return {
     positions: new Float32Array(s.pos),
+    kant: new Float32Array(s.kan),
     normals: new Float32Array(s.nor),
     tris: s.pos.length / 9,
     min,

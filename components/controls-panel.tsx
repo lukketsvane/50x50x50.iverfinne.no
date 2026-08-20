@@ -442,28 +442,26 @@ export function ControlsPanel(props: {
               ))}
             </PanelRow>
 
-            {/* beisen sit på flatene; kantane står som rå finér. Berre der
-                laga er vassrette — elles ville fargen lyge om materialet. */}
-            {eng.unitLabel === "lag" && (
-              <PanelRow label="beis">
-                {BEIS.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    aria-pressed={beis === b.id}
-                    aria-label={`beis: ${b.label}`}
-                    title={b.label}
-                    onClick={() => onBeis(b.id)}
-                    className="h-6 w-6 rounded-full border transition active:scale-90"
-                    style={{
-                      backgroundColor: b.hex || "#cfc7bb",
-                      borderColor: beis === b.id ? "var(--ink)" : "var(--rule)",
-                      boxShadow: beis === b.id ? "0 0 0 1px var(--ink)" : undefined,
-                    }}
-                  />
-                ))}
-              </PanelRow>
-            )}
+            {/* beisen sit på plateflatene; kutta står som rå finér. Kvar
+                motor merkjer sjølv kva som er kva, so fargen gjeld alle. */}
+            <PanelRow label="beis">
+              {BEIS.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={beis === b.id}
+                  aria-label={`beis: ${b.label}`}
+                  title={b.label}
+                  onClick={() => onBeis(b.id)}
+                  className="h-6 w-6 rounded-full border transition active:scale-90"
+                  style={{
+                    backgroundColor: b.hex || "#cfc7bb",
+                    borderColor: beis === b.id ? "var(--ink)" : "var(--rule)",
+                    boxShadow: beis === b.id ? "0 0 0 1px var(--ink)" : undefined,
+                  }}
+                />
+              ))}
+            </PanelRow>
 
             {/* reglane som ryk: éi line kvar, grunngjevinga i title. Panelet
                 seier KVA som er gale; KVIFOR ligg eit fingertrykk unna. */}

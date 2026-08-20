@@ -73,11 +73,12 @@ export const SKAL: EngineDef = {
         max: [sh.R, sh.R, sh.zTop],
         lines: c.positions,
         heavy: c.heavy,
+        kant: EMPTY(),
       }
     }
     const m =
       view === "lag" ? stackMesh(buildStack(p, sh, nth)) : buildMesh(p, DETAIL[detail], sh)
-    return { ...m, lines: EMPTY(), heavy: EMPTY() }
+    return { ...m, kant: m.kant ?? EMPTY(), lines: EMPTY(), heavy: EMPTY() }
   },
 
   measure: (bag) => measure(asP(bag)),

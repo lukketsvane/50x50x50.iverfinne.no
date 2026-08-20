@@ -68,35 +68,37 @@ function makeStriped(
     sh.uniforms.uBeis = uBeis
     sh.uniforms.uBeisOn = uBeisOn
     sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nvarying vec3 vObj;\nvarying vec3 vNrmO;")
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvObj = position;\nvNrmO = normal;")
+      .replace(
+        "#include <common>",
+        "#include <common>\nattribute float aKant;\nvarying vec3 vObj;\nvarying float vKant;",
+      )
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvObj = position;\nvKant = aKant;")
     sh.fragmentShader = sh.fragmentShader
       .replace(
         "#include <common>",
-        "#include <common>\nvarying vec3 vObj;\nvarying vec3 vNrmO;\nuniform float uPly;\nuniform vec3 uBeis;\nuniform float uBeisOn;",
+        "#include <common>\nvarying vec3 vObj;\nvarying float vKant;\nuniform float uPly;\nuniform vec3 uBeis;\nuniform float uBeisOn;",
       )
       .replace(
         "#include <color_fragment>",
         [
           "#include <color_fragment>",
           "{",
-          // Ei FLATE er der normalen står langs stabelaksen; ein KANT er
-          // der ho ligg på tvers. Skiljet er alt geometrien veit om kva
-          // som er plate og kva som er kutt.
-          "  float flate = smoothstep(0.6, 0.85, abs(vNrmO.z));",
+          // Kvart hjørne veit om det er plateFLATE (0) eller KUTT (1).
+          // Motoren har merkt det der han bygde trekanten; der han teier,
+          // har framsyninga gissa frå normalen før ho la attributtet.
           "  if (uBeisOn > 0.5) {",
-          "    diffuseColor.rgb = mix(diffuseColor.rgb, uBeis, flate * 0.92);",
+          "    diffuseColor.rgb = mix(diffuseColor.rgb, uBeis, (1.0 - vKant) * 0.92);",
           "  }",
           "  if (uPly > 0.5) {",
           "    float t = vObj.z / uPly;",
           "    float kant = (0.5 - abs(fract(t) - 0.5)) * uPly;",
           "    float w = max(fwidth(vObj.z) * 1.2, 0.35);",
           "    float fuge = 1.0 - smoothstep(0.0, w + 0.45, kant);",
-          // Fuga finst berre i kanten. Flatene ligg NØYAKTIG på
+          // Fuga finst berre i kuttet. Flatene ligg NØYAKTIG på
           // laggrensene, so utan denne porten vart heile lokket på kvart
           // lag mørkna som éi stor fuge — det var den mørke ringen kring
           // setet.
-          "    diffuseColor.rgb *= 1.0 - 0.16 * fuge * (1.0 - flate);",
+          "    diffuseColor.rgb *= 1.0 - 0.16 * fuge * vKant;",
           "  }",
           "}",
         ].join("\n"),
@@ -136,6 +138,21 @@ export function ObjectMesh({
     if (data.positions.length) {
       g.setAttribute("position", new THREE.BufferAttribute(data.positions, 3))
       g.setAttribute("normal", new THREE.BufferAttribute(data.normals, 3))
+      // Flate/kant per hjørne. Motorar som merkjer sjølve sender lista;
+      // for dei andre vert ho gissa av normalen: langs stabelaksen er
+      // plateflate, på tvers er kutt. Gissinga skjer HER, éin gong per
+      // bygg, so shaderen alltid les same attributt.
+      const nv = data.positions.length / 3
+      let kant = data.kant
+      if (kant.length !== nv) {
+        kant = new Float32Array(nv)
+        for (let i = 0; i < nv; i++) {
+          const nz = Math.abs(data.normals[i * 3 + 2])
+          const t = Math.min(1, Math.max(0, (nz - 0.6) / 0.25))
+          kant[i] = 1 - t * t * (3 - 2 * t)
+        }
+      }
+      g.setAttribute("aKant", new THREE.BufferAttribute(kant, 1))
       g.computeBoundingSphere()
     }
     const mk = (a: Float32Array) => {

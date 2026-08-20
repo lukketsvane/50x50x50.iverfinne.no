@@ -159,6 +159,7 @@ export function build(p: Params, detail: DetailKey, view: View, sh0?: Shell): Bu
       positions: EMPTY(),
       normals: EMPTY(),
       tris: 0,
+      kant: EMPTY(),
       min,
       max,
       lines: c.lines,
@@ -168,11 +169,14 @@ export function build(p: Params, detail: DetailKey, view: View, sh0?: Shell): Bu
 
   const s = newSoup()
   if (view === "flate") {
+    // Den glatte kroppen har inga kuttflate; tom kant let framsyninga
+    // gisse frå normalane i staden.
     shellSolid(s, sh, d)
     seatSolid(s, sh, seatGeom(sh, d.nt))
-  } else {
-    lagSoup(s, sh, buildAll(p, d, sh))
+    const m = soupToMesh(s)
+    return { ...m, kant: EMPTY(), lines: EMPTY(), heavy: EMPTY() }
   }
+  lagSoup(s, sh, buildAll(p, d, sh))
   const m = soupToMesh(s)
   return { ...m, lines: EMPTY(), heavy: EMPTY() }
 }
