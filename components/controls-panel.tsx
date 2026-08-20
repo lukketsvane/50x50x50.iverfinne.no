@@ -74,7 +74,7 @@ const ICON_BTN_SOLID =
 
 function chipStyle(active: boolean): CSSProperties {
   return active
-    ? { background: "var(--accent)", color: "#ffffff", borderColor: "transparent" }
+    ? { background: "var(--ink)", color: "var(--paper)", borderColor: "transparent" }
     : { color: "var(--ink)", borderColor: "var(--rule)" }
 }
 const CHIP =
@@ -435,7 +435,7 @@ export function ControlsPanel(props: {
               className="flex h-9 items-center gap-1.5 rounded-full border pl-3 pr-2.5 text-[11px] uppercase tracking-[0.18em] transition active:scale-95"
               style={
                 engineLock
-                  ? { background: "var(--accent)", color: "#ffffff", borderColor: "transparent" }
+                  ? { background: "var(--ink)", color: "var(--paper)", borderColor: "transparent" }
                   : { ...HAIR, color: "var(--ink)" }
               }
             >
@@ -443,7 +443,7 @@ export function ControlsPanel(props: {
                 <span
                   aria-hidden="true"
                   className="block h-[5px] w-[5px] rounded-full"
-                  style={{ background: "#ffffff" }}
+                  style={{ background: "var(--paper)" }}
                 />
               )}
               {eng.label}
@@ -474,7 +474,7 @@ export function ControlsPanel(props: {
                       className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[11px] uppercase tracking-[0.18em] transition active:scale-[0.98]"
                       style={
                         engine === e.id
-                          ? { background: "var(--accent)", color: "#ffffff" }
+                          ? { background: "var(--ink)", color: "var(--paper)" }
                           : { color: "var(--ink)" }
                       }
                     >
@@ -513,8 +513,8 @@ export function ControlsPanel(props: {
             aria-hidden="true"
             className="block h-[5px] w-[5px] shrink-0 rounded-full"
             style={{
-              background: busy ? "var(--accent)" : "var(--ink)",
-              opacity: busy ? 1 : 0.12,
+              background: "var(--ink)",
+              opacity: busy ? 0.8 : 0.12,
               transition: "opacity 200ms ease",
             }}
           />
@@ -525,7 +525,7 @@ export function ControlsPanel(props: {
             aria-label="terning — nye tal innanfor grensene, låste skruar står"
             title="terning"
             className={ICON_BTN_SOLID}
-            style={{ background: "var(--accent)", color: "#ffffff" }}
+            style={{ background: "var(--ink)", color: "var(--paper)" }}
           >
             {IcoShuffle}
           </button>
