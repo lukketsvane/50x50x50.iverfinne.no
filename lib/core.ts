@@ -267,7 +267,7 @@ export type ExportOut = {
 // =============================================================================
 // MOTORKONTRAKTEN
 // =============================================================================
-export type EngineId = "skal" | "straum" | "ribbe" | "vaffel"
+export type EngineId = "skal" | "straum" | "ribbe" | "vaffel" | "skive"
 
 export type EngineDef = {
   id: EngineId
