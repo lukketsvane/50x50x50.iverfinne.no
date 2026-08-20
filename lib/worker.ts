@@ -71,7 +71,11 @@ export type ExportRes = {
  *  ikkje neste førespurnad før han har fått svar på den førre, og eit
  *  unntak utan svar ville låse heile appen for alltid. */
 export type FeilRes = { kind: "feil"; id: number }
-export type Res = BuildRes | MaalRes | ExportRes | FeilRes
+/** Profilteikninga som bilete, generert automatisk etter kvar måling:
+ *  alle flatene, rett i menyen — ingen skal måtte laste ned ein SVG for
+ *  å sjå kva delane er. */
+export type SynRes = { kind: "syn"; id: number; engine: EngineId; svg: string }
+export type Res = BuildRes | MaalRes | ExportRes | FeilRes | SynRes
 
 function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
   const out = getEngine(req.engine).build(req.params, req.detail, req.view)
@@ -140,6 +144,14 @@ self.onmessage = (e: MessageEvent<Req>) => {
         const rules = eng.rules(req.params, metrics)
         const res: MaalRes = { kind: "maal", id: req.id, engine: req.engine, metrics, rules }
         ;(self as unknown as Worker).postMessage(res)
+        // Flatene som bilete, i same utsette steget: mellombygga er alt
+        // hugsa frå målinga, so teikninga kostar berre sjølve SVG-en — og
+        // ho teier på same viset når eit nyare punkt har teke over.
+        if (newest !== req.id) return
+        const svg = eng.exportFile(req.params, "svg")
+        if (newest !== req.id || !svg.text) return
+        const syn: SynRes = { kind: "syn", id: req.id, engine: req.engine, svg: svg.text }
+        ;(self as unknown as Worker).postMessage(syn)
       } catch (err) {
         console.error("sandkasse: målinga slo feil", err)
       }

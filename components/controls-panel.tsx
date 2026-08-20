@@ -247,6 +247,8 @@ export function ControlsPanel(props: {
   rules: Rule[]
   view: View
   beis: string
+  /** flatene som bilete (SVG-tekst), generert automatisk av arbeidaren */
+  syn: string | null
   /** terningen låst til den valde modulen (dobbelttrykk på veljaren) */
   engineLock: boolean
   locked: ReadonlySet<string>
@@ -272,6 +274,7 @@ export function ControlsPanel(props: {
     rules,
     view,
     beis,
+    syn,
     engineLock,
     locked,
     hiDetail,
@@ -632,6 +635,24 @@ export function ControlsPanel(props: {
                   </li>
                 ))}
               </ul>
+            )}
+
+            {/* flatene, automatisk: kvar del slik han ligg på plata. Det
+                ein før måtte laste ned ein SVG for å sjå, står i menyen og
+                fylgjer kvar einaste parameterendring. */}
+            {syn && (
+              <div
+                className="my-1.5 overflow-hidden rounded-2xl border p-2"
+                style={{ ...HAIR, background: "#ffffff" }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
+                  alt="alle flatene, slik dei ligg på plata"
+                  className="max-h-40 w-full object-contain"
+                  style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
+                />
+              </div>
             )}
 
             {/* eksporten og verktøya i EI rad: fire filformat, attende til
