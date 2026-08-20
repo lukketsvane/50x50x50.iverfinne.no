@@ -197,11 +197,17 @@ export const PARAM_KEYS: readonly string[] = GROUPS.flatMap((g) => [...g.keys])
 /** Kuraterte posar: tre handdesigna utgangspunkt terningen jittrar kring. */
 export const POSES: readonly Partial<Params>[] = [
   // vridd søyle
-  { vridFot: -60, vridSete: 60, finnar: 17, skraa: 18 },
+  { vridFot: -60, vridSete: 60, finnar: 11, skraa: 18 },
   // timeglas
   { midjeB: 110, midjeD: 80, seteB: 430, seteD: 400, fotB: 400, fotD: 380, morfNed: 6, morfOpp: 3 },
-  // dokumentobjektet: tett og mjukt
-  { finnar: 23, veggT: 28, skraa: 8, vridFot: -10, vridSete: 25 },
+  // dokumentobjektet: tett og mjukt — delinga pressa UNDER fingermålet
+  // med ein finare fres, og ei fyldigare midje so plana ikkje deler seg
+  // i fleire lause stykke enn verkstaden orkar setje i
+  {
+    finnar: 29, veggT: 28, skraa: 8, vridFot: -10, vridSete: 25,
+    seteB: 400, seteD: 350, fotB: 360, fotD: 330, midjeB: 240, midjeD: 200,
+    fresD: 3,
+  },
 ]
 
 /** Kva to-fingers-rulling på lerretet skrur på. */
