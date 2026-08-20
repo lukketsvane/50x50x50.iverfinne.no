@@ -93,9 +93,15 @@ export function measure(p: Params, pre?: Build): Metrics {
   // --- fotavtrykk og velting -------------------------------------------------
   const feet: Pt[] = []
   for (const sl of b.slices) {
+    const ca = Math.cos(sl.rot)
+    const sa = Math.sin(sl.rot)
+    const W2 = (q0: number, off: number): Pt => [
+      q0 * ca - (sl.y + off) * sa,
+      q0 * sa + (sl.y + off) * ca,
+    ]
     for (const [x0, x1] of runsAt(sl.outline, 1)) {
-      feet.push([x0, sl.y - p.plyT / 2], [x1, sl.y - p.plyT / 2])
-      feet.push([x0, sl.y + p.plyT / 2], [x1, sl.y + p.plyT / 2])
+      feet.push(W2(x0, -p.plyT / 2), W2(x1, -p.plyT / 2))
+      feet.push(W2(x0, p.plyT / 2), W2(x1, p.plyT / 2))
     }
   }
   const h = hull(feet)

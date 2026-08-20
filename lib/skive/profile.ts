@@ -224,10 +224,17 @@ function clearance(poly: Pt[], x: number, z: number): number {
  * inn, så det som er trygt midt i møbelet kan vera luft ytst. Finn han
  * ikkje plass, fell staven bort, og regelen seier frå.
  */
-export function findRods(p: Params, profiles: Pt[][]): Rod[] {
+export function findRods(
+  p: Params,
+  profiles: Pt[][],
+  toLocal: (x: number, z: number, i: number) => [number, number] = (x, z) => [x, z],
+): Rod[] {
   const need = p.stavD / 2 + 6
   const ok = (x: number, z: number) =>
-    profiles.every((poly) => inPoly(poly, x, z) && clearance(poly, x, z) >= need)
+    profiles.every((poly, i) => {
+      const [lx, lz] = toLocal(x, z, i)
+      return inPoly(poly, lx, lz) && clearance(poly, lx, lz) >= need
+    })
 
   const seek = (x0: number, z0: number): Rod | null => {
     for (const r of [0, 8, 16, 26, 38]) {
@@ -262,6 +269,8 @@ export type Slice = {
   y: number
   /** morf-graden, 0 midt og 1 ytst */
   u: number
+  /** vifterotasjonen kring Z, radianar — signert: minus på eine sida */
+  rot: number
   outline: Pt[]
   holes: Pt[][]
   area: number
@@ -298,26 +307,38 @@ function buildSlicesRaw(p: Params, k: number): Build {
   const outlines: Pt[][] = []
   const us: number[] = []
   const ys: number[] = []
+  const rots: number[] = []
   for (let i = 0; i < n; i++) {
-    const u = half > 0 ? Math.abs(i - half) / half : 0
-    us.push(u)
+    const su = half > 0 ? (i - half) / half : 0
+    us.push(Math.abs(su))
     ys.push((i - half) * (p.plyT + p.luft))
-    outlines.push(profileAt(p, u, k))
+    rots.push((p.vifte * su * Math.PI) / 180)
+    outlines.push(profileAt(p, Math.abs(su), k))
   }
 
-  const rods = findRods(p, outlines)
-  // hòlet er staven pluss ei fjør med klaring — dei skal ikkje slåst om
-  // nøyaktig same flata i biletet heller
-  const holes = rods.map((r) => rodHole(r, p.stavD / 2 + 0.2))
+  // Staven står i VERDA og skivene står i vifta: hòlet i skive i sit der
+  // stavlina kryssar plata sitt plan — u_lokal = (x0 + y·sin a) / cos a.
+  // Kandidaten må difor prøvast i kvar skive sine EIGNE koordinatar.
+  const local = (x0: number, i: number): number =>
+    (x0 + ys[i] * Math.sin(rots[i])) / Math.cos(rots[i])
+  const rods = findRods(p, outlines, (x0, z, i) => [local(x0, i), z])
 
-  const slices: Slice[] = outlines.map((o, i) => ({
-    y: ys[i],
-    u: us[i],
-    outline: o,
-    holes: holes.map((h) => h.slice()),
-    area:
-      Math.abs(shoelace(o)) - holes.reduce((s, h) => s + Math.abs(shoelace(h)), 0),
-  }))
+  // hòlet er staven pluss klaring, vidga eit hår for skråkryssinga
+  const maxRot = (Math.abs(p.vifte) * Math.PI) / 180
+  const holeR = (p.stavD / 2 + 0.2) / Math.max(0.6, Math.cos(maxRot))
+
+  const slices: Slice[] = outlines.map((o, i) => {
+    const holes = rods.map((r) => rodHole({ x: local(r.x, i), z: r.z }, holeR))
+    return {
+      y: ys[i],
+      u: us[i],
+      rot: rots[i],
+      outline: o,
+      holes,
+      area:
+        Math.abs(shoelace(o)) - holes.reduce((s, h) => s + Math.abs(shoelace(h)), 0),
+    }
+  })
 
   return { slices, rods, width }
 }

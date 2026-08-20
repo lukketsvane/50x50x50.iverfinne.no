@@ -48,6 +48,7 @@ export type Params = {
   innsving: number // kor mykje dei ytste skivene er dregne inn, 0–1
   bogefall: number // kor mykje bogen krympar ut mot sidene, 0–1 — hòla vert ei GROTTE
   bogedrift: number // kor langt bogetoppen sig bakover/framover ut mot sidene, mm
+  vifte: number // skivene roterte i solfjøs kring midten, grader per ytste skive
 
   // --- BYGG ---------------------------------------------------------------
   stavD: number // stavdiameter, mm
@@ -74,11 +75,12 @@ export const PARAM_RANGES: Record<string, Range> = {
   skiver: { min: 7, max: 21, step: 1, label: "skiver", int: true },
   plyT: { min: 9, max: 24, step: 0.5, label: "skivetjukn", unit: "mm" },
   luft: { min: 0, max: 60, step: 0.5, label: "luft", unit: "mm" },
-  kuppel: { min: 0, max: 0.8, step: 0.005, label: "kuppel" },
-  sidefall: { min: 0, max: 30, step: 0.5, label: "sidefall", unit: "mm" },
-  innsving: { min: 0, max: 0.16, step: 0.002, label: "innsving" },
+  kuppel: { min: -0.5, max: 0.8, step: 0.005, label: "kuppel" },
+  sidefall: { min: -20, max: 30, step: 0.5, label: "sidefall", unit: "mm" },
+  innsving: { min: -0.1, max: 0.16, step: 0.002, label: "innsving" },
   bogefall: { min: 0, max: 0.9, step: 0.005, label: "grotte" },
   bogedrift: { min: -90, max: 90, step: 1, label: "bogedrift", unit: "mm" },
+  vifte: { min: -14, max: 14, step: 0.5, label: "vifte", unit: "°" },
 
   stavD: { min: 8, max: 16, step: 0.5, label: "stavdiameter", unit: "mm" },
 }
@@ -94,7 +96,7 @@ export const GROUPS: readonly Group[] = [
   {
     id: "skiver",
     label: "skiver",
-    keys: ["skiver", "plyT", "luft", "kuppel", "sidefall", "innsving", "bogefall", "bogedrift"],
+    keys: ["skiver", "plyT", "luft", "kuppel", "sidefall", "innsving", "bogefall", "bogedrift", "vifte"],
   },
   { id: "bygg", label: "bygg", keys: ["stavD"] },
 ]
@@ -133,6 +135,7 @@ export const DEFAULT_PARAMS: Params = {
   innsving: 0.05,
   bogefall: 0,
   bogedrift: 0,
+  vifte: 0,
 
   stavD: 12,
   material: "bjork",
@@ -167,6 +170,21 @@ export const POSES: readonly Partial<Params>[] = [
     skiver: 8, plyT: 19, luft: 44, bogeH: 320, bogeN: 1.9,
     frambein: 100, bakbein: 104, ryggH: 60, kuppel: 0.3,
     innsving: 0.09, stavD: 14,
+  },
+  // vifta: skivene roterte i solfjøs — same kuttfil, heilt anna møbel
+  {
+    vifte: 7, skiver: 12, plyT: 13, luft: 26, ryggH: 80,
+    kuppel: 0.35, grop: 18, djup: 322, bogeH: 290, frambein: 104, bakbein: 106,
+  },
+  // vengene: ryggen STIG ut mot sidene og setet kronar seg
+  {
+    kuppel: -0.45, ryggH: 68, hogd: 396, sidefall: -12,
+    ryggV: 16, skiver: 12, plyT: 14, luft: 27, grop: 22,
+  },
+  // spent: dei ytste skivene er STØRRE — silhuetten spriker som ein gange
+  {
+    innsving: -0.08, djup: 324, hogd: 398, frambein: 100, bakbein: 104,
+    skiver: 11, plyT: 14, luft: 30, ryggH: 74, kuppel: 0.3, bogeH: 300,
   },
 ]
 
