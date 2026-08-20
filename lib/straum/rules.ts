@@ -165,11 +165,13 @@ export function checkRules(p: Params, m: Metrics, pre?: { body?: Body; build?: B
     why: "Sporet er eit parallellogram og ikkje eit rektangel: finna står skrått, så breidda i planet er tjukna delt på cosinus til vinkelen. Er sporet breiare enn plata er tjukk, held det ikkje finna vinkelrett — det held henne berre på plass.",
   })
 
-  // --- 10 finnedeling mot fresediameter (mjuk) -----------------------------
+  // --- 10 finnedeling mot fresediameter (hard) -----------------------------
+  // Hard, ikkje mjuk: eit spor smalare enn fresen finst ikkje — det er
+  // ikkje eit val ein kan stå for, det er ein del som ikkje kan skjerast.
   add({
     id: "fres",
     label: "material mellom spora",
-    hard: false,
+    hard: true,
     ok: web >= p.fresD,
     value: `${mm1(web)} mm mot ein fres på ${mm1(p.fresD)} mm`,
     why: "To spor som står nærare kvarandre enn fresen er brei kan ikkje skjerast: verktøyet et opp heile stripa mellom dei, og sokkelen kjem ut av maskina som lause band.",

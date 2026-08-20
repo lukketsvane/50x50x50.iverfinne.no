@@ -89,8 +89,14 @@ function earClip(poly: Pt[]): [Pt, Pt, Pt][] {
 
   const cross = (o: Pt, a: Pt, b: Pt) =>
     (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+  // STRENGT inni, og punkt som fell saman med eit hjørne tel ikkje: brua
+  // frå eit hòl legg att koordinat-dublettar i polygonet, og med >= ville
+  // kvar dublett blokkere kvart einaste øyre han rører — klipparen stoggar
+  // då halvvegs og lèt loket stå ope.
+  const same = (u: Pt, v: Pt) => u[0] === v[0] && u[1] === v[1]
   const inside = (a: Pt, b: Pt, c: Pt, p: Pt) =>
-    cross(a, b, p) >= 0 && cross(b, c, p) >= 0 && cross(c, a, p) >= 0
+    !same(p, a) && !same(p, b) && !same(p, c) &&
+    cross(a, b, p) > 0 && cross(b, c, p) > 0 && cross(c, a, p) > 0
 
   const out: [Pt, Pt, Pt][] = []
   let guard = idx.length * idx.length + 16
@@ -101,7 +107,18 @@ function earClip(poly: Pt[]): [Pt, Pt, Pt][] {
       const ib = idx[i]
       const ic = idx[(i + 1) % idx.length]
       const a = poly[ia], b = poly[ib], c = poly[ic]
-      if (cross(a, b, c) <= 0) continue
+      const cc = cross(a, b, c)
+      if (cc === 0) {
+        // Eit hjørne utan areal. Er det ein DUBLETT (brua sin kopi), fell
+        // det stilt bort. Er det eit ekte kolineært hjørne, må trekanten
+        // med null areal LIKEVEL leggjast: veggen under har kantar til
+        // hjørnet, og utan makkeren i loket står skalet ope der.
+        if (!same(a, b) && !same(b, c)) out.push([a, b, c])
+        idx.splice(i, 1)
+        cut = true
+        break
+      }
+      if (cc < 0) continue
       let bad = false
       for (const j of idx) {
         if (j === ia || j === ib || j === ic) continue
