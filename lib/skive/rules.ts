@@ -88,6 +88,26 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     why: "Møbelet er skiver tredde på stavar — det finst ikkje lim mellom skivene. Ein stav treng gods med mon rundt hòlet i ALLE skivene, og morfen dreg dei ytste inn: det som er trygt midt i møbelet kan vera luft ytst.",
   })
 
+  // --- 6b vifta klarer seg (mjuk) --------------------------------------------
+  // To naboskiver i vifta står i kvar sin vinkel og MØTEST eit stykke ute:
+  // avstanden dit er gapet delt på vinkelskilnaden. Ligg møtet innanfor
+  // skivene si eiga utstrekning, skjer platene kvarandre i lufta.
+  {
+    const n = Math.max(2, Math.round(p.skiver))
+    const dAng = ((Math.abs(p.vifte) * 2) / Math.max(1, n - 1)) * (Math.PI / 180)
+    let maxR = 0
+    for (const q of b.slices[0]?.outline ?? []) maxR = Math.max(maxR, Math.abs(q[0]))
+    const kryss = dAng > 1e-6 ? (p.plyT + p.luft) / Math.tan(dAng) : Infinity
+    add({
+      id: "vifte",
+      label: "vifta klarer seg",
+      hard: false,
+      ok: kryss > maxR + 10,
+      value: dAng > 1e-6 ? `møtest ${mm1(kryss)} ute` : "ikkje vift",
+      why: "To naboskiver i vifta møtest der gapet er ete opp av vinkelen. Ligg møtet innanfor skivene si eiga utstrekning, skjer platene kvarandre — meir luft, færre skiver eller mindre vifte flyttar møtet ut i fri luft.",
+    })
+  }
+
   // --- 7 klemfare (mjuk) -----------------------------------------------------
   add({
     id: "klemfare",

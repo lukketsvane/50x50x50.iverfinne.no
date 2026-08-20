@@ -149,10 +149,18 @@ function bridge(outline: Pt[], holes: Pt[][]): Pt[] {
 // =============================================================================
 // LAG — skivene og stavane slik dei står
 // =============================================================================
-/** éi skive som prisme: to plateflater og kutt heile vegen rundt */
-function sliceSolid(s: Soup, outline: Pt[], holes: Pt[][], y: number, t: number) {
+/** éi skive som prisme: to plateflater og kutt heile vegen rundt.
+ *  rot er vifterotasjonen kring Z: plata står med normal n̂ = (−sin a, cos a)
+ *  og u-akse û = (cos a, sin a) — offset langs n̂, profil langs û. */
+function sliceSolid(s: Soup, outline: Pt[], holes: Pt[][], y: number, t: number, rot = 0) {
   const h = t / 2
-  const at = (q: Pt, off: number): Vec3 => [q[0], y + off, q[1]]
+  const ca = Math.cos(rot)
+  const sa = Math.sin(rot)
+  const at = (q: Pt, off: number): Vec3 => [
+    q[0] * ca - (y + off) * sa,
+    q[0] * sa + (y + off) * ca,
+    q[1],
+  ]
   // plateflatene — dei fine sidene som tek beis. Profilplanet er (x, z) og
   // skiva står normalt på Y, so +y-sida skal peike +y.
   s.k = 0
@@ -176,7 +184,7 @@ function sliceSolid(s: Soup, outline: Pt[], holes: Pt[][], y: number, t: number)
       const L = Math.hypot(nx, nz) || 1
       nx /= L; nz /= L
       if (inward) { nx = -nx; nz = -nz }
-      const n: Vec3 = [nx, 0, nz]
+      const n: Vec3 = [nx * ca, nx * sa, nz]
       tri(s, at(a, -h), at(b, h), at(b, -h), n)
       tri(s, at(a, -h), at(a, h), at(b, h), n)
     }
@@ -209,7 +217,7 @@ function rodSolid(s: Soup, x: number, z: number, r: number, y0: number, y1: numb
 
 export function lagMesh(p: Params, b: Build) {
   const s = newSoup()
-  for (const sl of b.slices) sliceSolid(s, sl.outline, sl.holes, sl.y, p.plyT)
+  for (const sl of b.slices) sliceSolid(s, sl.outline, sl.holes, sl.y, p.plyT, sl.rot)
   const y0 = -b.width / 2
   const y1 = b.width / 2
   for (const r of b.rods) rodSolid(s, r.x, r.z, p.stavD / 2, y0, y1)
@@ -225,11 +233,18 @@ export function loftMesh(p: Params, k: number, stations: number) {
   const M = Math.max(4, stations)
   const profs: Pt[][] = []
   const ys: number[] = []
+  const rots: number[] = []
   for (let j = 0; j <= M; j++) {
     const y = -W / 2 + (j / M) * W
-    const u = Math.abs(y) / (W / 2)
-    profs.push(profileAt(p, u, k))
+    const su = y / (W / 2)
+    profs.push(profileAt(p, Math.abs(su), k))
     ys.push(y)
+    rots.push((p.vifte * su * Math.PI) / 180)
+  }
+  const at3 = (q: Pt, y: number, rot: number): Vec3 => {
+    const ca = Math.cos(rot)
+    const sa = Math.sin(rot)
+    return [q[0] * ca - y * sa, q[0] * sa + y * ca, q[1]]
   }
   const nt = profs[0].length
   // veggen mellom stasjonane — mot klokka i (x, z) sett frå +y gjev
@@ -241,10 +256,10 @@ export function loftMesh(p: Params, k: number, stations: number) {
     const yb = ys[j + 1]
     for (let i = 0; i < nt; i++) {
       const i2 = (i + 1) % nt
-      const a0: Vec3 = [A[i][0], ya, A[i][1]]
-      const a1: Vec3 = [A[i2][0], ya, A[i2][1]]
-      const b0: Vec3 = [B[i][0], yb, B[i][1]]
-      const b1: Vec3 = [B[i2][0], yb, B[i2][1]]
+      const a0 = at3(A[i], ya, rots[j])
+      const a1 = at3(A[i2], ya, rots[j])
+      const b0 = at3(B[i], yb, rots[j + 1])
+      const b1 = at3(B[i2], yb, rots[j + 1])
       tri(s, a0, b1, a1)
       tri(s, a0, b0, b1)
     }
@@ -252,11 +267,13 @@ export function loftMesh(p: Params, k: number, stations: number) {
   // Endane, lokka att med endeprofilane sjølve. Vindinga er motsett av
   // veggene sine kantretningar — det er DET som gjer skalet lukka, ikkje
   // normalane: to naboflater må gå kvar sin veg over den delte kanten.
+  const n0: Vec3 = [Math.sin(rots[0]), -Math.cos(rots[0]), 0]
+  const nM: Vec3 = [-Math.sin(rots[M]), Math.cos(rots[M]), 0]
   for (const [a, b, c] of earClip(profs[0])) {
-    tri(s, [a[0], ys[0], a[1]], [b[0], ys[0], b[1]], [c[0], ys[0], c[1]], [0, -1, 0])
+    tri(s, at3(a, ys[0], rots[0]), at3(b, ys[0], rots[0]), at3(c, ys[0], rots[0]), n0)
   }
   for (const [a, b, c] of earClip(profs[M])) {
-    tri(s, [a[0], ys[M], a[1]], [c[0], ys[M], c[1]], [b[0], ys[M], b[1]], [0, 1, 0])
+    tri(s, at3(a, ys[M], rots[M]), at3(c, ys[M], rots[M]), at3(b, ys[M], rots[M]), nM)
   }
   return soupToMesh(s)
 }
