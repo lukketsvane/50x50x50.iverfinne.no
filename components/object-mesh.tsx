@@ -43,7 +43,7 @@ const col2 = (dark: boolean) => (dark ? "#cfc7bb" : "#e8e1d4")
 export const BEIS: readonly { id: string; label: string; hex: string }[] = [
   { id: "natur", label: "natur", hex: "" },
   // AHO sin oransje primærfarge — standardbeisen på sida
-  { id: "aho", label: "aho-oransje", hex: "#ef4300" },
+  { id: "aho", label: "aho-oransje", hex: "#ed520f" },
   { id: "kvit", label: "kvitpigmentert", hex: "#e9e2d2" },
   { id: "petrol", label: "petrolblå", hex: "#3f7d8c" },
   { id: "marine", label: "marineblå", hex: "#2b4a68" },
@@ -59,10 +59,14 @@ function makeStriped(
   uBeis: { value: THREE.Color },
   uBeisOn: { value: number },
 ) {
-  const m = new THREE.MeshStandardMaterial({
+  const m = new THREE.MeshPhysicalMaterial({
     color,
     roughness,
     metalness: 0,
+    // eit tynt oljestrøk: nesten matt, men med liv i refleksane
+    clearcoat: 0.14,
+    clearcoatRoughness: 0.55,
+    envMapIntensity: 1,
     side: THREE.DoubleSide,
   })
   m.onBeforeCompile = (sh) => {

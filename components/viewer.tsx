@@ -4,6 +4,7 @@ import { Canvas, useThree } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import type { BuildRes } from "@/lib/worker"
 import type { View } from "@/lib/core"
 import { MM, ObjectMesh } from "./object-mesh"
@@ -69,6 +70,26 @@ function FitCamera({
   return null
 }
 
+/** Mjukt rom-lys rundt objektet: det er dette som gjev finéren dei svake
+ *  refleksane og dei lyse undersidene eit ekte studio har. Generert éin
+ *  gong, heilt utan nettverk. */
+function StudioEnv() {
+  const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl)
+    const env = pmrem.fromScene(new RoomEnvironment(), 0.04)
+    scene.environment = env.texture
+    scene.environmentIntensity = 0.55
+    return () => {
+      scene.environment = null
+      env.texture.dispose()
+      pmrem.dispose()
+    }
+  }, [gl, scene])
+  return null
+}
+
 export function Viewer({
   data,
   view,
@@ -120,12 +141,18 @@ export function Viewer({
 
   return (
     <Canvas
-      shadows
+      shadows="soft"
       frameloop="demand"
       // aldri over 2: tre gonger skjermtettleik er ni gonger fragmentkost,
       // og på ein 4K-skjerm er skilnaden usynleg på armlengds avstand
       dpr={[1, 2]}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      // Neutral i staden for ACES: ACES dreg metta fargar mot raudbrunt og
+      // mørkna heile beisen — Neutral er laga for å halde fargen sann
+      gl={{
+        antialias: true,
+        powerPreference: "high-performance",
+        toneMapping: THREE.NeutralToneMapping,
+      }}
       camera={{ position: [2.4, 2.1, 6.4], fov: 30 }}
       className="touch-none"
     >
@@ -135,9 +162,10 @@ export function Viewer({
       <directionalLight
         key={shadow}
         position={lightPos}
-        intensity={2.2}
+        intensity={1.7}
         castShadow
         shadow-mapSize={[shadow, shadow]}
+        shadow-radius={5}
         shadow-bias={-0.0002}
         shadow-normalBias={0.05}
         shadow-camera-left={-5}
@@ -147,8 +175,9 @@ export function Viewer({
         shadow-camera-near={0.5}
         shadow-camera-far={24}
       />
-      <directionalLight position={[-6, 3, -2]} intensity={0.45} />
-      <directionalLight position={[2, 1.5, 7]} intensity={0.3} />
+      <directionalLight position={[-6, 3, -2]} intensity={0.2} />
+      <directionalLight position={[2, 1.5, 7]} intensity={0.15} />
+      <StudioEnv />
 
       <Suspense fallback={null}>
         <group position={[0, GROUND_Y, 0]}>
@@ -163,7 +192,7 @@ export function Viewer({
           {!dark && (
             <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
               <planeGeometry args={[60, 60]} />
-              <shadowMaterial transparent opacity={0.2} />
+              <shadowMaterial transparent opacity={0.24} />
             </mesh>
           )}
         </group>
