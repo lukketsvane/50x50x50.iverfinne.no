@@ -159,15 +159,26 @@ function makeBodyRaw(p: Params): Body {
 
   // Midja kan bite djupare enn foten er brei. Då er søyla to stykke med
   // luft imellom, og det er ikkje ein feil — det er midja sett frå sida.
+  //
+  // Alt i feltet som ikkje avheng av z — planet, setet og bogen — vert
+  // rekna ÉIN gong per søyle i staden for éin gong per prøvepunkt. Søyla
+  // vert prøvd fleire hundre gonger (192 steg pluss bisekten), og gOf,
+  // seatSurf og arch er dei dyre ledda; utan dette er runsAt det som et
+  // heile byggjetida til rutenettet.
   const NZ = 192
   const runsAt = (x: number, y: number): [number, number][] => {
+    const g0 = gOf(x, y)
+    const s0 = seatSurf(x, y)
+    const a0 = arch(x, y)
+    const fz = (z: number) =>
+      Math.min(roundMin(s0 - z, (rho(z / zTop) - g0) * scale, p.kantR), z - a0)
     const out: [number, number][] = []
     let z0 = -1
-    let prev = F(x, y, 0) > 0
+    let prev = fz(0) > 0
     if (prev) z0 = 0
     for (let i = 1; i <= NZ; i++) {
       const z = (i / NZ) * zTop
-      const cur = F(x, y, z) > 0
+      const cur = fz(z) > 0
       if (cur === prev) continue
       // bisekt kantane: eit halvt millimeter feil her er ei ribbe som ikkje
       // møter naboen sin i leddet
@@ -175,7 +186,7 @@ function makeBodyRaw(p: Params): Body {
       let hi = z
       for (let k = 0; k < 22; k++) {
         const m = (lo + hi) / 2
-        if (F(x, y, m) > 0 === prev) lo = m
+        if (fz(m) > 0 === prev) lo = m
         else hi = m
       }
       const zc = (lo + hi) / 2

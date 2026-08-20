@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
-/* Svart, alltid — som parametric. Objektet er lyst finér på svart golv,
-   og det er den eine kontrasten heile sida lever av. Ingen lysmodus:
-   den ville vore ein annan design, ikkje ei innstilling. */
+/* Kvitt, alltid. Objektet er lyst finér med hard skugge på kvitt papir —
+   som ei side i eit kuttark. Ingen mørkmodus: den ville vore ein annan
+   design, ikkje ei innstilling. */
 :root {
-  --paper: #000000;
-  --ink: #f4f4f4;
-  --rule: #ffffff24;
-  --warn: #f87171;
+  --paper: #ffffff;
+  --ink: #141414;
+  --rule: #00000021;
+  --warn: #b91c1c;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 html {
   background: var(--paper);
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 @layer base {

@@ -144,31 +144,6 @@ function profileOf(
   return contour(g, t0, dt, nt, z0, dz, nz)
 }
 
-/**
- * Kor breitt ribba er i ei gjeven høgd, som vassrette stykke.
- *
- * Dette er det andre snittet gjennom same ribba, og det er dette som seier
- * om eit ledd har skulder. Eit spor skore femten millimeter frå kanten
- * kappar av ein flis som ikkje ber noko og ikkje kan limast — han fell av
- * på fresebordet.
- */
-function spanAt(b: Body, axis: "x" | "y", pos: number, z: number): [number, number][] {
-  const lim = (axis === "x" ? b.B * b.rhoMax : b.A * b.rhoMax) + 6
-  const N = 220
-  const out: [number, number][] = []
-  let t0 = NaN
-  let prev = false
-  for (let i = 0; i <= N; i++) {
-    const t = -lim + (i / N) * 2 * lim
-    const solid = (axis === "x" ? b.F(pos, t, z) : b.F(t, pos, z)) > 0
-    if (solid && !prev) t0 = t
-    else if (!solid && prev) out.push([t0, t])
-    prev = solid
-  }
-  if (prev) out.push([t0, lim])
-  return out
-}
-
 /** Alle loddrette stykke med material i ei søyle, med bogen teken bort. */
 function ribRuns(b: Body, axis: "x" | "y", pos: number, t: number): [number, number][] {
   return axis === "x" ? b.runsAt(pos, t) : b.runsAt(t, pos)
@@ -213,6 +188,22 @@ function buildGridRaw(b: Body, step = 2.6): Grid {
   const p = b.p
   const slotW = p.ribbT + p.pressfit
   const ribs: Rib[] = []
+  // Same søyle vert spurd om att og om att: éin gong per kryss frå kvar
+  // familie, éin gong til av kvart spor si skuldermåling. runsAt er den
+  // dyraste einskildoperasjonen i heile motoren, so svaret vert hugsa for
+  // dette eine bygget.
+  const runsHugs = new Map<string, [number, number][]>()
+  const runs = (axis: "x" | "y", pos: number, t: number): [number, number][] => {
+    const x = axis === "x" ? pos : t
+    const y = axis === "x" ? t : pos
+    const key = x + "," + y
+    let v = runsHugs.get(key)
+    if (!v) {
+      v = b.runsAt(x, y)
+      runsHugs.set(key, v)
+    }
+    return v
+  }
   const mk = (axis: "x" | "y", k: number, pos: number, slots: Slot[]): Rib => {
     const loops = profileOf(b, axis, pos, step, slots)
     const outlines: Pt[][] = []
@@ -261,13 +252,12 @@ function buildGridRaw(b: Body, step = 2.6): Grid {
   for (let i = 0; i < b.xs.length; i++) {
     for (let j = 0; j < b.ys.length; j++) {
       // Med felles kvelving er over- og underkanten den same for begge
-      // ribbene i krysset, so overlappet er heile stykket.
-      const a = ribRuns(b, "x", b.xs[i], b.ys[j])
-      const c = ribRuns(b, "y", b.ys[j], b.xs[i])
-      for (const [alo, ahi] of a) {
-        for (const [clo, chi] of c) {
-          const lo = Math.max(alo, clo)
-          const hi = Math.min(ahi, chi)
+      // ribbene i krysset: X-ribba si søyle ved t = y og Y-ribba si ved
+      // t = x er den SAME søyla (x, y). Difor eitt oppslag, ikkje to —
+      // og overlappet av eit stykke med seg sjølv er stykket.
+      const a = runs("x", b.xs[i], b.ys[j])
+      for (const [lo, hi] of a) {
+        {
           if (hi - lo < 8) continue
           // Skulder: leddet treng gods på BEGGE sider av sporet, i begge
           // ribbene, over heile den høgda sporet går i. Utan det kappar
@@ -279,24 +269,34 @@ function buildGridRaw(b: Body, step = 2.6): Grid {
           // felles kvelvinga som gjer dette sant: har kvar ribbe sin eigen
           // boge, byrjar dei to i ulik høgd, og då må det eine sporet gå
           // heilt ut til underkanten på ribba.
+          //
+          // Skulderen er eit spørsmål om gods i eit lite band kring
+          // sporet, ikkje om heile snittet: i staden for å marsjere over
+          // heile ribba vert berre bandet [t−skulder, t+skulder] prøvd —
+          // heng det saman, har leddet skulder på begge sider.
           const shoulder = slotW / 2 + 10
           const room = (axis: "x" | "y", rpos: number, t: number, zTest: number) => {
-            const runs = spanAt(b, axis, rpos, zTest)
-            for (const [a0, a1] of runs) {
-              if (t >= a0 && t <= a1) return t - a0 >= shoulder && a1 - t >= shoulder
+            const S = 9
+            for (let q = -S; q <= S; q++) {
+              const tt = t + (q / S) * shoulder
+              const solid = (axis === "x" ? b.F(rpos, tt, zTest) : b.F(tt, rpos, zTest)) > 0
+              if (!solid) return false
             }
-            return false
+            return true
           }
           if (!room("x", b.xs[i], b.ys[j], (zm0 + hi) / 2)) continue
           if (!room("y", b.ys[j], b.xs[i], (lo + zm0) / 2)) continue
 
           const zm = zm0
           // Kor langt sporet må gå for å koma ut på den krumme kanten.
+          // Tre prøver held: kanten er glatt over sporbreidda, so ekstremet
+          // ligg i ein ende eller på midten — og zOut har alt tre
+          // millimeter mon utanpå det som vert funne.
           const clear = (axis: "x" | "y", pos: number, t: number, up: boolean) => {
             let e = up ? -Infinity : Infinity
-            for (let q = -3; q <= 3; q++) {
-              const tt = t + (q / 3) * (slotW / 2)
-              const rr = ribRuns(b, axis, pos, tt)
+            for (let q = -1; q <= 1; q++) {
+              const tt = t + q * (slotW / 2)
+              const rr = runs(axis, pos, tt)
               if (!rr.length) continue
               const pick = up ? rr[rr.length - 1][1] : rr[0][0]
               e = up ? Math.max(e, pick) : Math.min(e, pick)

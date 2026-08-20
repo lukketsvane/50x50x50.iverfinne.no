@@ -127,7 +127,9 @@ export function Viewer({
     <Canvas
       shadows
       frameloop="demand"
-      dpr={hiDetail ? [1, 3] : [1, 2]}
+      // aldri over 2: tre gonger skjermtettleik er ni gonger fragmentkost,
+      // og på ein 4K-skjerm er skilnaden usynleg på armlengds avstand
+      dpr={[1, 2]}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       camera={{ position: [2.4, 2.1, 6.4], fov: 30 }}
       className="touch-none"
@@ -185,6 +187,11 @@ export function Viewer({
         minDistance={2.4}
         maxDistance={16}
         rotateSpeed={0.9}
+        // demping: rotasjonen glid til ro i staden for å stogge daudt.
+        // change-hendinga held demand-løkkja i live til dempinga konvergerer,
+        // so det kostar berre bilete medan noko faktisk rører seg.
+        enableDamping
+        dampingFactor={0.12}
         minPolarAngle={0.12}
         maxPolarAngle={Math.PI / 2 + 0.3}
         makeDefault
