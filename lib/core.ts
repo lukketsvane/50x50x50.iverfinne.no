@@ -116,6 +116,45 @@ export function randomBag<P extends ParamBag>(
   return out as P
 }
 
+/**
+ * Terningen med smak: annakvar gong (om lag) startar kastet frå ein
+ * KURATERT POSE — eit handdesigna godt utgangspunkt — og jittrar kring
+ * han, i staden for å trekkje fritt. Det gjev terningen to gir: variasjon
+ * som framleis liknar møblar, og villskap når han trekkjer fritt.
+ * Låste nøklar står urørte, som alltid. Returnerer null når kastet skal
+ * vera fritt — då tek den vanlege trekkinga over.
+ */
+export function poseBag<P extends ParamBag>(
+  rnd: () => number,
+  prev: P,
+  poses: readonly Partial<Record<string, number | string>>[],
+  defaults: P,
+  ranges: Record<string, Range>,
+  keys: readonly string[],
+  locked: ReadonlySet<string> = new Set(),
+  jitter = 0.05,
+): P | null {
+  if (!poses.length || rnd() >= 0.5) return null
+  const pose = { ...defaults, ...poses[Math.floor(rnd() * poses.length)] } as Record<
+    string,
+    number | string
+  >
+  const out = { ...prev } as Record<string, number | string>
+  for (const k of keys) {
+    if (locked.has(k)) continue
+    const r = ranges[k]
+    const v = pose[k]
+    if (typeof v !== "number") continue
+    const j = (rnd() * 2 - 1) * jitter * (r.max - r.min)
+    const c = Math.min(r.max, Math.max(r.min, v + j))
+    out[k] = r.int ? Math.round(c) : +c.toFixed(4)
+  }
+  if (!locked.has("material") && typeof pose.material === "string" && pose.material in MATERIALS) {
+    out.material = pose.material
+  }
+  return out as P
+}
+
 /** Deterministisk PRNG, slik at éin frøtekst alltid gjev same objekt. */
 export function seeded(seed: string): () => number {
   let h = 2166136261 >>> 0

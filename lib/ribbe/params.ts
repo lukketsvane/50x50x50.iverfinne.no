@@ -15,6 +15,7 @@
  */
 import {
   clampBag,
+  poseBag,
   randomBag,
   type Group,
   type Material,
@@ -188,6 +189,16 @@ export const DEFAULT_PARAMS: Params = {
   material: "bjork",
 }
 
+/** Kuraterte posar: tre handdesigna utgangspunkt terningen jittrar kring. */
+export const POSES: readonly Partial<Params>[] = [
+  // vridd
+  { twist: 28, blades: 19, bladeT: 11, hubGap: 10, inner: 0.2 },
+  // timeglas
+  { waist: 0.32, waistZ: 0.5, waistW: 0.5, footR: 0.9, taper: 1.4 },
+  // sopp
+  { footR: 0.55, swell: 0.14, planR: 250, taper: 0.75, moon: 0.3 },
+]
+
 /** Kva to-fingers-rulling på lerretet skrur på. Midja og vridinga er dei
  *  to som endrar kva objektet ER og ikkje berre kva det måler. */
 export const NUDGE_PARAMS = { vertical: "waist", horizontal: "twist" }
@@ -200,10 +211,21 @@ export const randomParams = (
   prev: Params,
   locked: ReadonlySet<string> = new Set(),
 ): Params =>
-  randomBag(
+  (poseBag(
+    rnd,
+    prev as unknown as ParamBag,
+    POSES as unknown as readonly Partial<Record<string, number | string>>[],
+    DEFAULT_PARAMS as unknown as ParamBag,
+    PARAM_RANGES,
+    PARAM_KEYS,
+    locked,
+    // reglane til RIBBE er skjøre kring navet: jitteren må vera varsam
+    0.025,
+  ) as unknown as Params | null) ??
+  (randomBag(
     rnd,
     prev as unknown as ParamBag,
     PARAM_RANGES,
     PARAM_KEYS,
     locked,
-  ) as unknown as Params
+  ) as unknown as Params)

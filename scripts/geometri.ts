@@ -113,12 +113,23 @@ function audit(m: Mesh) {
     compVol.set(comp, (compVol.get(comp) ?? 0) + d / 6)
   }
 
+  // Kvar kant skal ha like mange gjennomfartar KVAR veg. Manglar
+  // motparten heilt, er det eit hòl. Er talet ulikt, er orienteringa
+  // vrengd. Er det likt men over éin, er det to lukka flater som RØRER
+  // kvarandre langs kanten — lovleg (eit spor som når plaierada, to lag
+  // som ligg på kvarandre) og utan artefakt, so det tel ikkje som feil.
   let border = 0
   let same = 0
+  let touch = 0
   for (const [k, n] of edges) {
-    if (n > 1) same += n - 1
     const [u, w] = k.split(",")
-    if (!edges.has(w + "," + u)) border++
+    const m2 = edges.get(w + "," + u) ?? 0
+    if (m2 === 0) {
+      border++
+      continue
+    }
+    if (n !== m2) same += Math.abs(n - m2)
+    else if (n > 1) touch++
   }
 
   // Ein negativ komponent som ligg HEILT inne i ein positiv er ikkje ein
@@ -150,7 +161,7 @@ function audit(m: Mesh) {
     if (!cavity) negComp++
   }
 
-  return { border, same, negComp, comps, degen, nan }
+  return { border, same, negComp, comps, degen, nan, touch: Math.round(touch / 2) }
 }
 
 const only = process.argv[2]
@@ -186,7 +197,8 @@ for (const e of ENGINES) {
       const note = strict ? "" : "  (ubyggbart punkt: berre NaN-krav)"
       console.log(
         `${mark} ${view}/${name}: hòl ${r.border} · vrengde ${r.same} · ` +
-          `innsida-ut ${r.negComp}/${r.comps} · utarta ${r.degen} · NaN ${r.nan}${note}`,
+          `innsida-ut ${r.negComp}/${r.comps} · utarta ${r.degen} · ` +
+          `røringar ${r.touch} · NaN ${r.nan}${note}`,
       )
     }
   }

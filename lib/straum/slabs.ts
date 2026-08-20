@@ -91,14 +91,48 @@ function prepare(rows: Row[]): Div[][] {
       if (d.lo > d.hi) d.lo = d.hi
       next = d.lo - GAP
     }
-    // Får ikkje banda plass i rada i det heile, kan baklengspasset ha
-    // skuva den fyrste UNDER radstarten — og då faldar konturen seg og
-    // hòla fløymer utanfor materialet: delen kjem ut vrengd. Siste ord:
-    // alt vert klemt inn i rada, om so kvart band endar som eit punkt.
-    // At spora då er for tronge, er det fresregelen som skal seia.
+    // Får ikkje banda plass i rada, kan baklengspasset ha skuva den fyrste
+    // UNDER radstarten — då faldar konturen seg og delen kjem ut vrengd.
+    // Difor golvet ein gong til, og so taket: same to stigene som over,
+    // men no med garantien at ingen div hamnar under golvet. Divane held
+    // GAP seg imellom heile vegen — to divar på nøyaktig same punkt ville
+    // vore to kuttveggar oppå kvarandre, og det er sitt eige brot.
+    let prev2 = r.lo + GAP
     for (const d of ds) {
-      d.lo = Math.min(Math.max(d.lo, r.lo + GAP), r.hi - GAP)
-      d.hi = Math.min(Math.max(d.hi, d.lo), r.hi - GAP)
+      if (d.lo < prev2) {
+        d.hi = Math.min(r.hi - GAP, prev2 + (d.hi - d.lo))
+        d.lo = prev2
+      }
+      if (d.hi < d.lo) d.hi = d.lo
+      prev2 = d.hi + GAP
+    }
+    let next2 = r.hi - GAP
+    for (let i = ds.length - 1; i >= 0; i--) {
+      const d = ds[i]
+      if (d.hi > next2) {
+        d.hi = next2
+        if (d.lo > d.hi) d.lo = d.hi
+      }
+      next2 = d.lo - GAP
+    }
+    // Eit EKTE band som har vorte klemt til null breidd midt i eit
+    // hòl-løp knip hòlringen saman til eitt punkt — og då står to
+    // kuttveggar oppå kvarandre der. Kvart ekte band får difor ei
+    // mikrobreidd som aldri kan knipe; ho er usynleg (ein hundredels
+    // millimeter) men held kvantiseringa i nettet frå å smelte veggene.
+    const MINW = 0.01
+    let prev3 = r.lo + GAP
+    for (const d of ds) {
+      if (d.lo < prev3) {
+        d.hi += prev3 - d.lo
+        d.lo = prev3
+      }
+      if (d.real && d.hi - d.lo < MINW) d.hi = d.lo + MINW
+      if (d.hi > r.hi - GAP) {
+        d.hi = r.hi - GAP
+        d.lo = Math.max(r.lo + GAP, Math.min(d.lo, d.hi - (d.real ? MINW : 0)))
+      }
+      prev3 = d.hi + GAP
     }
     return ds
   })
