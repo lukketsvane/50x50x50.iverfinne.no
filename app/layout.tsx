@@ -29,13 +29,13 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  colorScheme: "dark",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#000000",
+  themeColor: "#ffffff",
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

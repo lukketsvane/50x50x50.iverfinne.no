@@ -38,7 +38,7 @@ export function Studio() {
   // attende, står SKAL-objektet der du forlét det — eit tal i eitt
   // parameterrom tyder ikkje noko i eit anna, så det finst ingen fornuftig
   // måte å ta med seg eit design over ei motorgrense på.
-  const [engine, setEngine] = useState<EngineId>("skal")
+  const [engine, setEngine] = useState<EngineId>("vaffel")
   const [bags, setBags] = useState<Bags>(initialBags)
   const [locks, setLocks] = useState<Locks>(initialLocks)
   // «lag» fyrst: delane slik dei faktisk er, montert — det er dei som ER
@@ -60,8 +60,8 @@ export function Studio() {
   const [tal, setTal] = useState<MaalRes | null>(null)
   const [busy, setBusy] = useState(true)
   const [mounted, setMounted] = useState(false)
-  // svart, alltid — sjå globals.css
-  const dark = true
+  // kvitt, alltid — sjå globals.css
+  const dark = false
   const isDesktop = useIsDesktop()
 
   const eng = getEngine(engine)
@@ -95,7 +95,7 @@ export function Studio() {
       const h = window.location.hash.slice(1)
       if (!h.startsWith("p=")) return
       const obj = JSON.parse(decodeURIComponent(h.slice(2))) as Record<string, unknown>
-      const id = isEngineId(obj.engine) ? obj.engine : "skal"
+      const id = isEngineId(obj.engine) ? obj.engine : "vaffel"
       const e = getEngine(id)
       setEngine(id)
       setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
@@ -173,9 +173,9 @@ export function Studio() {
       pending.current = { kind: "build", id, engine, params, detail: d, view }
       pump()
     }
-    const t1 = window.setTimeout(() => enqueue("lav"), 40)
+    const t1 = window.setTimeout(() => enqueue("lav"), 24)
     const t2 =
-      detail !== "lav" ? window.setTimeout(() => enqueue(detail), 420) : null
+      detail !== "lav" ? window.setTimeout(() => enqueue(detail), 300) : null
     return () => {
       window.clearTimeout(t1)
       if (t2 !== null) window.clearTimeout(t2)

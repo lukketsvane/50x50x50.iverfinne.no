@@ -153,7 +153,21 @@ export function ObjectMesh({
         }
       }
       g.setAttribute("aKant", new THREE.BufferAttribute(kant, 1))
-      g.computeBoundingSphere()
+      // Kula kjem frå min/maks motoren alt har rekna — å skanne kvart
+      // hjørne ein gong til her ville kosta ein full gjennomgang av
+      // nettet per bygg, på hovudtråden, for eit tal vi alt har.
+      const c = new THREE.Vector3(
+        (data.min[0] + data.max[0]) / 2,
+        (data.min[1] + data.max[1]) / 2,
+        (data.min[2] + data.max[2]) / 2,
+      )
+      const r =
+        Math.hypot(
+          data.max[0] - data.min[0],
+          data.max[1] - data.min[1],
+          data.max[2] - data.min[2],
+        ) / 2
+      g.boundingSphere = new THREE.Sphere(c, r)
     }
     const mk = (a: Float32Array) => {
       const b = new THREE.BufferGeometry()

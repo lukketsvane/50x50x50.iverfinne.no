@@ -17,12 +17,14 @@ import { STRAUM } from "./straum/engine"
 import { RIBBE } from "./ribbe/engine"
 import { VAFFEL } from "./vaffel/engine"
 
-export const ENGINES: readonly EngineDef[] = [SKAL, STRAUM, RIBBE, VAFFEL]
+// VAFFEL fyrst: han er standardobjektet og øvst i nedtrekket — den einaste
+// av dei fire som held seg sjølv utan lim og skruar, og den raskaste å byggje.
+export const ENGINES: readonly EngineDef[] = [VAFFEL, SKAL, STRAUM, RIBBE]
 
 export const ENGINE_IDS = ENGINES.map((e) => e.id) as readonly EngineId[]
 
 export function getEngine(id: EngineId): EngineDef {
-  return ENGINES.find((e) => e.id === id) ?? SKAL
+  return ENGINES.find((e) => e.id === id) ?? VAFFEL
 }
 
 export function isEngineId(v: unknown): v is EngineId {
