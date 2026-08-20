@@ -386,14 +386,33 @@ function buildSlicesRaw(p: Params, k: number): Build {
   const width = n * p.plyT + (n - 1) * p.luft
   const half = (n - 1) / 2
 
+  // LUFTFALLET: gapa kan gradast gjennom stabelen — positivt luftfall
+  // pakkar skivene saman mot midten (orgelpipa), negativt mot kantane.
+  // Vektene vert normaliserte mot sin eigen sum, so summen av gapa — og
+  // dermed breidda — står nøyaktig fast: kuben, setet på tvers og nestinga
+  // les same tal som før. Golvet på 0.05 held kvart gap ope.
+  const m = n - 1
+  const gaps: number[] = []
+  if (p.luftfall !== 0 && m > 0) {
+    const ws: number[] = []
+    for (let j = 0; j < m; j++) {
+      const c = m > 1 ? Math.abs(j - (m - 1) / 2) / ((m - 1) / 2) : 1
+      ws.push(Math.max(0.05, 1 - p.luftfall * (1 - c)))
+    }
+    const sum = ws.reduce((s, w) => s + w, 0)
+    for (const w of ws) gaps.push((p.luft * m * w) / sum)
+  }
+
   const outlines: Pt[][] = []
   const us: number[] = []
   const ys: number[] = []
   const rots: number[] = []
+  let yAt = -width / 2 + p.plyT / 2
   for (let i = 0; i < n; i++) {
     const su = half > 0 ? (i - half) / half : 0
     us.push(Math.abs(su))
-    ys.push((i - half) * (p.plyT + p.luft))
+    ys.push(gaps.length ? yAt : (i - half) * (p.plyT + p.luft))
+    if (gaps.length && i < m) yAt += p.plyT + gaps[i]
     rots.push((p.vifte * su * Math.PI) / 180)
     outlines.push(profileAt(p, Math.abs(su), k))
   }

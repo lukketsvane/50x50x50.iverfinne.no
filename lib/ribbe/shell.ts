@@ -95,7 +95,13 @@ function makeShellRaw(p: Params): Shell {
   // fila lesa han som ein konstant.
   const box = { R: p.planR }
 
-  const gOf = (th: number) => superR(th, p.planN, p.planAsp)
+  // Flikane: eit kosinusledd oppå superellipsa gjev blome- og stjerneplan.
+  // Med flik ≤ 0,22 held faktoren seg over 0,78 — konturen er alltid lukka
+  // og positiv. Utan flikar er leddet nøyaktig éin og fell bort, og alt
+  // nedstraums (blad, band, sete, kutt) les gOf og treng ikkje vita noko.
+  const nFlik = Math.max(0, Math.round(p.flikar))
+  const gOf = (th: number) =>
+    superR(th, p.planN, p.planAsp) * (1 + p.flik * Math.cos(nFlik * th))
   const rOuter = (th: number, z: number) => box.R * gOf(th) * rho(uOf(z))
 
   /**
@@ -141,17 +147,21 @@ function makeShellRaw(p: Params): Shell {
   const seatOuter = (th: number) => rOuter(th, zBlade) + p.lip
 
   /**
-   * Halvmånen er eit sirkelinnsnitt bakfrå. Radien og djupna er målte mot
-   * halvdjupna til setet, slik at innsnittet held same proporsjon når
-   * kuben klemmer objektet ned.
+   * Halvmånen er eit sirkelinnsnitt frå den sida `moneV` peikar ut — 180
+   * grader er bakfrå, som før. Radien og djupna er målte mot setekanten i
+   * biteretninga, slik at innsnittet held same proporsjon når kuben
+   * klemmer objektet ned. Vinkelen vert rekna som avvik frå π, so
+   * standardretninga står bit-identisk med det gamle uttrykket.
    */
   const moonGeom = () => {
-    const back = seatOuter(Math.PI)
+    const da = (p.moneV - 180) * DEG
+    const back = seatOuter(Math.PI + da)
     const depth = p.moon * back
     const rad = Math.max(1, p.moonR * back)
-    // sentrum ligg så langt bak at sirkelen sin fremste kant bit `depth`
-    // inn i setekanten
-    return { cx: -(back - depth) - rad, rad }
+    // sentrum ligg så langt ute i biteretninga at sirkelen sin inste kant
+    // bit `depth` inn i setekanten
+    const dist = back - depth + rad
+    return { cx: -dist * Math.cos(da), cy: -dist * Math.sin(da), dist, rad }
   }
   const moon = moonGeom()
 
@@ -159,10 +169,8 @@ function makeShellRaw(p: Params): Shell {
     const ro = seatOuter(th)
     if (p.moon <= 0) return ro
     // avstanden ut til der strålen skjer halvmånesirkelen
-    const dx = Math.cos(th)
-    const b = dx * moon.cx
-    const c = moon.cx * moon.cx - moon.rad * moon.rad
-    const disc = b * b - c
+    const b = Math.cos(th) * moon.cx + Math.sin(th) * moon.cy
+    const disc = b * b - (moon.dist * moon.dist - moon.rad * moon.rad)
     if (disc <= 0) return ro
     // den NÆRASTE rota: materialet sluttar der strålen fyrst går inn i
     // halvmånen, ikkje der han kjem ut att på andre sida
@@ -200,7 +208,7 @@ function makeShellRaw(p: Params): Shell {
     seatSurf,
   }
 
-  fitToCube(sh, box)
+  fitToCube(sh, box, gOf)
   return sh
 }
 
@@ -210,21 +218,24 @@ function makeShellRaw(p: Params): Shell {
 /**
  * Éin omgang held, og det er ikkje flaks.
  *
- * Omhyllinga til RIBBE er superellipsa sjølv: blada sine ytterkantar ligg
+ * Omhyllinga til RIBBE er plankonturen sjølv: blada sine ytterkantar ligg
  * i skalet, banda er heile ringar utanpå det, og setet er den same
- * superellipsa pluss overhenget. Superellipsa har ytterpunkta sine på
- * aksane — der er x = A og y = B, eksakt — så det einaste som må leitast
- * fram numerisk er kvar silhuetten er vidast. Det er eitt tal i éi
- * variabel, og det vert halvert fram i BEGGE retningar kring det grovaste
- * sveipet: eit grovt rutenett bommar med over ti millimeter på ein midje,
- * og då er kubekontrollen ingen kontroll.
+ * konturen pluss overhenget. Utan flikar har superellipsa ytterpunkta
+ * sine på aksane — der er x = A og y = B, eksakt — og då er det einaste
+ * som må leitast fram numerisk kvar silhuetten er vidast. Det er eitt tal
+ * i éi variabel, og det vert halvert fram i BEGGE retningar kring det
+ * grovaste sveipet: eit grovt rutenett bommar med over ti millimeter på
+ * ein midje, og då er kubekontrollen ingen kontroll. MED flikar flytter
+ * ytterpunkta seg av aksane, og snarvegen gjeld ikkje lenger: då vert
+ * omhyllinga sveipt numerisk over konturen i staden.
  *
- * Alle tre familiane er affine i skalafaktoren — R·(A·ρ) pluss eit fast
- * tillegg for band, overheng og halve bladtjukna — så faktoren fell ut av
- * ei deling og ikkje av ei iterasjon. Objektet vert berre skalert NED:
- * ber nokon om eit mindre objekt, er det eit val og ikkje ein feil.
+ * Alle tre familiane er affine i skalafaktoren — R·(omhylling·ρ) pluss
+ * eit fast tillegg for band, overheng og halve bladtjukna — så faktoren
+ * fell ut av ei deling og ikkje av ei iterasjon. Objektet vert berre
+ * skalert NED: ber nokon om eit mindre objekt, er det eit val og ikkje
+ * ein feil.
  */
-function fitToCube(sh: Shell, box: { R: number }) {
+function fitToCube(sh: Shell, box: { R: number }, gOf: (th: number) => number) {
   const p = sh.p
   const want = CUBE - 4
 
@@ -251,9 +262,23 @@ function fitToCube(sh: Shell, box: { R: number }) {
   }
   const rhoMax = Math.max(vBest, sh.rho((lo + hi) / 2))
 
-  const A = Math.exp(p.planAsp * 0.5)
-  const B = Math.exp(-p.planAsp * 0.5)
-  const half = Math.max(A, B)
+  // omhyllinga i planet, per akse: utan flikar analytisk, med flikar sveipt
+  let half: number
+  if (p.flik > 0) {
+    let eX = 0
+    let eY = 0
+    for (let i = 0; i < 256; i++) {
+      const th = (i / 256) * Math.PI * 2
+      const g = gOf(th)
+      eX = Math.max(eX, g * Math.abs(Math.cos(th)))
+      eY = Math.max(eY, g * Math.abs(Math.sin(th)))
+    }
+    half = Math.max(eX, eY)
+  } else {
+    const A = Math.exp(p.planAsp * 0.5)
+    const B = Math.exp(-p.planAsp * 0.5)
+    half = Math.max(A, B)
+  }
 
   // kvar familie gjev eit tak på R: (halve kuben − det faste tillegget)
   // delt på det som er proporsjonalt

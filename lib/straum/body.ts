@@ -177,6 +177,15 @@ function makeBodyRaw(p: Params): Body {
     v[3] = waist
     for (let k = 0; k < 3; k++) v[4 + k] = waist + (seat - waist) * UP_FRAC[k]
     v[7] = seat
+    // MAGE: ei gaussisk bule på kontrollverdiane kring magehøgda — amfora,
+    // klokke og pære er denne eine linja. Verdiane er halvaksar, difor
+    // mage/2. Millimeterane vert lagde på FØR innpassinga, so plana held
+    // seg eksakt lineær i skalafaktoren; golvet på 6 mm hindrar at ei stor
+    // negativ mage snører snittet ned til ein tråd.
+    for (let i = 0; i < 8; i++) {
+      const d = (ts[i] - p.mageH) / 0.18
+      v[i] = Math.max(6, v[i] + (p.mage / 2) * Math.exp(-d * d))
+    }
     return v
   }
 
