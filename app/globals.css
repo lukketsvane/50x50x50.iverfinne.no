@@ -1,27 +1,19 @@
 @import "tailwindcss";
 
-/* Papir og blekk, styrt berre av systemet sitt fargeskjema. Ingen
-   veksleknapp i appen: eit møbel skal sjåast i det lyset rommet har. */
+/* Svart, alltid — som parametric. Objektet er lyst finér på svart golv,
+   og det er den eine kontrasten heile sida lever av. Ingen lysmodus:
+   den ville vore ein annan design, ikkje ei innstilling. */
 :root {
-  --paper: #ffffff;
-  --ink: #111111;
-  --rule: #00000018;
-  --warn: #b91c1c;
+  --paper: #000000;
+  --ink: #f4f4f4;
+  --rule: #ffffff24;
+  --warn: #f87171;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0a0a0a;
-    --ink: #f4f4f4;
-    --rule: #ffffff1f;
-    --warn: #f87171;
-  }
 }
 
 html {
   background: var(--paper);
-  color-scheme: light dark;
+  color-scheme: dark;
 }
 
 @layer base {
