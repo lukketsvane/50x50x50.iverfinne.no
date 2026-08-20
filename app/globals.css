@@ -8,8 +8,6 @@
   --ink: #141414;
   --rule: #00000021;
   --warn: #b91c1c;
-  /* AHO sin oransje primærfarge — aho.no: --color-orange */
-  --accent: #ef4300;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
