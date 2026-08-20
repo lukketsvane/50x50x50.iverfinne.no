@@ -14,6 +14,7 @@
  */
 import {
   clampBag,
+  poseBag,
   randomBag,
   type Group,
   type ParamBag,
@@ -193,6 +194,16 @@ export const GROUPS: readonly Group[] = [
 
 export const PARAM_KEYS: readonly string[] = GROUPS.flatMap((g) => [...g.keys])
 
+/** Kuraterte posar: tre handdesigna utgangspunkt terningen jittrar kring. */
+export const POSES: readonly Partial<Params>[] = [
+  // vridd søyle
+  { vridFot: -60, vridSete: 60, finnar: 17, skraa: 18 },
+  // timeglas
+  { midjeB: 110, midjeD: 80, seteB: 430, seteD: 400, fotB: 400, fotD: 380, morfNed: 6, morfOpp: 3 },
+  // dokumentobjektet: tett og mjukt
+  { finnar: 23, veggT: 28, skraa: 8, vridFot: -10, vridSete: 25 },
+]
+
 /** Kva to-fingers-rulling på lerretet skrur på. */
 export const NUDGE_PARAMS = { vertical: "midjeB", horizontal: "skraa" }
 
@@ -205,6 +216,16 @@ export function randomParams(
   prev: Params,
   locked: ReadonlySet<string> = new Set(),
 ): Params {
+  const posed = poseBag(
+    rnd,
+    prev as unknown as ParamBag,
+    POSES as unknown as readonly Partial<Record<string, number | string>>[],
+    DEFAULT_PARAMS as unknown as ParamBag,
+    PARAM_RANGES,
+    PARAM_KEYS,
+    locked,
+  )
+  if (posed) return posed as unknown as Params
   return randomBag(
     rnd,
     prev as unknown as ParamBag,

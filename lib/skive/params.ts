@@ -12,6 +12,7 @@
  */
 import {
   clampBag,
+  poseBag,
   randomBag,
   type Group,
   type ParamBag,
@@ -45,6 +46,8 @@ export type Params = {
   kuppel: number // kor mykje ryggen fell av ut mot sidene, 0–1
   sidefall: number // kor mykje setet fell av ut mot sidene, mm
   innsving: number // kor mykje dei ytste skivene er dregne inn, 0–1
+  bogefall: number // kor mykje bogen krympar ut mot sidene, 0–1 — hòla vert ei GROTTE
+  bogedrift: number // kor langt bogetoppen sig bakover/framover ut mot sidene, mm
 
   // --- BYGG ---------------------------------------------------------------
   stavD: number // stavdiameter, mm
@@ -74,6 +77,8 @@ export const PARAM_RANGES: Record<string, Range> = {
   kuppel: { min: 0, max: 0.8, step: 0.005, label: "kuppel" },
   sidefall: { min: 0, max: 30, step: 0.5, label: "sidefall", unit: "mm" },
   innsving: { min: 0, max: 0.16, step: 0.002, label: "innsving" },
+  bogefall: { min: 0, max: 0.9, step: 0.005, label: "grotte" },
+  bogedrift: { min: -90, max: 90, step: 1, label: "bogedrift", unit: "mm" },
 
   stavD: { min: 8, max: 16, step: 0.5, label: "stavdiameter", unit: "mm" },
 }
@@ -89,7 +94,7 @@ export const GROUPS: readonly Group[] = [
   {
     id: "skiver",
     label: "skiver",
-    keys: ["skiver", "plyT", "luft", "kuppel", "sidefall", "innsving"],
+    keys: ["skiver", "plyT", "luft", "kuppel", "sidefall", "innsving", "bogefall", "bogedrift"],
   },
   { id: "bygg", label: "bygg", keys: ["stavD"] },
 ]
@@ -126,10 +131,44 @@ export const DEFAULT_PARAMS: Params = {
   kuppel: 0.42,
   sidefall: 10,
   innsving: 0.05,
+  bogefall: 0,
+  bogedrift: 0,
 
   stavD: 12,
   material: "bjork",
 }
+
+/**
+ * Kuraterte posar: fire handdesigna utgangspunkt terningen jittrar kring
+ * annakvar gong. Grotta er den mørke referansen — bogen krympar og sig på
+ * skrå gjennom stabelen; benken er rein og rygglaus; stolen er den blå
+ * referansen med høg kuppel; den lette er luft og nesten ingenting anna.
+ */
+export const POSES: readonly Partial<Params>[] = [
+  // grotta
+  {
+    bogefall: 0.72, bogedrift: 55, bogeH: 320, bogeN: 2.2,
+    skiver: 10, plyT: 14, luft: 34, ryggH: 70, kuppel: 0.15,
+    grop: 20, sidefall: 16, innsving: 0.03, djup: 330,
+  },
+  // benken
+  {
+    ryggH: 0, hogd: 396, djup: 360, frambein: 130, bakbein: 130,
+    bogeH: 300, luft: 36, skiver: 10, plyT: 15, kuppel: 0,
+    sidefall: 18, grop: 24, bogefall: 0.2,
+  },
+  // stolen
+  {
+    ryggH: 100, hogd: 396, ryggV: 20, ryggB: 24, kuppel: 0.55,
+    skiver: 12, plyT: 13, luft: 28, djup: 330, grop: 14, sidefall: 8,
+  },
+  // den lette
+  {
+    skiver: 8, plyT: 19, luft: 44, bogeH: 320, bogeN: 1.9,
+    frambein: 100, bakbein: 104, ryggH: 60, kuppel: 0.3,
+    innsving: 0.09, stavD: 14,
+  },
+]
 
 /** kva to fingrar på lerretet skrur på */
 export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "luft" }
@@ -143,7 +182,8 @@ export function randomParams(
   prev: Params,
   locked: ReadonlySet<string> = new Set(),
 ): Params {
-  const q = randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked) as Params
+  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, locked)
+  const q = posed ?? (randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked) as Params)
   // Terningen får kaste kva han vil, men tre tal er SUMAR av andre og
   // bryt kuben nesten alltid utan hjelp: breidda, rygghøgda og djupna.
   // Reparasjonen rører berre ulåste skyvarar, og alltid innanfor banda.

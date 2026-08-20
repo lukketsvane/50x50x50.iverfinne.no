@@ -14,6 +14,7 @@
  */
 import {
   clampBag,
+  poseBag,
   randomBag,
   type Group,
   type ParamBag,
@@ -145,6 +146,18 @@ export const DEFAULT_PARAMS: Params = {
   material: "bjork",
 }
 
+/** Kuraterte posar: fire handdesigna utgangspunkt terningen jittrar kring. */
+export const POSES: readonly Partial<Params>[] = [
+  // tett rutenett
+  { ribbX: 13, ribbY: 13, ribbT: 6.5, bogeH: 0.7, bogeB: 0.72 },
+  // mjuk sylinder
+  { planN: 2.1, planA: 185, planB: 185, midje: 0.04, fot: 0.95, bogeH: 0.5, bogeB: 0.5, ribbX: 8, ribbY: 8, ribbT: 9 },
+  // nesten kube
+  { planN: 5.8, planA: 200, planB: 200, midje: 0.11, midjeZ: 0.5, midjeW: 0.3, fot: 1.0, bogeH: 0.75, bogeB: 0.8, bogeN: 3.6 },
+  // timeglas
+  { midje: 0.2, midjeW: 0.45, midjeZ: 0.45, fot: 1.18, skulder: 1.1, bogeH: 0.55 },
+]
+
 /** kva to fingrar på lerretet skrur på */
 export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "midje" }
 
@@ -157,5 +170,6 @@ export function randomParams(
   prev: Params,
   locked: ReadonlySet<string> = new Set(),
 ): Params {
-  return randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked)
+  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, locked)
+  return posed ?? randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked)
 }

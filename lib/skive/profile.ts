@@ -57,6 +57,10 @@ export function profileAt(p: Params, u: number, k = 1): Pt[] {
   const sx = 1 - p.innsving * u * u
   const gropEkstra = p.sidefall * u * u
   const ryggH = Math.max(2, p.ryggH * (1 - p.kuppel * u * u))
+  // GROTTA: bogen krympar ut mot sidene og toppen hans sig på skrå —
+  // hòla vert eit skulptert rom gjennom stabelen, ikkje ein tunnel
+  const bogeH = p.bogeH * (1 - p.bogefall * u * u)
+  const drift = p.bogedrift * u * u
 
   const xN0 = p.djup / 2
   const xB0 = -p.djup / 2
@@ -78,13 +82,17 @@ export function profileAt(p: Params, u: number, k = 1): Pt[] {
   const nGolvB = N(2, k)
   for (let i = 0; i < nGolvB; i++) put(xRF0 + (i / nGolvB) * (xRF1 - xRF0), 0)
 
-  // 2 — bogen: opp frå bakfoten, over, ned på framfoten
+  // 2 — bogen: opp frå bakfoten, over, ned på framfoten. Toppunktet kan
+  // sitje skeivt (drifta), og då vert w rekna mot det skeive toppunktet i
+  // staden for midten — same kurvefamilie, berre dregen i eine enden.
   const nBoge = N(44, k)
+  const span = Math.max(1, xFF0 - xRF1)
+  const tp = Math.min(0.85, Math.max(0.15, 0.5 + drift / span))
   for (let i = 0; i < nBoge; i++) {
     const t = i / (nBoge - 1)
     const x = xRF1 + t * (xFF0 - xRF1)
-    const w = Math.abs(2 * t - 1)
-    const z = p.bogeH * Math.pow(Math.max(0, 1 - Math.pow(w, p.bogeN)), 1 / p.bogeN)
+    const w = t < tp ? (tp - t) / tp : (t - tp) / (1 - tp)
+    const z = bogeH * Math.pow(Math.max(0, 1 - Math.pow(w, p.bogeN)), 1 / p.bogeN)
     put(x, z)
   }
 
