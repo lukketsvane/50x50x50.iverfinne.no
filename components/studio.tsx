@@ -6,6 +6,7 @@ import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
 import { seeded } from "@/lib/core"
 import type { BuildRes, DetailKey, MaalRes, Req, Res } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
+import { BEIS } from "./object-mesh"
 import { ControlsPanel } from "./controls-panel"
 import type { NudgeAxis } from "./gesture-params"
 
@@ -45,6 +46,9 @@ export function Studio() {
   // flata er eit klikk unna.
   const [view, setView] = useState<View>("lag")
   const [seed, setSeed] = useState("")
+  // beis er ferdig handsaming, som lakk: han bur i visinga og hashen, aldri
+  // i parameterrommet — masse og styrke bryr seg ikkje om farge
+  const [beis, setBeis] = useState("natur")
   const [hiDetail, setHiDetail] = useState(false)
   // kuben er kontrollen, ikkje scena — han skal hentast fram, ikkje bort
   const [cube, setCube] = useState(false)
@@ -97,6 +101,9 @@ export function Studio() {
       setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
       const v = obj.view
       if (v === "lag" || v === "kontur" || v === "flate") setView(v)
+      if (typeof obj.beis === "string" && BEIS.some((b) => b.id === obj.beis)) {
+        setBeis(obj.beis)
+      }
     } catch {
       // øydelagd hash — lat standardobjektet stå
     }
@@ -182,11 +189,18 @@ export function Studio() {
       window.history.replaceState(
         null,
         "",
-        "#p=" + encodeURIComponent(JSON.stringify({ engine, ...params, view })),
+        "#p=" +
+          encodeURIComponent(
+            JSON.stringify(
+              beis === "natur"
+                ? { engine, ...params, view }
+                : { engine, ...params, view, beis },
+            ),
+          ),
       )
     }, 500)
     return () => window.clearTimeout(t)
-  }, [engine, params, view, mounted])
+  }, [engine, params, view, beis, mounted])
 
   const setParams = useCallback(
     (p: ParamBag) => setBags((b) => ({ ...b, [engine]: p })),
@@ -281,6 +295,9 @@ export function Studio() {
   // veg per del, og ei global z-stripe ville lyge om materialet.
   const stripe =
     eng.unitLabel === "lag" && typeof params.plyT === "number" ? params.plyT : 0
+  // beisen fylgjer same grensa som fugene: han er sann berre der laga er
+  // vassrette, og det er skiljet flate/kant i shaderen som ber han
+  const beisHex = stripe > 0 ? (BEIS.find((b) => b.id === beis)?.hex ?? "") : ""
   const liveTal = tal && tal.engine === engine ? tal : null
   const metrics: Metrics | null = liveTal?.metrics ?? null
   const rules: Rule[] = useMemo(() => liveTal?.rules ?? [], [liveTal])
@@ -294,6 +311,7 @@ export function Studio() {
             view={view}
             dark={dark}
             stripePly={stripe}
+            beis={beisHex}
             hiDetail={hiDetail && isDesktop}
             mobile={!isDesktop}
             cube={cube}
@@ -337,6 +355,7 @@ export function Studio() {
         rules={rules}
         view={view}
         seed={seed}
+        beis={beis}
         locked={locked}
         hiDetail={hiDetail}
         isDesktop={isDesktop}
@@ -345,6 +364,7 @@ export function Studio() {
         onChange={setParams}
         onView={setView}
         onSeed={setSeed}
+        onBeis={setBeis}
         onShuffle={shuffle}
         onReset={() => setParams({ ...eng.defaults })}
         onToggleLock={toggleLock}

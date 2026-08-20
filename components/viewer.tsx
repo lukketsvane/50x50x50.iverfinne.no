@@ -80,6 +80,7 @@ export function Viewer({
   view,
   dark,
   stripePly,
+  beis,
   hiDetail,
   mobile,
   cube,
@@ -92,6 +93,8 @@ export function Viewer({
   dark: boolean
   /** platetjukn for limfugene; 0 slår dei av */
   stripePly: number
+  /** beis-hex for plateflatene; tom streng er natur */
+  beis: string
   hiDetail: boolean
   mobile: boolean
   cube: boolean
@@ -157,6 +160,7 @@ export function Viewer({
             view={view}
             dark={dark}
             stripePly={stripePly}
+            beis={beis}
             onFit={handleFit}
           />
           <CubeCage show={cube} dark={dark} />
