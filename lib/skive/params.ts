@@ -105,26 +105,26 @@ export const PARAM_KEYS = GROUPS.flatMap((g) => g.keys)
  */
 export const DEFAULT_PARAMS: Params = {
   hogd: 404,
-  djup: 340,
-  grop: 18,
+  djup: 324,
+  grop: 16,
   nase: 26,
 
   ryggH: 90,
   ryggV: 13,
   ryggB: 14,
-  ryggT: 56,
+  ryggT: 50,
 
-  frambein: 138,
-  bakbein: 138,
-  bogeH: 250,
+  frambein: 112,
+  bakbein: 116,
+  bogeH: 290,
   bogeN: 2.6,
   flare: 2.2,
 
-  skiver: 12,
-  plyT: 16,
-  luft: 26,
+  skiver: 11,
+  plyT: 14,
+  luft: 31,
   kuppel: 0.42,
-  sidefall: 11,
+  sidefall: 10,
   innsving: 0.05,
 
   stavD: 12,

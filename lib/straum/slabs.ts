@@ -91,6 +91,15 @@ function prepare(rows: Row[]): Div[][] {
       if (d.lo > d.hi) d.lo = d.hi
       next = d.lo - GAP
     }
+    // Får ikkje banda plass i rada i det heile, kan baklengspasset ha
+    // skuva den fyrste UNDER radstarten — og då faldar konturen seg og
+    // hòla fløymer utanfor materialet: delen kjem ut vrengd. Siste ord:
+    // alt vert klemt inn i rada, om so kvart band endar som eit punkt.
+    // At spora då er for tronge, er det fresregelen som skal seia.
+    for (const d of ds) {
+      d.lo = Math.min(Math.max(d.lo, r.lo + GAP), r.hi - GAP)
+      d.hi = Math.min(Math.max(d.hi, d.lo), r.hi - GAP)
+    }
     return ds
   })
 }
@@ -180,6 +189,23 @@ export function slabMesh(sl: Slab, pl: Placer, s: Soup) {
   const n = rows.length
   const h = pl.t / 2
 
+  // HANDTHEITA. Vindinga her inne reknar med at ramma (c, v, s) er
+  // høgrehendt i verda. Plasseringane er det som regel — men eit skrått
+  // snittplan kan spegelvenda ramma for einskilde plater ved einskilde
+  // parameterpunkt, og då kjem HEILE delen ut vrengd: lukka, konsistent,
+  // og innsida-ut. Difor vert determinanten målt, og vindinga snudd når
+  // ramma er venstrehendt.
+  const o0 = pl.at(0, 0, 0)
+  const ec = [pl.at(1, 0, 0)[0] - o0[0], pl.at(1, 0, 0)[1] - o0[1], pl.at(1, 0, 0)[2] - o0[2]]
+  const ev = [pl.at(0, 1, 0)[0] - o0[0], pl.at(0, 1, 0)[1] - o0[1], pl.at(0, 1, 0)[2] - o0[2]]
+  const es = [pl.at(0, 0, 1)[0] - o0[0], pl.at(0, 0, 1)[1] - o0[1], pl.at(0, 0, 1)[2] - o0[2]]
+  const det =
+    ec[0] * (ev[1] * es[2] - ev[2] * es[1]) -
+    ec[1] * (ev[0] * es[2] - ev[2] * es[0]) +
+    ec[2] * (ev[0] * es[1] - ev[1] * es[0])
+  const quad = (a: Vec3, b: Vec3, c: Vec3, d: Vec3) =>
+    det < 0 ? s.quad(d, c, b, a) : s.quad(a, b, c, d)
+
   for (let j = 0; j + 1 < n; j++) {
     const ra = rows[j]
     const rb = rows[j + 1]
@@ -188,13 +214,13 @@ export function slabMesh(sl: Slab, pl: Placer, s: Soup) {
     // banda er dei to store plateflatene (±h); dei tek beis
     s.k = 0
     const band = (qa: number, qb: number) => {
-      s.quad(
+      quad(
         pl.at(pa, ra.v, h),
         pl.at(qa, ra.v, h),
         pl.at(qb, rb.v, h),
         pl.at(pb, rb.v, h),
       )
-      s.quad(
+      quad(
         pl.at(pa, ra.v, -h),
         pl.at(pb, rb.v, -h),
         pl.at(qb, rb.v, -h),
@@ -215,7 +241,7 @@ export function slabMesh(sl: Slab, pl: Placer, s: Soup) {
     for (let i = 0; i < ring.length; i++) {
       const p = ring[i]
       const q = ring[(i + 1) % ring.length]
-      s.quad(
+      quad(
         pl.at(p[0], p[1], -h),
         pl.at(q[0], q[1], -h),
         pl.at(q[0], q[1], h),
