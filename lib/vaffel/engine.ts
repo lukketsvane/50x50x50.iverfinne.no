@@ -70,8 +70,10 @@ export const VAFFEL: EngineDef = {
     const b = makeBody(p)
 
     if (view === "flate") {
+      // Den glatte kroppen har inga kuttflate; tom kant let framsyninga
+      // gisse frå normalane i staden.
       const m = shellMesh(b, d)
-      return { ...m, lines: EMPTY(), heavy: EMPTY() }
+      return { ...m, kant: EMPTY(), lines: EMPTY(), heavy: EMPTY() }
     }
 
     const g = buildGrid(b, d.step)
@@ -102,6 +104,7 @@ export const VAFFEL: EngineDef = {
       positions: EMPTY(),
       normals: EMPTY(),
       tris: 0,
+      kant: EMPTY(),
       min,
       max,
       lines: c.lines,

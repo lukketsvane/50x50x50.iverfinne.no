@@ -31,6 +31,9 @@ export type MeshData = {
   tris: number
   min: Vec3
   max: Vec3
+  /** flate/kant per hjørne (0/1) — sjå BuildOut i core; valfri: manglar han,
+   *  gjettar visaren av normalen */
+  kant?: Float32Array
 }
 
 /** eit klipt hjørnepunkt i parameterplanet */

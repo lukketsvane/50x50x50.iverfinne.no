@@ -14,12 +14,16 @@ import type { Vec3 } from "../core"
 export class Soup {
   pos: number[] = []
   nor: number[] = []
+  kan: number[] = []
+  /** flate/kant-merket for det som vert lagt inn no: 0 plateflate, 1 kutt */
+  k = 1
   min: Vec3 = [Infinity, Infinity, Infinity]
   max: Vec3 = [-Infinity, -Infinity, -Infinity]
 
   vert(p: Vec3, n: Vec3) {
     this.pos.push(p[0], p[1], p[2])
     this.nor.push(n[0], n[1], n[2])
+    this.kan.push(this.k)
     for (let k = 0; k < 3; k++) {
       if (p[k] < this.min[k]) this.min[k] = p[k]
       if (p[k] > this.max[k]) this.max[k] = p[k]
@@ -51,6 +55,7 @@ export class Soup {
     return {
       positions: new Float32Array(this.pos),
       normals: new Float32Array(this.nor),
+      kant: new Float32Array(this.kan),
       tris: this.pos.length / 9,
       min: this.min,
       max: this.max,

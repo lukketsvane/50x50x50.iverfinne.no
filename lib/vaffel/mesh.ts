@@ -22,8 +22,9 @@ export const DETAIL = {
   hog: { nt: 208, nz: 116, step: 1.7 },
 } as const
 
-export type Soup = { pos: number[]; nrm: number[] }
-export const newSoup = (): Soup => ({ pos: [], nrm: [] })
+/** kan/k: 0 = plateflate (tek beis), 1 = kutt (rå kryssfinér-kant) */
+export type Soup = { pos: number[]; nrm: number[]; kan: number[]; k: number }
+export const newSoup = (): Soup => ({ pos: [], nrm: [], kan: [], k: 1 })
 
 export function tri(s: Soup, a: Vec3, b: Vec3, c: Vec3, n?: Vec3) {
   let nx: number, ny: number, nz: number
@@ -39,6 +40,7 @@ export function tri(s: Soup, a: Vec3, b: Vec3, c: Vec3, n?: Vec3) {
   }
   s.pos.push(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2])
   for (let i = 0; i < 3; i++) s.nrm.push(nx, ny, nz)
+  s.kan.push(s.k, s.k, s.k)
 }
 
 /** trekant med sin eigen normal i kvart hjørne — det er dette som skil ei
@@ -46,6 +48,7 @@ export function tri(s: Soup, a: Vec3, b: Vec3, c: Vec3, n?: Vec3) {
 export function tri3(s: Soup, a: Vec3, b: Vec3, c: Vec3, na: Vec3, nb: Vec3, nc: Vec3) {
   s.pos.push(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2])
   s.nrm.push(na[0], na[1], na[2], nb[0], nb[1], nb[2], nc[0], nc[1], nc[2])
+  s.kan.push(s.k, s.k, s.k)
 }
 
 export function soupToMesh(s: Soup) {
@@ -61,7 +64,7 @@ export function soupToMesh(s: Soup) {
     }
   }
   if (!Number.isFinite(min[0])) { min[0] = min[1] = min[2] = 0; max[0] = max[1] = max[2] = 1 }
-  return { positions, normals, tris: positions.length / 9, min, max }
+  return { positions, normals, kant: new Float32Array(s.kan), tris: positions.length / 9, min, max }
 }
 
 // =============================================================================
@@ -320,10 +323,12 @@ export function ribSolid(s: Soup, r: Rib, t: number) {
 
   for (const o of r.outlines) {
     const merged = r.holes.length ? bridge(o, r.holes) : o
+    s.k = 0 // platesidene — dei fine flatene som tek beis
     for (const [a, b, c] of earClip(merged)) {
       T(put(a, h), put(b, h), put(c, h), nAxis)
       T(put(c, -h), put(b, -h), put(a, -h), nBack)
     }
+    s.k = 1 // kuttkantane — rå kryssfinér der fresen gjekk
     for (let i = 0; i < o.length; i++) {
       const a = o[i]
       const b = o[(i + 1) % o.length]

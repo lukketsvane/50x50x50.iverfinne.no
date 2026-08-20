@@ -226,6 +226,8 @@ export type MeshData = {
   tris: number
   min: Vec3
   max: Vec3
+  /** valfri flate/kant-merking per hjørne; sjå BuildOut.kant */
+  kant?: Float32Array<ArrayBufferLike>
 }
 
 export type DetailKey = "lav" | "mid" | "hog"
@@ -245,6 +247,14 @@ export type BuildOut = {
   max: Vec3
   lines: Float32Array<ArrayBufferLike>
   heavy: Float32Array<ArrayBufferLike>
+  /**
+   * Flate eller kant, eitt tal per hjørne: 0 er ei PLATEFLATE (tek beis),
+   * 1 er eit KUTT gjennom plata (rå finér). Skiljet er noko berre byggjaren
+   * veit — ei loddrett finne har flatene sine liggjande vassrett i normalen,
+   * og ei global tommelfingerregel ville farga henne feil. Tom liste tyder
+   * «byggjaren sa ingenting», og då gjettar visaren av normalen.
+   */
+  kant: Float32Array<ArrayBufferLike>
 }
 
 export type ExportOut = {
