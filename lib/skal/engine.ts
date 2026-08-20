@@ -40,6 +40,45 @@ import {
 const asP = (p: ParamBag) => p as unknown as Params
 const EMPTY = () => new Float32Array(0)
 
+/** flate/kant gissa av normalen — same formel som framsyninga brukar når
+ *  lista manglar. Ho må reknast HER for hybriden, av di den samansette
+ *  lista elles ville blande tomt og merkt. */
+function kantFromNormals(nor: Float32Array): Float32Array {
+  const nv = nor.length / 3
+  const out = new Float32Array(nv)
+  for (let i = 0; i < nv; i++) {
+    const nz = Math.abs(nor[i * 3 + 2])
+    const t = Math.min(1, Math.max(0, (nz - 0.6) / 0.25))
+    out[i] = 1 - t * t * (3 - 2 * t)
+  }
+  return out
+}
+
+type Mesh = {
+  positions: Float32Array
+  normals: Float32Array
+  kant?: Float32Array
+  tris: number
+  min: [number, number, number]
+  max: [number, number, number]
+}
+
+/** to lukka nett lagde i same suppe — hybriden: slipt flate + rå trapper */
+function merge(a: Mesh, ka: Float32Array, b: Mesh, kb: Float32Array) {
+  const positions = new Float32Array(a.positions.length + b.positions.length)
+  positions.set(a.positions)
+  positions.set(b.positions, a.positions.length)
+  const normals = new Float32Array(a.normals.length + b.normals.length)
+  normals.set(a.normals)
+  normals.set(b.normals, a.normals.length)
+  const kant = new Float32Array(ka.length + kb.length)
+  kant.set(ka)
+  kant.set(kb, ka.length)
+  const min = a.min.map((v, i) => Math.min(v, b.min[i])) as [number, number, number]
+  const max = a.max.map((v, i) => Math.max(v, b.max[i])) as [number, number, number]
+  return { positions, normals, kant, tris: a.tris + b.tris, min, max }
+}
+
 export const SKAL: EngineDef = {
   id: "skal",
   label: "skal",
@@ -76,9 +115,18 @@ export const SKAL: EngineDef = {
         kant: EMPTY(),
       }
     }
-    const m =
-      view === "lag" ? stackMesh(buildStack(p, sh, nth)) : buildMesh(p, DETAIL[detail], sh)
-    return { ...m, kant: m.kant ?? EMPTY(), lines: EMPTY(), heavy: EMPTY() }
+    if (view === "lag") {
+      const m = stackMesh(buildStack(p, sh, nth))
+      return { ...m, kant: m.kant ?? EMPTY(), lines: EMPTY(), heavy: EMPTY() }
+    }
+    // FLATE er hybriden referansane viser: den slipte flata utanpå, og
+    // innanfor henne stabelen slik slipinga LET han stå — rå trapper inne
+    // i opningane og under skåla. Begge netta er lukka kvar for seg, so
+    // suppa er framleis utan opne kantar.
+    const glatt = buildMesh(p, DETAIL[detail], sh)
+    const trapp = stackMesh(buildStack(p, sh, nth, true))
+    const m = merge(glatt, kantFromNormals(glatt.normals), trapp, trapp.kant ?? EMPTY())
+    return { ...m, lines: EMPTY(), heavy: EMPTY() }
   },
 
   measure: (bag) => measure(asP(bag)),

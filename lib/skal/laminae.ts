@@ -103,7 +103,13 @@ function dishQ(sh: Shell, p: Params, th: number, z: number): number {
   return Math.pow(u, 1 / e)
 }
 
-/** Bandet setet opptek langs radien over høgdespennet [z0, z1]. */
+/** Bandet setet opptek langs radien over høgdespennet [z0, z1].
+ *
+ *  I `slipt`-modus (hybridvisninga) vert den indre randa rekna av
+ *  ØVREKANTEN på laget, ikkje nedrekanten: då ligg heile ringen under den
+ *  slipte skåla og lokket på laget kan aldri stikke opp gjennom flata.
+ *  Det som stikk NED under den slipte undersida, er nettopp dei rå
+ *  trappene referansane viser. */
 function seatBand(
   sh: Shell,
   p: Params,
@@ -112,27 +118,38 @@ function seatBand(
   z1: number,
   cx: number,
   cy: number,
+  slipt = false,
 ): Iv {
   const bot = p.seatZ - p.dish - p.shellT
   if (z1 < bot || z0 > p.seatZ) return null
   const zEdge = sh.seatEdgeZ(th)
   const rTop = sh.rOuter(th, zEdge) + p.lip
-  const qLo = dishQ(sh, p, th, z0)
+  const qLo = dishQ(sh, p, th, slipt ? z1 : z0)
   const qHi = dishQ(sh, p, th, z1 + p.shellT)
   if (qHi <= qLo) return null
   const c = sh.spine(sh.hOf(zEdge))
   const d = Math.hypot(c[0] - cx, c[1] - cy)
+  if (slipt) return { lo: qLo * rTop + d + 0.25, hi: qHi * rTop + d }
   return { lo: Math.max(0, qLo * rTop - d), hi: qHi * rTop + d }
 }
 
-const STABEL_HUGS = keep<Stack>(2)
+const STABEL_HUGS = keep<Stack>(3)
 /** Stabelen er det dyraste mellombygget i motoren, og «lag», «kontur»,
- *  målinga og kuttlista spør alle etter den same. */
-export function buildStack(p: Params, shell?: Shell, nth = 360): Stack {
-  return STABEL_HUGS(JSON.stringify(p) + "|" + nth, () => buildStackRaw(p, shell, nth))
+ *  målinga og kuttlista spør alle etter den same.
+ *
+ *  `slipt` byggjer stabelen slik han står ETTER slipinga i staden for slik
+ *  han vert kutta: ytterkanten fylgjer det tronaste snittet gjennom laget
+ *  sitt spenn (minus eit hår), so kvart lag gøymer seg NETT innanfor den
+ *  slipte flata — og berre det rå godset som verkeleg står att inne i
+ *  opningane og under skåla stikk fram. Han er til hybridvisninga, aldri
+ *  til kuttlista eller målinga. */
+export function buildStack(p: Params, shell?: Shell, nth = 360, slipt = false): Stack {
+  return STABEL_HUGS(JSON.stringify(p) + "|" + nth + (slipt ? "|s" : ""), () =>
+    buildStackRaw(p, shell, nth, slipt),
+  )
 }
 
-function buildStackRaw(p: Params, shell?: Shell, nth = 360): Stack {
+function buildStackRaw(p: Params, shell?: Shell, nth = 360, slipt = false): Stack {
   const sh = shell ?? makeShell(p)
   const rho = MATERIALS[p.material].rho
   // Høgda går sjeldan opp i platetjukna. Vert resten øvst mindre enn eit
@@ -165,13 +182,16 @@ function buildStackRaw(p: Params, shell?: Shell, nth = 360): Stack {
       const th = (k / nth) * TAU
       let lo = Infinity
       let hi = -Infinity
+      // det tronaste ytre snittet gjennom spennet — det er DIT slipinga når
+      let hiMin = Infinity
       for (const z of zs) {
         const b = wallBand(sh, th, z, cx, cy)
         if (!b) continue
         lo = Math.min(lo, b.lo)
         hi = Math.max(hi, b.hi)
+        hiMin = Math.min(hiMin, b.hi)
       }
-      const sb = seatBand(sh, p, th, z0, z1, cx, cy)
+      const sb = seatBand(sh, p, th, z0, z1, cx, cy, slipt)
       const haveWall = hi > -Infinity
       if (haveWall && sb && sb.hi >= lo - 0.5) {
         // setet og veggen heng saman — eitt band
@@ -182,7 +202,7 @@ function buildStackRaw(p: Params, shell?: Shell, nth = 360): Stack {
         ringHi[k] = sb.hi
       }
       if (haveWall) {
-        outerR[k] = hi + p.sand
+        outerR[k] = slipt ? Math.max(lo + 0.6, hiMin - 0.25) : hi + p.sand
         innerR[k] = Math.max(1, lo)
       }
     }
@@ -282,7 +302,7 @@ function buildStackRaw(p: Params, shell?: Shell, nth = 360): Stack {
     // av kuttlista — materialet stod i feltet, men på ingen plate.
     emit(outerR, innerR)
     emit(
-      ringHi.map((v) => (Number.isFinite(v) ? v + p.sand : NaN)),
+      ringHi.map((v) => (Number.isFinite(v) ? v + (slipt ? -0.25 : p.sand) : NaN)),
       ringLo,
     )
 
