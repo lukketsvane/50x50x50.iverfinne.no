@@ -12,6 +12,7 @@ export type NudgeAxis = "vertical" | "horizontal"
  * dei same fingrane.
  *
  *  - éin finger        → OrbitControls, snu objektet
+ *  - dobbelttrykk      → onDoubleTap, ramm inn objektet på nytt
  *  - to fingrar loddrett / vassrett → onNudge, skrur ein parameter
  *  - klyp              → kamera nærare og lenger unna
  *  - tre fingrar       → onLight, styrer hovudlyset. Kameraet står stille;
@@ -23,9 +24,11 @@ export type NudgeAxis = "vertical" | "horizontal"
 export function GestureParams({
   onNudge,
   onLight,
+  onDoubleTap,
 }: {
   onNudge: (axis: NudgeAxis, deltaPx: number) => void
   onLight?: (dxPx: number, dyPx: number) => void
+  onDoubleTap?: () => void
 }) {
   const gl = useThree((s) => s.gl)
   const controls = useThree((s) => s.controls) as {
@@ -42,6 +45,10 @@ export function GestureParams({
     let mode: "none" | "pinch" | "v" | "h" | "light" = "none"
     let last = { cx: 0, cy: 0, d: 0 }
     let snap: { pos: THREE.Vector3; target: THREE.Vector3 } | null = null
+    // dobbelttrykket: to korte, stillestandande trykk nær kvarandre i tid
+    // og rom — same terskel som iOS sjølv brukar på kartet
+    let tapDown = { x: 0, y: 0, t: 0, id: -1 }
+    let lastTap = { x: 0, y: 0, t: 0 }
 
     const restore = () => {
       if (!snap) return
@@ -73,6 +80,11 @@ export function GestureParams({
     }
 
     const down = (e: PointerEvent) => {
+      // trykk-kandidat for mus og finger begge: fyrste peikar, åleine
+      tapDown =
+        pts.size === 0 && e.isPrimary
+          ? { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId }
+          : { x: 0, y: 0, t: 0, id: -1 }
       if (e.pointerType !== "touch") return
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
       if (pts.size === 1) {
@@ -140,6 +152,26 @@ export function GestureParams({
     }
 
     const up = (e: PointerEvent) => {
+      // dobbelttrykket, for mus og finger begge — FØR fingerbokhaldet,
+      // av di musa aldri står i pts
+      if (e.pointerId === tapDown.id) {
+        const now = performance.now()
+        const still =
+          now - tapDown.t < 260 &&
+          Math.hypot(e.clientX - tapDown.x, e.clientY - tapDown.y) < 12
+        if (still) {
+          const twin =
+            now - lastTap.t < 340 &&
+            Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 48
+          if (twin) {
+            lastTap = { x: 0, y: 0, t: 0 }
+            onDoubleTap?.()
+          } else {
+            lastTap = { x: e.clientX, y: e.clientY, t: now }
+          }
+        }
+        tapDown = { x: 0, y: 0, t: 0, id: -1 }
+      }
       if (!pts.delete(e.pointerId)) return
       if (pts.size === 0) {
         mode = "none"
@@ -161,7 +193,7 @@ export function GestureParams({
       window.removeEventListener("pointercancel", up)
       if (controls) controls.enabled = true
     }
-  }, [gl, controls, camera, invalidate, onNudge, onLight])
+  }, [gl, controls, camera, invalidate, onNudge, onLight, onDoubleTap])
 
   return null
 }
