@@ -12,20 +12,20 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://50x50x50.iverfinne.no"),
-  title: "SANDKASSE — 50 × 50 × 50",
+  title: "50 × 50 × 50",
   description:
-    "Ein parametrisk sandkasse for eit sitjemøbel i stabla bjørkefinér. Same kode teiknar objektet, reknar det og skriv kuttarket — og seier frå når du bryt oppgåva.",
+    "Eit parametrisk sitjemøbel i stabla bjørkefinér. Same kode teiknar objektet, reknar det og skriv kuttarket — og seier frå når du bryt oppgåva.",
   openGraph: {
-    title: "SANDKASSE — 50 × 50 × 50",
+    title: "50 × 50 × 50",
     description:
-      "Parametrisk sandkasse for eit sitjemøbel i stabla bjørkefinér. AHO, 500 mm kube.",
+      "Eit parametrisk sitjemøbel i stabla bjørkefinér. AHO, 500 mm kube.",
     url: "https://50x50x50.iverfinne.no",
-    siteName: "SANDKASSE",
+    siteName: "50 × 50 × 50",
     type: "website",
     locale: "nn_NO",
   },
-  applicationName: "SANDKASSE",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "SANDKASSE" },
+  applicationName: "50 × 50 × 50",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "50 × 50 × 50" },
 }
 
 export const viewport: Viewport = {
