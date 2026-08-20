@@ -92,6 +92,7 @@ export function measure(p: Params, pre?: Build): Metrics {
 
   // --- fotavtrykk og velting -------------------------------------------------
   const feet: Pt[] = []
+  let contacts = 0
   for (const sl of b.slices) {
     const ca = Math.cos(sl.rot)
     const sa = Math.sin(sl.rot)
@@ -99,7 +100,9 @@ export function measure(p: Params, pre?: Build): Metrics {
       q0 * ca - (sl.y + off) * sa,
       q0 * sa + (sl.y + off) * ca,
     ]
-    for (const [x0, x1] of runsAt(sl.outline, 1)) {
+    const runs = runsAt(sl.outline, 1)
+    contacts += runs.length
+    for (const [x0, x1] of runs) {
       feet.push(W2(x0, -p.plyT / 2), W2(x1, -p.plyT / 2))
       feet.push(W2(x0, p.plyT / 2), W2(x1, p.plyT / 2))
     }
@@ -112,7 +115,6 @@ export function measure(p: Params, pre?: Build): Metrics {
     fy0 = Math.min(fy0, q[1]); fy1 = Math.max(fy1, q[1])
   }
   if (!Number.isFinite(fx0)) { fx0 = fx1 = fy0 = fy1 = 0 }
-  const contacts = b.slices.length * 2
 
   const [vol, mz] = meshVolume(mesh)
   const volume = Math.abs(vol)

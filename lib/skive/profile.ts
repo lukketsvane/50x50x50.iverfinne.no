@@ -69,7 +69,7 @@ export function profileAt(p: Params, u: number, k = 1): Pt[] {
   // føtene, i u-lause koordinatar (morfen skalerer alt til slutt)
   const xFFy = xN0 + 0.25 * p.frambein // framfot, fremste hjørne
   const xFF0 = xFFy - p.frambein
-  const bakFl = 0.35 * p.bakbein // bakkanten flarar bakover ned mot golvet
+  const bakFl = p.bakflare * p.bakbein // bakkanten sparkar bakover ned mot golvet
   const xRF0 = xB0 - p.ryggT - bakFl
   const xRF1r = xRF0 + p.bakbein
   // bogen treng eit spenn: bakfoten får aldri eta seg forbi framfoten
@@ -88,12 +88,30 @@ export function profileAt(p: Params, u: number, k = 1): Pt[] {
   const nBoge = N(44, k)
   const span = Math.max(1, xFF0 - xRF1)
   const tp = Math.min(0.85, Math.max(0.15, 0.5 + drift / span))
+  // MIDTFOTEN: kløyver bogen i to sjølvstendige bogar med golv imellom —
+  // akvedukten. Foten står der bogetoppen elles ville stått, so drifta
+  // let han VANDRE gjennom stabelen. Vert eit av boga smalare enn 26 mm,
+  // lukkar det seg og foten veks saman med grannen sin. Utan bogehøgd i
+  // det heile er silhuetten ein massiv PIDESTALL frå golv til sete.
+  const fw = Math.min(p.mellomfot, Math.max(0, span - 60)) / 2
+  const arch = (x: number): number => {
+    if (fw < 1) {
+      const t = (x - xRF1) / span
+      const w = t < tp ? (tp - t) / tp : (t - tp) / (1 - tp)
+      return bogeH * Math.pow(Math.max(0, 1 - Math.pow(w, p.bogeN)), 1 / p.bogeN)
+    }
+    const xM = xRF1 + tp * span
+    const s0 = x < xM ? xRF1 : xM + fw
+    const s1 = x < xM ? xM - fw : xFF0
+    const sw = s1 - s0
+    if (sw < 26 || x < s0 || x > s1) return 0
+    const h = Math.min(bogeH, sw * 2.2)
+    const w = Math.abs(x - (s0 + s1) / 2) / (sw / 2)
+    return h * Math.pow(Math.max(0, 1 - Math.pow(w, p.bogeN)), 1 / p.bogeN)
+  }
   for (let i = 0; i < nBoge; i++) {
     const t = i / (nBoge - 1)
-    const x = xRF1 + t * (xFF0 - xRF1)
-    const w = t < tp ? (tp - t) / tp : (t - tp) / (1 - tp)
-    const z = bogeH * Math.pow(Math.max(0, 1 - Math.pow(w, p.bogeN)), 1 / p.bogeN)
-    put(x, z)
+    put(xRF1 + t * (xFF0 - xRF1), arch(xRF1 + t * (xFF0 - xRF1)))
   }
 
   // 3 — golvet under framfoten
@@ -254,7 +272,7 @@ export function findRods(
     // framboten: midt i framfoten, lågt
     seek(xN0 + 0.25 * p.frambein - p.frambein / 2, 55),
     // bakbeinet
-    seek(xB0 - p.ryggT - 0.35 * p.bakbein + p.bakbein / 2, 55),
+    seek(xB0 - p.ryggT - p.bakflare * p.bakbein + p.bakbein / 2, 55),
     // setebandet: mellom bogetoppen og gropa
     seek(0, (p.bogeH + p.hogd - p.grop) / 2),
   ]
@@ -290,6 +308,70 @@ function rodHole(r: Rod, radius: number): Pt[] {
     const a = (i / 16) * Math.PI * 2
     ring.push([r.x + radius * Math.cos(a), r.z + radius * Math.sin(a)])
   }
+  return ring
+}
+
+/**
+ * Berehòlet: ein kapsel midt i ryggen, lagd langs ryggaksen so han følgjer
+ * leninga. Hòlet finst berre der ryggen har gods til det — kuppelen dreg
+ * ryggen ned ut mot sidene, og då smeltar grepet att skive for skive.
+ * Fingrane treng 26 mm: smalare hòl vert ikkje bora i det heile.
+ */
+function gripHole(p: Params, u: number, outline: Pt[]): Pt[] | null {
+  if (p.grep < 30) return null
+  const ryggH = Math.max(2, p.ryggH * (1 - p.kuppel * u * u))
+  if (ryggH < 55) return null
+  const sx = 1 - p.innsving * u * u
+  const gropEkstra = p.sidefall * u * u
+  const xB0 = -p.djup / 2
+  const v = (p.ryggV * Math.PI) / 180
+  const ax = { x: -Math.sin(v), z: Math.cos(v) }
+  const nx = { x: Math.cos(v), z: Math.sin(v) }
+  const zSeteB = seatTop(p, xB0, gropEkstra)
+  const r = 13
+  const L = Math.min(p.grep, ryggH * 0.55) / 2
+  if (L < 15) return null
+  const sL = Math.max(0, L - r)
+  const topR = Math.min(p.ryggT / 2, Math.max(4, ryggH * 0.45))
+  const hC = ryggH * 0.5
+  const tB = Math.min(1, hC / Math.max(1, ryggH - topR))
+  const xC = xB0 - p.ryggT / 2 - Math.tan(v) * hC - p.ryggB * Math.sin(Math.PI * tB) * 0.1
+  const zC = zSeteB + hC
+  const raw: Pt[] = []
+  for (let j = 0; j <= 10; j++) {
+    const a = (j / 10) * Math.PI
+    raw.push([
+      xC + ax.x * sL + r * (nx.x * Math.cos(a) + ax.x * Math.sin(a)),
+      zC + ax.z * sL + r * (nx.z * Math.cos(a) + ax.z * Math.sin(a)),
+    ])
+  }
+  for (let j = 0; j <= 10; j++) {
+    const a = Math.PI + (j / 10) * Math.PI
+    raw.push([
+      xC - ax.x * sL + r * (nx.x * Math.cos(a) + ax.x * Math.sin(a)),
+      zC - ax.z * sL + r * (nx.z * Math.cos(a) + ax.z * Math.sin(a)),
+    ])
+  }
+  const ring: Pt[] = []
+  for (const q of raw) {
+    const s: Pt = [q[0] * sx, q[1]]
+    const prev = ring[ring.length - 1]
+    if (prev && Math.abs(prev[0] - s[0]) < 1e-7 && Math.abs(prev[1] - s[1]) < 1e-7) continue
+    ring.push(s)
+  }
+  while (
+    ring.length > 3 &&
+    Math.abs(ring[0][0] - ring[ring.length - 1][0]) < 1e-7 &&
+    Math.abs(ring[0][1] - ring[ring.length - 1][1]) < 1e-7
+  ) {
+    ring.pop()
+  }
+  if (ring.length < 3) return null
+  // hòlet må stå i gods med mon i DENNE skiva — elles finst det ikkje her
+  for (const q of ring) {
+    if (!inPoly(outline, q[0], q[1]) || clearance(outline, q[0], q[1]) < 6.5) return null
+  }
+  ring.reverse() // hòl går med klokka
   return ring
 }
 
@@ -329,6 +411,8 @@ function buildSlicesRaw(p: Params, k: number): Build {
 
   const slices: Slice[] = outlines.map((o, i) => {
     const holes = rods.map((r) => rodHole({ x: local(r.x, i), z: r.z }, holeR))
+    const grip = gripHole(p, us[i], o)
+    if (grip) holes.push(grip)
     return {
       y: ys[i],
       u: us[i],
