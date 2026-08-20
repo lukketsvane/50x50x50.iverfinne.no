@@ -33,7 +33,30 @@ export const MM = 1 / 250
  *  modus vert han dempa, elles brenn objektet hòl i skjermen. */
 const col2 = (dark: boolean) => (dark ? "#cfc7bb" : "#e8e1d4")
 
-function makeStriped(color: string, roughness: number, uPly: { value: number }) {
+/**
+ * Beisane. Fargen sit på FLATENE av kvar plate; kantane står som rå finér —
+ * det er slik ein faktisk beisar, før liming, og det er kontrasten
+ * referansebileta lever av: farga lag med lyse fugekantar imellom.
+ * «natur» er inga beis. Beisen endrar ingenting i geometrien eller
+ * berekninga — han er ferdig handsaming, som lakk.
+ */
+export const BEIS: readonly { id: string; label: string; hex: string }[] = [
+  { id: "natur", label: "natur", hex: "" },
+  { id: "kvit", label: "kvitpigmentert", hex: "#e9e2d2" },
+  { id: "petrol", label: "petrolblå", hex: "#3f7d8c" },
+  { id: "marine", label: "marineblå", hex: "#2b4a68" },
+  { id: "gron", label: "skogsgrøn", hex: "#4e6b52" },
+  { id: "rust", label: "rustraud", hex: "#a04f38" },
+  { id: "svart", label: "svartbeisa", hex: "#2e2b28" },
+]
+
+function makeStriped(
+  color: string,
+  roughness: number,
+  uPly: { value: number },
+  uBeis: { value: THREE.Color },
+  uBeisOn: { value: number },
+) {
   const m = new THREE.MeshStandardMaterial({
     color,
     roughness,
@@ -42,21 +65,39 @@ function makeStriped(color: string, roughness: number, uPly: { value: number }) 
   })
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uPly = uPly
+    sh.uniforms.uBeis = uBeis
+    sh.uniforms.uBeisOn = uBeisOn
     sh.vertexShader = sh.vertexShader
-      .replace("#include <common>", "#include <common>\nvarying vec3 vObj;")
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvObj = position;")
+      .replace("#include <common>", "#include <common>\nvarying vec3 vObj;\nvarying vec3 vNrmO;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvObj = position;\nvNrmO = normal;")
     sh.fragmentShader = sh.fragmentShader
-      .replace("#include <common>", "#include <common>\nvarying vec3 vObj;\nuniform float uPly;")
+      .replace(
+        "#include <common>",
+        "#include <common>\nvarying vec3 vObj;\nvarying vec3 vNrmO;\nuniform float uPly;\nuniform vec3 uBeis;\nuniform float uBeisOn;",
+      )
       .replace(
         "#include <color_fragment>",
         [
           "#include <color_fragment>",
-          "if (uPly > 0.5) {",
-          "  float t = vObj.z / uPly;",
-          "  float kant = (0.5 - abs(fract(t) - 0.5)) * uPly;",
-          "  float w = max(fwidth(vObj.z) * 1.2, 0.35);",
-          "  float fuge = 1.0 - smoothstep(0.0, w + 0.45, kant);",
-          "  diffuseColor.rgb *= 1.0 - 0.16 * fuge;",
+          "{",
+          // Ei FLATE er der normalen står langs stabelaksen; ein KANT er
+          // der ho ligg på tvers. Skiljet er alt geometrien veit om kva
+          // som er plate og kva som er kutt.
+          "  float flate = smoothstep(0.6, 0.85, abs(vNrmO.z));",
+          "  if (uBeisOn > 0.5) {",
+          "    diffuseColor.rgb = mix(diffuseColor.rgb, uBeis, flate * 0.92);",
+          "  }",
+          "  if (uPly > 0.5) {",
+          "    float t = vObj.z / uPly;",
+          "    float kant = (0.5 - abs(fract(t) - 0.5)) * uPly;",
+          "    float w = max(fwidth(vObj.z) * 1.2, 0.35);",
+          "    float fuge = 1.0 - smoothstep(0.0, w + 0.45, kant);",
+          // Fuga finst berre i kanten. Flatene ligg NØYAKTIG på
+          // laggrensene, so utan denne porten vart heile lokket på kvart
+          // lag mørkna som éi stor fuge — det var den mørke ringen kring
+          // setet.
+          "    diffuseColor.rgb *= 1.0 - 0.16 * fuge * (1.0 - flate);",
+          "  }",
           "}",
         ].join("\n"),
       )
@@ -69,6 +110,7 @@ export function ObjectMesh({
   view,
   dark,
   stripePly,
+  beis,
   onFit,
 }: {
   data: BuildRes | null
@@ -76,10 +118,14 @@ export function ObjectMesh({
   dark: boolean
   /** platetjukn for limfugene i shaderen; 0 slår dei av */
   stripePly: number
+  /** beis-hex for plateFLATENE; tom streng er natur */
+  beis: string
   onFit: (r: number, cy: number) => void
 }) {
   const invalidate = useThree((s) => s.invalidate)
   const uPly = useRef({ value: 0 })
+  const uBeis = useRef({ value: new THREE.Color("#888888") })
+  const uBeisOn = useRef({ value: 0 })
   const geom = useRef<THREE.BufferGeometry | null>(null)
   const thin = useRef<THREE.BufferGeometry | null>(null)
   const bold = useRef<THREE.BufferGeometry | null>(null)
@@ -132,12 +178,17 @@ export function ObjectMesh({
   // materialet lever like lenge som fargen og ruheita; fugetjukna er ein
   // uniform og kostar aldri ein rekompilering
   const rough = view === "lag" ? 0.92 : 0.78
-  const mat = useMemo(() => makeStriped(col2(dark), rough, uPly.current), [dark, rough])
+  const mat = useMemo(
+    () => makeStriped(col2(dark), rough, uPly.current, uBeis.current, uBeisOn.current),
+    [dark, rough],
+  )
   useEffect(() => () => mat.dispose(), [mat])
   useEffect(() => {
     uPly.current.value = stripePly
+    uBeisOn.current.value = beis ? 1 : 0
+    if (beis) uBeis.current.value.set(beis)
     invalidate()
-  }, [stripePly, invalidate])
+  }, [stripePly, beis, invalidate])
 
   if (!built || !box) return null
 

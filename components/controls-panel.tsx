@@ -13,6 +13,7 @@ import {
   type View,
 } from "@/lib/core"
 import { ENGINES, getEngine } from "@/lib/engines"
+import { BEIS } from "./object-mesh"
 
 /**
  * SANDKASSE — kontrollflata.
@@ -248,6 +249,7 @@ export function ControlsPanel(props: {
   rules: Rule[]
   view: View
   seed: string
+  beis: string
   locked: ReadonlySet<string>
   hiDetail: boolean
   isDesktop: boolean
@@ -256,6 +258,7 @@ export function ControlsPanel(props: {
   onChange: (p: ParamBag) => void
   onView: (v: View) => void
   onSeed: (s: string) => void
+  onBeis: (b: string) => void
   onShuffle: () => void
   onReset: () => void
   onToggleLock: (k: string) => void
@@ -270,6 +273,7 @@ export function ControlsPanel(props: {
     rules,
     view,
     seed,
+    beis,
     locked,
     hiDetail,
     isDesktop,
@@ -278,6 +282,7 @@ export function ControlsPanel(props: {
     onChange,
     onView,
     onSeed,
+    onBeis,
     onShuffle,
     onReset,
     onToggleLock,
@@ -436,6 +441,29 @@ export function ControlsPanel(props: {
                 />
               ))}
             </PanelRow>
+
+            {/* beisen sit på flatene; kantane står som rå finér. Berre der
+                laga er vassrette — elles ville fargen lyge om materialet. */}
+            {eng.unitLabel === "lag" && (
+              <PanelRow label="beis">
+                {BEIS.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    aria-pressed={beis === b.id}
+                    aria-label={`beis: ${b.label}`}
+                    title={b.label}
+                    onClick={() => onBeis(b.id)}
+                    className="h-6 w-6 rounded-full border transition active:scale-90"
+                    style={{
+                      backgroundColor: b.hex || "#cfc7bb",
+                      borderColor: beis === b.id ? "var(--ink)" : "var(--rule)",
+                      boxShadow: beis === b.id ? "0 0 0 1px var(--ink)" : undefined,
+                    }}
+                  />
+                ))}
+              </PanelRow>
+            )}
 
             {/* reglane som ryk: éi line kvar, grunngjevinga i title. Panelet
                 seier KVA som er gale; KVIFOR ligg eit fingertrykk unna. */}
