@@ -74,7 +74,7 @@ const ICON_BTN_SOLID =
 
 function chipStyle(active: boolean): CSSProperties {
   return active
-    ? { background: "var(--ink)", color: "var(--paper)", borderColor: "transparent" }
+    ? { background: "var(--accent)", color: "#ffffff", borderColor: "transparent" }
     : { color: "var(--ink)", borderColor: "var(--rule)" }
 }
 const CHIP =
@@ -380,7 +380,7 @@ export function ControlsPanel(props: {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-10 flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
       <section
-        aria-label="kontrollar for sandkassen"
+        aria-label="kontrollar"
         aria-busy={busy}
         className="pointer-events-auto w-full max-w-md rounded-3xl border"
         style={{
@@ -432,7 +432,7 @@ export function ControlsPanel(props: {
               className="flex h-9 items-center gap-1.5 rounded-full border pl-3 pr-2.5 text-[11px] uppercase tracking-[0.18em] transition active:scale-95"
               style={
                 engineLock
-                  ? { background: "var(--ink)", color: "var(--paper)", borderColor: "transparent" }
+                  ? { background: "var(--accent)", color: "#ffffff", borderColor: "transparent" }
                   : { ...HAIR, color: "var(--ink)" }
               }
             >
@@ -440,7 +440,7 @@ export function ControlsPanel(props: {
                 <span
                   aria-hidden="true"
                   className="block h-[5px] w-[5px] rounded-full"
-                  style={{ background: "var(--paper)" }}
+                  style={{ background: "#ffffff" }}
                 />
               )}
               {eng.label}
@@ -471,7 +471,7 @@ export function ControlsPanel(props: {
                       className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[11px] uppercase tracking-[0.18em] transition active:scale-[0.98]"
                       style={
                         engine === e.id
-                          ? { background: "var(--ink)", color: "var(--paper)" }
+                          ? { background: "var(--accent)", color: "#ffffff" }
                           : { color: "var(--ink)" }
                       }
                     >
@@ -510,8 +510,8 @@ export function ControlsPanel(props: {
             aria-hidden="true"
             className="block h-[5px] w-[5px] shrink-0 rounded-full"
             style={{
-              background: "var(--ink)",
-              opacity: busy ? 0.8 : 0.12,
+              background: busy ? "var(--accent)" : "var(--ink)",
+              opacity: busy ? 1 : 0.12,
               transition: "opacity 200ms ease",
             }}
           />
@@ -522,7 +522,7 @@ export function ControlsPanel(props: {
             aria-label="terning — nye tal innanfor grensene, låste skruar står"
             title="terning"
             className={ICON_BTN_SOLID}
-            style={{ background: "var(--ink)", color: "var(--paper)" }}
+            style={{ background: "var(--accent)", color: "#ffffff" }}
           >
             {IcoShuffle}
           </button>

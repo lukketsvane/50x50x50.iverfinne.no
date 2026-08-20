@@ -50,7 +50,8 @@ export function Studio() {
   const [engineLock, setEngineLock] = useState(false)
   // beis er ferdig handsaming, som lakk: han bur i visinga og hashen, aldri
   // i parameterrommet — masse og styrke bryr seg ikkje om farge
-  const [beis, setBeis] = useState("natur")
+  // AHO-oransjen er standard — «natur» er eit val, ikkje utgangspunktet
+  const [beis, setBeis] = useState("aho")
   const [hiDetail, setHiDetail] = useState(false)
   const [light, setLight] = useState<LightDir>({ az: 0.62, el: 0.92 })
   const [data, setData] = useState<BuildRes | null>(null)
@@ -314,7 +315,7 @@ export function Studio() {
       {/* Eitt ord og ei lenkje. Alt anna sida har å seie, seier objektet. */}
       <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-5 pt-[calc(env(safe-area-inset-top)+16px)]">
         <div className="text-[11px] tracking-[0.22em]" style={{ color: "var(--ink)" }}>
-          SANDKASSE
+          50 × 50 × 50
         </div>
         <a
           href="https://iverfinne.no"

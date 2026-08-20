@@ -42,6 +42,8 @@ const col2 = (dark: boolean) => (dark ? "#cfc7bb" : "#e8e1d4")
  */
 export const BEIS: readonly { id: string; label: string; hex: string }[] = [
   { id: "natur", label: "natur", hex: "" },
+  // AHO sin oransje primærfarge — standardbeisen på sida
+  { id: "aho", label: "aho-oransje", hex: "#ef4300" },
   { id: "kvit", label: "kvitpigmentert", hex: "#e9e2d2" },
   { id: "petrol", label: "petrolblå", hex: "#3f7d8c" },
   { id: "marine", label: "marineblå", hex: "#2b4a68" },
