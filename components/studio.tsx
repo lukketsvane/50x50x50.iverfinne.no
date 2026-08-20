@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ENGINES, getEngine, isEngineId } from "@/lib/engines"
 import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
 import { seeded } from "@/lib/core"
-import type { BuildRes, DetailKey, MaalRes, Req, Res } from "@/lib/worker"
+import type { BuildRes, DetailKey, MaalRes, Req, Res, SynRes } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
 import { BEIS } from "./object-mesh"
 import { ControlsPanel } from "./controls-panel"
@@ -59,6 +59,8 @@ export function Studio() {
   // punktet: under eit drag står den førre tavla dimma til fingeren
   // stoggar, i staden for at kvart einaste mellombilete vert rekna på.
   const [tal, setTal] = useState<MaalRes | null>(null)
+  // flatene som bilete, generert av arbeidaren etter kvar måling
+  const [syn, setSyn] = useState<SynRes | null>(null)
   const [busy, setBusy] = useState(true)
   const [mounted, setMounted] = useState(false)
   // kvitt, alltid — sjå globals.css
@@ -132,6 +134,10 @@ export function Studio() {
         setTal(r)
         // fyrst når rekninga for det siste punktet er inne, er motoren ferdig
         if (r.id >= reqId.current) setBusy(false)
+        return
+      }
+      if (r.kind === "syn") {
+        setSyn((prev) => (prev && prev.id > r.id ? prev : r))
         return
       }
       if (r.kind === "feil") {
@@ -290,6 +296,7 @@ export function Studio() {
   // platene ligg.
   const beisHex = BEIS.find((b) => b.id === beis)?.hex ?? ""
   const liveTal = tal && tal.engine === engine ? tal : null
+  const liveSyn = syn && syn.engine === engine ? syn.svg : null
   const metrics: Metrics | null = liveTal?.metrics ?? null
   const rules: Rule[] = useMemo(() => liveTal?.rules ?? [], [liveTal])
 
@@ -335,6 +342,7 @@ export function Studio() {
         rules={rules}
         view={view}
         beis={beis}
+        syn={liveSyn}
         engineLock={engineLock}
         locked={locked}
         hiDetail={hiDetail}
