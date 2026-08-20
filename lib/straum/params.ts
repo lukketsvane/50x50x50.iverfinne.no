@@ -20,6 +20,10 @@ import {
   type ParamBag,
   type Range,
 } from "../core"
+// body.ts importerer berre TYPEN Params herifrå, so importen er asyklisk
+import { makeBody } from "./body"
+
+const DEG = Math.PI / 180
 
 export type Params = {
   // --- KROPP: dei fem kanalane i snittabellen, sett i endane -------------
@@ -33,6 +37,8 @@ export type Params = {
   fotD: number // foten fram og attende, mm
   morfNed: number // superellipse-eksponent ved golvet
   morfOpp: number // superellipse-eksponent ved setet
+  mage: number // buk lagd på snittkanalane kring magehøgda, mm i diameter
+  mageH: number // kvar buken sit, del av høgda
 
   // --- VRIDING ------------------------------------------------------------
   vridFot: number // vriding ved golvet, grader
@@ -77,6 +83,8 @@ export const PARAM_RANGES: Record<string, Range> = {
   fotD: { min: 180, max: 470, step: 1, label: "fot djup", unit: "mm" },
   morfNed: { min: 2, max: 7, step: 0.05, label: "morf nede" },
   morfOpp: { min: 2, max: 7, step: 0.05, label: "morf oppe" },
+  mage: { min: -60, max: 80, step: 1, label: "mage", unit: "mm" },
+  mageH: { min: 0.45, max: 0.85, step: 0.005, label: "magehøgd" },
 
   vridFot: { min: -80, max: 80, step: 1, label: "vriding fot", unit: "°" },
   vridSete: { min: -80, max: 80, step: 1, label: "vriding sete", unit: "°" },
@@ -140,6 +148,9 @@ export const DEFAULT_PARAMS: Params = {
   fotD: 320,
   morfNed: 5.2,
   morfOpp: 2.4,
+  // mage 0 er nøytral: standardobjektet står nøyaktig som før kanalen kom
+  mage: 0,
+  mageH: 0.62,
 
   vridFot: -16,
   vridSete: 40,
@@ -175,6 +186,7 @@ export const GROUPS: readonly Group[] = [
     keys: [
       "hogd", "midjeH", "midjeB", "midjeD", "seteB",
       "seteD", "fotB", "fotD", "morfNed", "morfOpp",
+      "mage", "mageH",
     ],
   },
   { id: "vriding", label: "vriding", keys: ["vridFot", "vridSete", "vridSenter"] },
@@ -208,6 +220,13 @@ export const POSES: readonly Partial<Params>[] = [
     seteB: 400, seteD: 350, fotB: 360, fotD: 330, midjeB: 240, midjeD: 200,
     fresD: 3,
   },
+  // amfora: buken sit over midja og er breiare enn både munning og fot —
+  // ni plan so lufta mellom finnane står klar av fingerbandet, og midja
+  // akkurat vid nok til at tre finnar går heilt gjennom
+  {
+    mage: 76, mageH: 0.7, midjeB: 140, midjeD: 110, seteB: 360, seteD: 345,
+    fotB: 310, fotD: 300, finnar: 9, morfOpp: 3,
+  },
 ]
 
 /** Kva to-fingers-rulling på lerretet skrur på. */
@@ -215,6 +234,105 @@ export const NUDGE_PARAMS = { vertical: "midjeB", horizontal: "skraa" }
 
 export function clampParams(o: unknown, prev: Params): Params {
   return clampBag(o, prev as unknown as ParamBag, PARAM_RANGES, PARAM_KEYS) as unknown as Params
+}
+
+/**
+ * Terningen får kaste kva han vil, men reglane er funksjonar av fleire
+ * tal samstundes, og eit fritt kast bryt nesten alltid ei av dei. Kaskaden
+ * rettar kastet i rekkjefylgje — høgda fyrst, sidan alt etterpå les henne —
+ * og rører berre ulåste nøklar, alltid innanfor banda. Estimata er
+ * kalibrerte undermål, so ei retting aldri skapar eit nytt brot av same
+ * slaget; eitt einaste kroppsoppslag midtvegs gjev den sanne spennvidda,
+ * og då kan fres, klemfare og samanheng styrast eksakt utan ny bygging.
+ */
+function repair(q: Params, locked: ReadonlySet<string>): Params {
+  const fix = (k: keyof Params, v: number) => {
+    if (locked.has(k)) return
+    const r = PARAM_RANGES[k as string]
+    const c = Math.min(r.max, Math.max(r.min, v))
+    ;(q as Record<string, number | string>)[k] = r.int ? Math.round(c) : +c.toFixed(3)
+  }
+
+  // --- 1 sitjehøgda fyrst: alt etterpå les hogd ---------------------------
+  // salen dreg sitjepunktet under kanten; 0,8·salsøkk + 0,15·sidesøkk − 3
+  // bommar med −6 til −0,8 mm over 200 kast, so [384,476] held [380,480]
+  const sitEst = () => q.hogd - 0.8 * q.salsokk - 0.15 * q.sidesokk - 3
+  if (sitEst() < 384) fix("hogd", 384 + 3 + 0.8 * q.salsokk + 0.15 * q.sidesokk)
+  if (sitEst() > 476) fix("hogd", 476 + 3 + 0.8 * q.salsokk + 0.15 * q.sidesokk)
+
+  // --- 2 veltevinkelen: foten må bera setehøgda ---------------------------
+  // tan 15° · 2 = 0,536; 0,57 legg mon for senterskyv og smal superellipse
+  // (kalibrert på 300 kast: alle brot låg under 0,55)
+  const fotMin = 0.57 * q.hogd
+  if (q.fotB < fotMin) fix("fotB", fotMin)
+  if (q.fotD < fotMin) fix("fotD", fotMin)
+
+  // --- 3 sitjeflata: kantradien et av den målte breidda -------------------
+  if (q.seteB - 4 * q.kantR < 316) fix("seteB", 316 + 4 * q.kantR)
+  if (q.seteD - 4 * q.kantR < 316) fix("seteD", 316 + 4 * q.kantR)
+
+  // --- 4 fresen, grovt: delinga må gje plass til spor pluss fres ----------
+  // spanEst er eit strengt undermål av spennvidda (kvar superellipse med
+  // n ≥ 2 inneheld ellipsen sin), so å krympe finneT etter han er trygt;
+  // ei negativ mage kan snøre forma under estimatet, og det tek steg 5
+  const sEst = Math.min(1, 492 / Math.max(q.seteB, q.seteD, q.fotB, q.fotD))
+  const spanEst = sEst * Math.max(Math.min(q.fotB, q.fotD), Math.min(q.seteB, q.seteD))
+  const cosA = Math.cos(q.skraa * DEG)
+  let slotW = q.finneT / cosA + q.pressfit
+  let nMax = Math.floor(spanEst / (q.fresD + slotW))
+  if (nMax < 9) {
+    // ni plan er golvet i bandet: gjer sporet smalare til dei får plass
+    fix("finneT", (spanEst / 9 - q.fresD - q.pressfit) * cosA)
+    slotW = q.finneT / cosA + q.pressfit
+    nMax = Math.max(9, Math.floor(spanEst / (q.fresD + slotW)))
+  }
+  if (Math.round(q.finnar) > nMax) fix("finnar", nMax)
+
+  // --- 5 eitt kroppsoppslag: sann spennvidd, resten vert eksakt -----------
+  // Spennvidda er uavhengig av finnar (delinga er spennet delt på talet)
+  // og midja styrer henne aldri, so etter dette eine oppslaget kan fres,
+  // klemfare og samanheng setjast utan ny bygging.
+  {
+    const bd0 = makeBody(q)
+    const spanTrue = bd0.pitch * Math.max(2, Math.round(q.finnar))
+    let nMaxT = Math.floor(spanTrue / (q.fresD + slotW))
+    if (nMaxT < 9) {
+      fix("finneT", (spanTrue / 9 - q.fresD - q.pressfit) * cosA)
+      slotW = q.finneT / cosA + q.pressfit
+      nMaxT = Math.floor(spanTrue / (q.fresD + slotW))
+    }
+    if (Math.round(q.finnar) > nMaxT) fix("finnar", nMaxT)
+    // klemfare: lufta mellom finnane må ut av fingerbandet [5,25)
+    const gap = (n: number) => (spanTrue / n) * cosA - q.finneT
+    const n0 = Math.round(q.finnar)
+    if (gap(n0) >= 5 && gap(n0) < 25) {
+      const nOpen = Math.floor((spanTrue * cosA) / (q.finneT + 25))
+      const nDense = Math.ceil((spanTrue * cosA) / (q.finneT + 5))
+      if (nOpen >= 9) fix("finnar", Math.min(n0, nOpen))
+      else if (nDense <= Math.min(39, nMaxT)) fix("finnar", nDense)
+    }
+    // samanheng: midja må halde minst tre finnar heile vegen gjennom
+    // (kalibrert: under tre gjennomgåande er aldri sett over 2,74 · deling,
+    // og ei midje på 0,31 · spennet styrer aldri spennvidda sjølv)
+    const midjeMin = 2.8 * (spanTrue / Math.round(q.finnar))
+    if (q.midjeB < midjeMin) fix("midjeB", midjeMin)
+    if (q.midjeD < midjeMin) fix("midjeD", midjeMin)
+  }
+
+  // --- 6 sporet mot plata: parallellogrammet må inn i tjukna --------------
+  // (+0,05 mm mon mot toFixed-avrundinga i fix)
+  if (Math.min(q.sokkelT, q.kappeT) < slotW) {
+    if (q.sokkelT < slotW) fix("sokkelT", slotW + 0.05)
+    if (q.kappeT < slotW) fix("kappeT", slotW + 0.05)
+    if (Math.min(q.sokkelT, q.kappeT) < slotW) {
+      fix("finneT", (Math.min(q.sokkelT, q.kappeT) - q.pressfit) * cosA)
+    }
+  }
+
+  // --- 7 veggen: beinet i midja må bera to finnetjukner -------------------
+  if (q.veggT < 2 * q.finneT) fix("veggT", 2 * q.finneT + 1)
+
+  return q
 }
 
 export function randomParams(
@@ -231,12 +349,13 @@ export function randomParams(
     PARAM_KEYS,
     locked,
   )
-  if (posed) return posed as unknown as Params
-  return randomBag(
-    rnd,
-    prev as unknown as ParamBag,
-    PARAM_RANGES,
-    PARAM_KEYS,
-    locked,
-  ) as unknown as Params
+  const q = (posed ??
+    randomBag(
+      rnd,
+      prev as unknown as ParamBag,
+      PARAM_RANGES,
+      PARAM_KEYS,
+      locked,
+    )) as unknown as Params
+  return repair(q, locked)
 }

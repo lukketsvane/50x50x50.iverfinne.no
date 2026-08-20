@@ -138,8 +138,10 @@ function makeBodyRaw(p: Params): Body {
   // gøymd bak ribbene i ytterkanten. Eit kryss opnar seg heilt ut til
   // kanten i begge leier, og då står det som det er — fire bein i hjørna,
   // med ein boge på kvar av dei fire sidene.
-  const awx = p.bogeB * A * rho(0)
-  const awy = p.bogeB * B * rho(0)
+  // Breidda er delt i to leier: same tal i begge er den gamle symmetriske
+  // kvelvinga, ulike tal er portalen — brei den eine vegen, smal den andre.
+  const awx = p.bogeBX * A * rho(0)
+  const awy = p.bogeBY * B * rho(0)
   const ah = p.bogeH * zTop
   const m = p.bogeN
   const one = (v: number, w: number) => {

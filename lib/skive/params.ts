@@ -11,13 +11,16 @@
  * Z = opp. Alle mål i millimeter, vinklar i grader.
  */
 import {
+  MATERIALS,
   clampBag,
   poseBag,
   randomBag,
+  shoelace,
   type Group,
   type ParamBag,
   type Range,
 } from "../core"
+import { buildSlices } from "./profile"
 
 export type Params = {
   // --- SETE ---------------------------------------------------------------
@@ -46,6 +49,7 @@ export type Params = {
   skiver: number // kor mange skiver
   plyT: number // skivetjukn, mm
   luft: number // opning mellom skivene, mm
+  luftfall: number // gapgradient gjennom stabelen: + pakkar mot midten, − mot kantane
   kuppel: number // kor mykje ryggen fell av ut mot sidene, 0–1
   sidefall: number // kor mykje setet fell av ut mot sidene, mm
   innsving: number // kor mykje dei ytste skivene er dregne inn, 0–1
@@ -81,6 +85,7 @@ export const PARAM_RANGES: Record<string, Range> = {
   skiver: { min: 7, max: 21, step: 1, label: "skiver", int: true },
   plyT: { min: 9, max: 24, step: 0.5, label: "skivetjukn", unit: "mm" },
   luft: { min: 0, max: 60, step: 0.5, label: "luft", unit: "mm" },
+  luftfall: { min: -0.6, max: 0.6, step: 0.005, label: "luftfall" },
   kuppel: { min: -0.5, max: 0.8, step: 0.005, label: "kuppel" },
   sidefall: { min: -20, max: 30, step: 0.5, label: "sidefall", unit: "mm" },
   innsving: { min: -0.1, max: 0.16, step: 0.002, label: "innsving" },
@@ -102,7 +107,7 @@ export const GROUPS: readonly Group[] = [
   {
     id: "skiver",
     label: "skiver",
-    keys: ["skiver", "plyT", "luft", "kuppel", "sidefall", "innsving", "bogefall", "bogedrift", "vifte"],
+    keys: ["skiver", "plyT", "luft", "luftfall", "kuppel", "sidefall", "innsving", "bogefall", "bogedrift", "vifte"],
   },
   { id: "bygg", label: "bygg", keys: ["stavD"] },
 ]
@@ -139,6 +144,7 @@ export const DEFAULT_PARAMS: Params = {
   skiver: 11,
   plyT: 14,
   luft: 31,
+  luftfall: 0,
   kuppel: 0.42,
   sidefall: 10,
   innsving: 0.05,
@@ -218,6 +224,14 @@ export const POSES: readonly Partial<Params>[] = [
     bakflare: 0.5, bakbein: 150, bogeH: 260, bogedrift: -30,
     skiver: 12, plyT: 12, luft: 28, kuppel: 0.28, grop: 16, djup: 320,
   },
+  // orgelet: lufta fell frå midten og ut — skivene står tett som piper
+  // midt i benken og glisnar mot kantane. Same kuttfil, berre gapa er
+  // graderte; luft 40 held minste gap (~28 mm) over fingerfella på 25.
+  {
+    luftfall: 0.55, skiver: 9, plyT: 14, luft: 40, ryggH: 0,
+    bogeH: 300, kuppel: 0, hogd: 404, djup: 340, grop: 22, sidefall: 14,
+    frambein: 120, bakbein: 120, bogefall: 0.15,
+  },
 ]
 
 /** kva to fingrar på lerretet skrur på */
@@ -234,28 +248,163 @@ export function randomParams(
 ): Params {
   const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, locked)
   const q = posed ?? (randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked) as Params)
-  // Terningen får kaste kva han vil, men tre tal er SUMAR av andre og
-  // bryt kuben nesten alltid utan hjelp: breidda, rygghøgda og djupna.
-  // Reparasjonen rører berre ulåste skyvarar, og alltid innanfor banda.
+  // Terningen får kaste kva han vil, men somme tal er SUMAR av andre og
+  // bryt reglane nesten alltid utan hjelp: breidda, høgda og djupna er
+  // konvoluttar, massen er eit integral, og somme band er daudsoner der
+  // forma korkje er det eine eller det andre. Reparasjonen går i fast
+  // rekkjefylgje — snappar, breidd, masse, luftfall, kube — og rører berre
+  // ulåste skyvarar, alltid innanfor banda.
   const fix = (k: keyof Params, v: number) => {
     if (locked.has(k)) return
     const r = PARAM_RANGES[k]
     ;(q as Record<string, number | string>)[k] = Math.min(r.max, Math.max(r.min, +v.toFixed(3)))
   }
-  const n = Math.max(2, Math.round(q.skiver))
   const wMax = 492
+  const deg = Math.PI / 180
+
+  // --- daudsone-snapparane --------------------------------------------------
+  // Terningen når smale band der forma korkje er det eine eller det andre:
+  // ein slisseboge, ein flis av midtfot, ei leppe av rygg, eit grep
+  // gripHole nektar å bora. Kvart kast må VELJE side av daudsona.
+  if (q.bogeH > 0 && q.bogeH < 60) fix("bogeH", q.bogeH < 30 ? 0 : 60)
+  if (q.mellomfot >= 2 && q.mellomfot < 40) fix("mellomfot", q.mellomfot < 20 ? 0 : 45)
+  if (q.ryggH > 0 && q.ryggH < 30) fix("ryggH", q.ryggH < 15 ? 0 : 30)
+  if (q.grep > 0 && q.grep < 30) fix("grep", 0)
+  // luft mellom 5 og 25 mm er fingerfella klemfare-regelen vaktar
+  if (q.luft >= 5 && q.luft < 25) fix("luft", q.luft < 12 ? 4.5 : 25)
+  // under 324 mm setedjup fell sitjeflata under 320-bandet
+  if (q.djup < 324) fix("djup", 324)
+  // sitjehøgda: gropa dreg middelet ned med ~0.65 av seg, sidefallet berre
+  // ~0.08 — og NEGATIVT sidefall kronar setet, det dreg ikkje ned
+  if (q.hogd - 0.65 * q.grop - 0.08 * Math.max(0, q.sidefall) < 383) {
+    fix("grop", Math.max(0, (q.hogd - 383 - 0.08 * Math.max(0, q.sidefall)) / 0.65))
+  }
+  if (q.hogd - 0.65 * q.grop < 383) fix("hogd", 383 + 0.65 * q.grop)
+
+  // --- breidda er ein sum og et kuben fyrst ---------------------------------
+  const n = Math.max(2, Math.round(q.skiver))
   if (n * q.plyT + (n - 1) * q.luft > wMax) {
     fix("luft", (wMax - n * q.plyT) / (n - 1))
     const n2 = Math.max(2, Math.round(q.skiver))
     if (n2 * q.plyT + (n2 - 1) * q.luft > wMax) {
       fix("skiver", Math.floor((wMax + q.luft) / (q.plyT + q.luft)))
     }
+    // breiddefiksen kan ha lagt lufta i fingerfella att: snapp opp om
+    // kuben toler det, elles ned
+    if (q.luft >= 5 && q.luft < 25) {
+      const n3 = Math.max(2, Math.round(q.skiver))
+      fix("luft", n3 * q.plyT + (n3 - 1) * 25 <= wMax ? 25 : 4.5)
+    }
   }
-  if (q.hogd + q.ryggH > 494) fix("ryggH", 494 - q.hogd)
-  // djupna: nase + flare framme og rygg + bakflare bak et av kuben i X
-  const envX = q.djup + 0.25 * q.frambein + q.ryggT + q.bakflare * q.bakbein
-  if (envX > 492) fix("djup", 492 - 0.25 * q.frambein - q.ryggT - q.bakflare * q.bakbein)
-  // gropa skal ikkje dra sitjehøgda under bandet
-  if (q.hogd - 0.6 * (q.grop + q.sidefall) < 382) fix("grop", Math.max(0, (q.hogd - 382) / 0.6 - q.sidefall))
+
+  // --- massetrimmen, med breidde-restitusjon --------------------------------
+  // Massen vert målt eksakt på dei bygde skivene. Er han for stor, er det
+  // finéren som må vike — men velting, støtteflate og sete på tvers lever
+  // alle på breidda, so lufta får att kvar millimeter tjukna gjev frå seg:
+  // luft veg ingenting.
+  const massOf = () => {
+    const rho = MATERIALS[q.material as keyof typeof MATERIALS].rho
+    return buildSlices(q).slices.reduce(
+      (s, sl) => s + (Math.abs(shoelace(sl.outline)) * q.plyT * rho) / 1e9,
+      0,
+    )
+  }
+  let mass = massOf()
+  if (mass > 11.5) {
+    const n1 = Math.max(2, Math.round(q.skiver))
+    const W0 = n1 * q.plyT + (n1 - 1) * q.luft
+    fix("plyT", q.plyT * Math.max(0.55, 11.5 / mass))
+    mass = massOf()
+    if (mass > 11.5) fix("skiver", Math.max(7, Math.floor(n1 * (11.5 / mass))))
+    const n2 = Math.max(2, Math.round(q.skiver))
+    const Wt = Math.min(wMax, Math.max(W0, 330))
+    let luft2 = (Wt - n2 * q.plyT) / (n2 - 1)
+    if (luft2 >= 5 && luft2 < 25) luft2 = n2 * q.plyT + (n2 - 1) * 25 <= wMax ? 25 : 4.5
+    fix("luft", luft2)
+  }
+
+  // --- luftfallet må ikkje gradere eit lovleg gap inn i fingerfella ---------
+  // Minste gap er om lag luft·(1 − 0.62·|luftfall|); her vert han rekna
+  // eksakt for dette skivetalet, so kvart einaste gap held seg utanfor
+  // bandet 5–25 mm — regelen les berre p.luft, men fingrane les gapa.
+  const minGapRatio = (lf: number): number => {
+    const nG = Math.max(2, Math.round(q.skiver))
+    const mG = nG - 1
+    if (mG < 1 || lf === 0) return 1
+    let sum = 0
+    let wmin = Infinity
+    for (let j = 0; j < mG; j++) {
+      const c = mG > 1 ? Math.abs(j - (mG - 1) / 2) / ((mG - 1) / 2) : 1
+      const w = Math.max(0.05, 1 - lf * (1 - c))
+      sum += w
+      if (w < wmin) wmin = w
+    }
+    return (mG * wmin) / sum
+  }
+  if (q.luftfall !== 0) {
+    if (q.luft < 25) {
+      fix("luftfall", 0)
+    } else {
+      // 25.05 og steget på 0.005: monnen svelgjer avrundinga i fix()
+      let lf = Math.min(Math.abs(q.luftfall), (1 - 25 / q.luft) / 0.62)
+      while (lf > 0 && minGapRatio(Math.sign(q.luftfall) * lf) * q.luft < 25.05) {
+        lf = Math.max(0, lf - 0.02)
+      }
+      if (lf < 0.005) lf = 0
+      if (lf < Math.abs(q.luftfall)) fix("luftfall", Math.sign(q.luftfall) * lf)
+    }
+  }
+
+  // --- kube-kaskaden --------------------------------------------------------
+  // (Z) negativ kuppel LYFTER ryggen ute ved kantane, og krona (negativ
+  // grop+sidefall) lyfter setet — høgda må målast der ho er høgst.
+  const kUp = 1 - Math.min(0, q.kuppel)
+  if (q.hogd + q.ryggH * kUp > 494) fix("ryggH", (494 - q.hogd) / kUp)
+  if (q.hogd + Math.max(0, -(q.grop + q.sidefall)) > 494) {
+    fix("sidefall", -(q.grop + (494 - q.hogd)))
+  }
+  // (X/Y) konvolutten: nase + flare framme, rygg + bakflare eller lening
+  // bak, alt skalert av negativt innsving — og vifta et av BEGGE aksane.
+  const env = () => {
+    const nE = Math.max(2, Math.round(q.skiver))
+    const W = nE * q.plyT + (nE - 1) * q.luft
+    const sxOut = 1 - Math.min(0, q.innsving)
+    const xFront = (q.djup / 2 + 0.25 * q.frambein) * sxOut
+    const bakArm = Math.max(
+      q.bakflare * q.bakbein,
+      Math.tan(q.ryggV * deg) * Math.max(0, q.ryggH),
+    )
+    const xBack = (q.djup / 2 + q.ryggT + bakArm) * sxOut
+    const sa = Math.sin(Math.abs(q.vifte) * deg)
+    return {
+      W, xFront, xBack, sxOut,
+      envX: xFront + xBack + (W / 2) * sa,
+      envY: W + 2 * Math.max(xFront, xBack) * sa,
+      sa,
+    }
+  }
+  // vifta betaler fyrst — ho er pynt, djupna og ryggen er møbel
+  let e = env()
+  if ((e.envX > wMax || e.envY > wMax) && q.vifte !== 0) {
+    const sa2 = Math.min(
+      e.sa,
+      Math.max(0, (wMax - e.xFront - e.xBack) / (e.W / 2)),
+      Math.max(0, (wMax - e.W) / (2 * Math.max(e.xFront, e.xBack))),
+    )
+    fix("vifte", (Math.sign(q.vifte) * Math.asin(Math.min(1, sa2))) / deg)
+    e = env()
+  }
+  // so sparket bakover — men berre når det faktisk er sparket som stikk ut
+  if (e.envX > wMax && q.bakflare * q.bakbein > Math.tan(q.ryggV * deg) * Math.max(0, q.ryggH)) {
+    fix("bakflare", q.bakflare - (e.envX - wMax) / e.sxOut / q.bakbein)
+    e = env()
+  }
+  // so djupna, med golv på 324 so sitjeflata ikkje vert offer for kuben
+  if (e.envX > wMax) {
+    fix("djup", Math.max(324, q.djup - (e.envX - wMax)))
+    e = env()
+  }
+  // siste utveg: ryggtjukna
+  if (e.envX > wMax) fix("ryggT", q.ryggT - (e.envX - wMax))
   return q
 }

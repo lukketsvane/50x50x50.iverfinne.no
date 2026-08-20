@@ -20,6 +20,7 @@ import {
   type ParamBag,
   type Range,
 } from "../core"
+import { applyFix } from "./reparasjon"
 
 export type Params = {
   // --- PLAN: superellipsa kroppen er dratt opp av ------------------------
@@ -49,7 +50,8 @@ export type Params = {
 
   // --- BOGE: opninga som gjer ribba til bein ------------------------------
   bogeH: number // kor høgt bogen når, del av ribbehøgda
-  bogeB: number // kor brei bogen er, del av ribbebreidda
+  bogeBX: number // kor brei bogen er i X-leia, del av ribbebreidda
+  bogeBY: number // kor brei bogen er i Y-leia, del av ribbebreidda
   bogeN: number // bogeeksponent: 2 er ellipse, 4 er nesten firkant
 
   // --- BYGG ---------------------------------------------------------------
@@ -80,7 +82,8 @@ export const PARAM_RANGES: Record<string, Range> = {
   lapp: { min: 0.3, max: 0.7, step: 0.01, label: "leddeling" },
 
   bogeH: { min: 0, max: 0.86, step: 0.005, label: "bogehøgd" },
-  bogeB: { min: 0, max: 0.9, step: 0.005, label: "bogebreidd" },
+  bogeBX: { min: 0, max: 0.9, step: 0.005, label: "bogebreidd X" },
+  bogeBY: { min: 0, max: 0.9, step: 0.005, label: "bogebreidd Y" },
   bogeN: { min: 1.4, max: 5, step: 0.05, label: "bogeform" },
 
   fresD: { min: 4, max: 12, step: 0.5, label: "fresediameter", unit: "mm" },
@@ -99,7 +102,7 @@ export const GROUPS: readonly Group[] = [
     label: "ribber",
     keys: ["ribbX", "ribbY", "ribbT", "pressfit", "lapp"],
   },
-  { id: "boge", label: "boge", keys: ["bogeH", "bogeB", "bogeN"] },
+  { id: "boge", label: "boge", keys: ["bogeH", "bogeBX", "bogeBY", "bogeN"] },
   { id: "bygg", label: "bygg", keys: ["fresD"] },
 ]
 
@@ -139,29 +142,47 @@ export const DEFAULT_PARAMS: Params = {
   lapp: 0.5,
 
   bogeH: 0.62,
-  bogeB: 0.60,
+  bogeBX: 0.60,
+  bogeBY: 0.60,
   bogeN: 2.6,
 
   fresD: 6,
   material: "bjork",
 }
 
-/** Kuraterte posar: fire handdesigna utgangspunkt terningen jittrar kring. */
+/** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring. */
 export const POSES: readonly Partial<Params>[] = [
   // tett rutenett
-  { ribbX: 9, ribbY: 9, ribbT: 8, bogeH: 0.7, bogeB: 0.72 },
+  { ribbX: 9, ribbY: 9, ribbT: 8, bogeH: 0.7, bogeBX: 0.72, bogeBY: 0.72 },
   // mjuk sylinder
-  { planN: 2.1, planA: 192, planB: 192, midje: 0.04, fot: 1.0, bogeH: 0.5, bogeB: 0.5, ribbX: 8, ribbY: 8, ribbT: 9 },
+  { planN: 2.1, planA: 192, planB: 192, midje: 0.04, fot: 1.0, bogeH: 0.5, bogeBX: 0.5, bogeBY: 0.5, ribbX: 8, ribbY: 8, ribbT: 9 },
   // nesten kube
-  { planN: 5.8, planA: 200, planB: 200, midje: 0.11, midjeZ: 0.5, midjeW: 0.3, fot: 1.0, bogeH: 0.75, bogeB: 0.8, bogeN: 3.6 },
+  { planN: 5.8, planA: 200, planB: 200, midje: 0.11, midjeZ: 0.5, midjeW: 0.3, fot: 1.0, bogeH: 0.75, bogeBX: 0.8, bogeBY: 0.8, bogeN: 3.6 },
   // timeglas
   { midje: 0.2, midjeW: 0.45, midjeZ: 0.45, fot: 1.18, skulder: 1.1, bogeH: 0.55 },
+  // portalbenken: kvelvinga er BREI på tvers og smal i djupna — sett frå
+  // sida ein krakk, sett framanfrå ei bru. Det er den fyrste posen som
+  // ikkje har same boge i begge leier, og han finst berre av di breidda
+  // er delt i to.
+  {
+    planN: 3.4, planA: 176, planB: 236, hogd: 428, fot: 1.08, midje: 0.075,
+    skulder: 1.0, sokk: 20, framkant: 8, ribbX: 7, ribbY: 11, ribbT: 9,
+    bogeH: 0.66, bogeBX: 0.42, bogeBY: 0.69, bogeN: 3.8,
+  },
 ]
 
 /** kva to fingrar på lerretet skrur på */
 export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "midje" }
 
 export function clampParams(o: unknown, prev: Params): Params {
+  // Gamle lenkjer har eitt bogeB. Det talet ER dei to nye i den gamle
+  // verda — same breidd i begge leier — so det vert lese inn som begge.
+  if (o && typeof o === "object") {
+    const rec = o as Record<string, unknown>
+    if (typeof rec.bogeB === "number" && rec.bogeBX === undefined && rec.bogeBY === undefined) {
+      o = { ...rec, bogeBX: rec.bogeB, bogeBY: rec.bogeB }
+    }
+  }
   return clampBag(o, prev, PARAM_RANGES, PARAM_KEYS)
 }
 
@@ -171,5 +192,9 @@ export function randomParams(
   locked: ReadonlySet<string> = new Set(),
 ): Params {
   const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, locked)
-  return posed ?? randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked)
+  const q = posed ?? randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked)
+  // Terningen får kaste kva han vil, men krava er summar av fleire tal og
+  // eit fritt kast bryt dei oftare enn ikkje. Reparasjonen rører berre
+  // ulåste skyvarar, alltid innanfor banda — sjå reparasjon.ts.
+  return applyFix(q, locked, PARAM_RANGES)
 }

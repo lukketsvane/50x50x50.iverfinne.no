@@ -21,13 +21,13 @@ const POSAR: Record<string, readonly Record<string, number | string>[]> = {
 }
 
 const NAMN: Record<string, readonly string[]> = {
-  vaffel: ["tett rutenett", "mjuk sylinder", "nesten kube", "timeglas"],
+  vaffel: ["tett rutenett", "mjuk sylinder", "nesten kube", "timeglas", "portalbenken"],
   skive: [
     "grotta", "benken", "stolen", "den lette", "vifta", "vengene", "spent",
-    "pidestallen", "akvedukten", "sleden",
+    "pidestallen", "akvedukten", "sleden", "orgelet",
   ],
-  straum: ["vridd søyle", "timeglas", "dokumentobjektet"],
-  ribbe: ["vridd", "timeglas", "sopp"],
+  straum: ["vridd søyle", "timeglas", "dokumentobjektet", "amfora"],
+  ribbe: ["vridd", "timeglas", "sopp", "krysset", "blomen"],
 }
 
 const berre = process.argv[2]
