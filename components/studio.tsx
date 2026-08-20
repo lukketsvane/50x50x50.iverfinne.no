@@ -12,18 +12,6 @@ import type { NudgeAxis } from "./gesture-params"
 /** kor mange piksel to-fingers-rulling må dra for å sveipe eit heilt band */
 const NUDGE_RANGE_PX = 420
 
-function useSystemDark() {
-  const [dark, setDark] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)")
-    const sync = () => setDark(mq.matches)
-    sync()
-    mq.addEventListener("change", sync)
-    return () => mq.removeEventListener("change", sync)
-  }, [])
-  return dark
-}
-
 function useIsDesktop() {
   const [desktop, setDesktop] = useState(false)
   useEffect(() => {
@@ -52,10 +40,14 @@ export function Studio() {
   const [engine, setEngine] = useState<EngineId>("skal")
   const [bags, setBags] = useState<Bags>(initialBags)
   const [locks, setLocks] = useState<Locks>(initialLocks)
-  const [view, setView] = useState<View>("flate")
+  // «lag» fyrst: delane slik dei faktisk er, montert — det er dei som ER
+  // objektet, og det er dei som skil typologiane frå kvarandre. Den slipte
+  // flata er eit klikk unna.
+  const [view, setView] = useState<View>("lag")
   const [seed, setSeed] = useState("")
   const [hiDetail, setHiDetail] = useState(false)
-  const [cube, setCube] = useState(true)
+  // kuben er kontrollen, ikkje scena — han skal hentast fram, ikkje bort
+  const [cube, setCube] = useState(false)
   const [light, setLight] = useState<LightDir>({ az: 0.62, el: 0.92 })
   const [data, setData] = useState<BuildRes | null>(null)
   // Måltala kjem i eiga melding etter nettet, og berre for det siste
@@ -64,7 +56,8 @@ export function Studio() {
   const [tal, setTal] = useState<MaalRes | null>(null)
   const [busy, setBusy] = useState(true)
   const [mounted, setMounted] = useState(false)
-  const dark = useSystemDark()
+  // svart, alltid — sjå globals.css
+  const dark = true
   const isDesktop = useIsDesktop()
 
   const eng = getEngine(engine)

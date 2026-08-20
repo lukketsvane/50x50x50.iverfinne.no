@@ -99,7 +99,7 @@ export function Viewer({
   onNudge: (axis: NudgeAxis, deltaPx: number) => void
   onLight: (dxPx: number, dyPx: number) => void
 }) {
-  const bg = dark ? "#0a0a0a" : "#ffffff"
+  const bg = dark ? "#000000" : "#ffffff"
   const shadow = hiDetail ? 4096 : 2048
   // Éi styrbar hovudlyskjelde på ein fast kuppel, pluss to svake fyll.
   // Ingen omgjevingskart og ingen mjuk kontaktflekk: eit møbel skal kaste

@@ -402,9 +402,6 @@ export function ControlsPanel(props: {
         {/* det utvidbare arket */}
         {open && (
           <div className="max-h-[56vh] overflow-y-auto overscroll-contain px-4 pb-4">
-            {/* éi line om produksjonsvegen — det er han som skil typologiane */}
-            <p className="pb-2 text-[10px] leading-[1.5] opacity-45">{eng.note}</p>
-
             <PanelRow label="visning">
               {VIEWS.map((v) => (
                 <button
@@ -438,65 +435,26 @@ export function ControlsPanel(props: {
                   }}
                 />
               ))}
-              <span className="pl-1 text-[11px] opacity-45">
-                {MATERIALS[(params.material as Material) ?? "bjork"]?.label}
-              </span>
             </PanelRow>
 
-            {/* måltavla — alt er målt på objektet som står på skjermen */}
-            <h2 className="mt-2 text-[10px] uppercase leading-none tracking-[0.24em] opacity-40">
-              mål · {CUBE}-kuben
-            </h2>
-            <dl
-              className="mt-1.5"
-              style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
-            >
-              {rows.map((row) => {
-                const hard = row.rules !== undefined && isHard(row.rules)
-                const soft = row.rules !== undefined && isSoft(row.rules)
-                return (
-                  <div
-                    key={row.label}
-                    className="flex items-baseline justify-between gap-3 py-[2px] text-[11px] leading-4"
-                  >
-                    <dt className="shrink-0 opacity-50">{row.label}</dt>
-                    <dd
-                      className="tab truncate text-right"
-                      style={{
-                        color: hard ? "var(--warn)" : undefined,
-                        // eit mjukt brot er eit val og ikkje ein feil: det
-                        // skal merkast, men ikkje rope
-                        textDecoration: soft ? "underline dotted" : undefined,
-                        textDecorationColor: soft
-                          ? "color-mix(in srgb, var(--ink) 45%, transparent)"
-                          : undefined,
-                        textUnderlineOffset: 3,
-                      }}
-                    >
-                      {row.value}
-                      <span className="pl-1 opacity-45">{row.unit}</span>
-                    </dd>
-                  </div>
-                )
-              })}
-            </dl>
-
-            {/* reglane som ikkje er oppfylte */}
+            {/* reglane som ryk: éi line kvar, grunngjevinga i title. Panelet
+                seier KVA som er gale; KVIFOR ligg eit fingertrykk unna. */}
             {failed.length > 0 && (
-              <ul className="mt-2 space-y-2 border-t pt-2.5" style={HAIR}>
+              <ul className="space-y-1 py-1">
                 {failed.map((r) => (
-                  <li key={r.id}>
-                    <div
-                      className="flex items-baseline justify-between gap-3 text-[11px] leading-4"
-                      style={{ color: r.hard ? "var(--warn)" : undefined }}
-                    >
-                      <span className="tracking-[0.06em]">
-                        <span className="opacity-60">{r.hard ? "bryt" : "merk"} · </span>
-                        {r.label}
-                      </span>
-                      <span className="tab shrink-0 opacity-80">{r.value}</span>
-                    </div>
-                    <p className="mt-[3px] text-[10px] leading-[1.5] opacity-50">{r.why}</p>
+                  <li
+                    key={r.id}
+                    title={r.why}
+                    className="flex items-baseline justify-between gap-3 text-[11px] leading-4"
+                    style={{
+                      color: r.hard ? "var(--warn)" : undefined,
+                      opacity: r.hard ? 1 : 0.65,
+                    }}
+                  >
+                    <span className="tracking-[0.06em]">
+                      {r.hard ? "bryt" : "merk"} · {r.label}
+                    </span>
+                    <span className="tab shrink-0">{r.value}</span>
                   </li>
                 ))}
               </ul>
@@ -504,21 +462,18 @@ export function ControlsPanel(props: {
 
             {/* frøet: same tekst gjev alltid same objekt — «Iver» er eitt
                 bestemt punkt i rommet og kan skrivast ned */}
-            <div className="mt-2.5 flex items-center gap-2 border-t pt-3" style={HAIR}>
-              <label className="flex min-w-0 flex-1 items-baseline gap-2">
-                <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] opacity-45">
-                  frø
-                </span>
-                <input
-                  type="text"
-                  value={seed}
-                  spellCheck={false}
-                  autoComplete="off"
-                  onChange={(e) => onSeed(e.target.value)}
-                  className="tab w-full min-w-0 border-b bg-transparent pb-[2px] text-[11px] leading-4 tracking-[0.08em] outline-none"
-                  style={{ ...HAIR, color: "var(--ink)" }}
-                />
-              </label>
+            <div className="flex items-center gap-2 py-1.5">
+              <input
+                type="text"
+                value={seed}
+                placeholder="frø"
+                spellCheck={false}
+                autoComplete="off"
+                aria-label="frø"
+                onChange={(e) => onSeed(e.target.value)}
+                className="tab w-full min-w-0 flex-1 border-b bg-transparent pb-[2px] text-[11px] leading-4 tracking-[0.08em] outline-none placeholder:uppercase placeholder:tracking-[0.18em] placeholder:opacity-45"
+                style={{ ...HAIR, color: "var(--ink)" }}
+              />
               <button
                 type="button"
                 onClick={onReset}
@@ -591,20 +546,49 @@ export function ControlsPanel(props: {
               className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-2xl border py-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-70 transition active:scale-[0.99]"
               style={HAIR}
             >
-              {mode === "full" ? (
-                <>færre skruar {IcoUp}</>
-              ) : (
-                <>
-                  alle skruane
-                  {locked.size > 0 && (
-                    <span className="tab font-normal normal-case tracking-normal opacity-60">
-                      · {locked.size} låst
-                    </span>
-                  )}
-                  {IcoDown}
-                </>
-              )}
+              {mode === "full" ? <>færre kontrollar {IcoUp}</> : <>alle parametrar {IcoDown}</>}
             </button>
+
+            {mode === "full" && (
+              <>
+                <h2 className="pt-4 text-[10px] uppercase leading-none tracking-[0.24em] opacity-40">
+                  mål · {CUBE}-kuben
+                </h2>
+            <dl
+              className="mt-1.5"
+              style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
+            >
+              {rows.map((row) => {
+                const hard = row.rules !== undefined && isHard(row.rules)
+                const soft = row.rules !== undefined && isSoft(row.rules)
+                return (
+                  <div
+                    key={row.label}
+                    className="flex items-baseline justify-between gap-3 py-[2px] text-[11px] leading-4"
+                  >
+                    <dt className="shrink-0 opacity-50">{row.label}</dt>
+                    <dd
+                      className="tab truncate text-right"
+                      style={{
+                        color: hard ? "var(--warn)" : undefined,
+                        // eit mjukt brot er eit val og ikkje ein feil: det
+                        // skal merkast, men ikkje rope
+                        textDecoration: soft ? "underline dotted" : undefined,
+                        textDecorationColor: soft
+                          ? "color-mix(in srgb, var(--ink) 45%, transparent)"
+                          : undefined,
+                        textUnderlineOffset: 3,
+                      }}
+                    >
+                      {row.value}
+                      <span className="pl-1 opacity-45">{row.unit}</span>
+                    </dd>
+                  </div>
+                )
+              })}
+            </dl>
+              </>
+            )}
 
             {mode === "full" &&
               eng.groups.map((g) => (
