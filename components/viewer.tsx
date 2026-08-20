@@ -4,7 +4,6 @@ import { Canvas, useThree } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import type { BuildRes } from "@/lib/worker"
 import type { View } from "@/lib/core"
 import { MM, ObjectMesh } from "./object-mesh"
@@ -67,26 +66,6 @@ function FitCamera({
     controls.update?.()
     invalidate()
   }, [fit, lift, reframe, controls, camera, invalidate])
-  return null
-}
-
-/** Mjukt rom-lys rundt objektet: det er dette som gjev finéren dei svake
- *  refleksane og dei lyse undersidene eit ekte studio har. Generert éin
- *  gong, heilt utan nettverk. */
-function StudioEnv() {
-  const gl = useThree((s) => s.gl)
-  const scene = useThree((s) => s.scene)
-  useEffect(() => {
-    const pmrem = new THREE.PMREMGenerator(gl)
-    const env = pmrem.fromScene(new RoomEnvironment(), 0.04)
-    scene.environment = env.texture
-    scene.environmentIntensity = 0.55
-    return () => {
-      scene.environment = null
-      env.texture.dispose()
-      pmrem.dispose()
-    }
-  }, [gl, scene])
   return null
 }
 
@@ -162,7 +141,7 @@ export function Viewer({
       <directionalLight
         key={shadow}
         position={lightPos}
-        intensity={1.7}
+        intensity={2.3}
         castShadow
         shadow-mapSize={[shadow, shadow]}
         shadow-radius={5}
@@ -175,9 +154,14 @@ export function Viewer({
         shadow-camera-near={0.5}
         shadow-camera-far={24}
       />
-      <directionalLight position={[-6, 3, -2]} intensity={0.2} />
-      <directionalLight position={[2, 1.5, 7]} intensity={0.15} />
-      <StudioEnv />
+      {/* Ikkje noko omgjevnadslys og ikkje noko ambient: fyllet er KORT,
+          som i eit ekte studio — kvite flater som kastar retningsbestemt
+          lys attende. Golvspretten når opp under bogane; utan han er
+          kvar underside beksvart. */}
+      <directionalLight position={[-6, 3, -2]} intensity={0.55} />
+      <directionalLight position={[6, 2, 1]} intensity={0.4} />
+      <directionalLight position={[2, 1.5, 7]} intensity={0.35} />
+      <directionalLight position={[0.5, -3, 2]} intensity={0.3} />
 
       <Suspense fallback={null}>
         <group position={[0, GROUND_Y, 0]}>

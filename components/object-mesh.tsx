@@ -76,13 +76,16 @@ function makeStriped(
     sh.vertexShader = sh.vertexShader
       .replace(
         "#include <common>",
-        "#include <common>\nattribute float aKant;\nvarying vec3 vObj;\nvarying float vKant;",
+        "#include <common>\nattribute float aKant;\nvarying vec3 vObj;\nvarying vec3 vNrmO;\nvarying float vKant;",
       )
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvObj = position;\nvKant = aKant;")
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nvObj = position;\nvNrmO = normal;\nvKant = aKant;",
+      )
     sh.fragmentShader = sh.fragmentShader
       .replace(
         "#include <common>",
-        "#include <common>\nvarying vec3 vObj;\nvarying float vKant;\nuniform float uPly;\nuniform vec3 uBeis;\nuniform float uBeisOn;",
+        "#include <common>\nvarying vec3 vObj;\nvarying vec3 vNrmO;\nvarying float vKant;\nuniform float uPly;\nuniform vec3 uBeis;\nuniform float uBeisOn;\nfloat gKorn;",
       )
       .replace(
         "#include <color_fragment>",
@@ -95,6 +98,28 @@ function makeStriped(
           "  if (uBeisOn > 0.5) {",
           "    diffuseColor.rgb = mix(diffuseColor.rgb, uBeis, (1.0 - vKant) * 0.92);",
           "  }",
+          // VEDEN. Åringane ligg i det planet flata faktisk har: normalen
+          // vel kva to aksar teikninga går i. To sinuslag gjev årring og
+          // fiber; ei celle-hash gjev endeved-spetter på kutta. Alt er
+          // rekna av geometrien sin eigen posisjon i millimeter — ingen
+          // tekstur, inga sauming, og mønsteret fylgjer kvar einaste
+          // parameterendring.
+          "  vec2 q = abs(vNrmO.z) > 0.7 ? vObj.xy : (abs(vNrmO.y) > 0.7 ? vObj.xz : vObj.yz);",
+          // Frekvensane må døy før dei aliaserer: kvar sinus vert dempa av
+          // sin eigen skjermromsderiverte, so mønsteret løyser seg opp i
+          // ro — ikkje i moaré — når det vert mindre enn ein piksel.
+          "  float px = fwidth(q.x);",
+          "  float attA = clamp(1.0 - px * 1.4, 0.0, 1.0);",
+          "  float attF = clamp(1.0 - px * 4.0, 0.0, 1.0);",
+          "  float aar = sin(q.x * 0.5 + 2.2 * sin(q.y * 0.035) + 1.4 * sin(q.x * 0.09)) * attA;",
+          "  float fiber = sin(q.x * 3.7 + sin(q.y * 0.6) * 2.4) * attF;",
+          "  gKorn = aar * 0.6 + fiber * 0.2;",
+          "  vec3 celle = floor(vObj * 1.3);",
+          "  float spek = (fract(sin(dot(celle, vec3(12.9898, 78.233, 37.719))) * 43758.5453) - 0.5) * attF;",
+          "  float ved = mix(gKorn * 0.03, spek * 0.08 + gKorn * 0.02, vKant);",
+          "  diffuseColor.rgb *= 1.0 + ved;",
+          // rå kryssfinérkant er eit hakk lysare og gulare enn flata
+          "  diffuseColor.rgb *= mix(vec3(1.0), vec3(1.05, 1.03, 0.97), vKant);",
           "  if (uPly > 0.5) {",
           "    float t = vObj.z / uPly;",
           "    float kant = (0.5 - abs(fract(t) - 0.5)) * uPly;",
@@ -107,6 +132,16 @@ function makeStriped(
           "    diffuseColor.rgb *= 1.0 - 0.16 * fuge * vKant;",
           "  }",
           "}",
+        ].join("\n"),
+      )
+      .replace(
+        "#include <roughnessmap_fragment>",
+        [
+          "#include <roughnessmap_fragment>",
+          // Kuttet er RUARE enn flata — endeved et lys — og åringane
+          // vekslar mellom blank sommarved og matt vintved. Det er denne
+          // vekslinga, meir enn fargen, som gjer at auget les tre.
+          "roughnessFactor = clamp(roughnessFactor + vKant * 0.08 + gKorn * 0.025, 0.05, 1.0);",
         ].join("\n"),
       )
   }
