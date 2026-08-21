@@ -35,7 +35,10 @@ for (const eng of ENGINES) {
       feil.set(r.id, e)
     }
   }
-  const pct = (v: number) => `${Math.round((100 * v) / N)} %`
+  // Aldri rund OPP til hundre: 299 av 300 harde er ikkje ein feilfri motor,
+  // og eit tal som skjuler det siste brotet er verre enn ikkje noko tal.
+  const pct = (v: number) =>
+    v === N ? "100 %" : `${Math.floor((1000 * v) / N) / 10} %`
   const verst = [...feil.entries()]
     .sort((a, b) => b[1].n - a[1].n)
     .slice(0, 5)
