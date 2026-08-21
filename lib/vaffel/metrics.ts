@@ -80,6 +80,12 @@ export function measure(p: Params): Metrics {
   // Sitjehøgda er ikkje setekanten. Ein sit i gropa, og gropa er 26 mm djup;
   // middelet over den flata beina faktisk kviler på er talet NS-EN 1729
   // meiner når han seier 380–480.
+  //
+  // Flata er GROPA og ikkje ryggen: stig setekanten bak, er den stiginga ein
+  // rygg å lene seg mot, ikkje ein stad å sitje, og eit middel som tek henne
+  // med melder ei sitjehøgd som ingen sit i. Difor sitSurf og ikkje seatSurf,
+  // og difor er skiva sentrert der setet står — planet kan ha sige framover.
+  const xSeat = b.sig(1)
   let ssum = 0
   let sn = 0
   for (let i = -6; i <= 6; i++) {
@@ -87,7 +93,7 @@ export function measure(p: Params): Metrics {
       const x = (i / 6) * 100
       const y = (j / 6) * 100
       if (x * x + y * y > 100 * 100) continue
-      ssum += b.seatSurf(x, y)
+      ssum += b.sitSurf(xSeat + x, y)
       sn++
     }
   }
@@ -161,8 +167,10 @@ export function measure(p: Params): Metrics {
 
   // --- velting ---------------------------------------------------------------
   // Vippearmen vert målt frå der ein sit og ikkje frå tyngdepunktet: det er
-  // brukaren si vekt som veltar krakken, ikkje krakken si eiga.
-  const tipArm = Math.max(0, armToHull(h, 0, 0))
+  // brukaren si vekt som veltar krakken, ikkje krakken si eiga. Sig planet
+  // framover, sit ein framom føtene, og då er armen kortare — det er den
+  // rekninga som held lutet i sjakk, ikkje ei grense på skyvaren.
+  const tipArm = Math.max(0, armToHull(h, xSeat, 0))
   const tipAngle = (Math.atan2(tipArm, Math.max(1, sitZ)) * 180) / Math.PI
 
   // --- det styrande snittet --------------------------------------------------

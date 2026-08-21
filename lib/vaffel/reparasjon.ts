@@ -17,8 +17,10 @@ import { CUBE, smooth, type Range } from "../core"
 import type { Params } from "./params"
 
 /** Marg til kuben — same tal som MARGIN i body.ts, so innpassinga her er
- *  den same rekninga som der. */
-const HALF = (CUBE - 14) / 2
+ *  den same rekninga som der. Planet vert klemt sidevegs mot HALF; høgda
+ *  har ikkje noko som klemmer henne, so ho må haldast under TAK her. */
+const TAK = CUBE - 14
+const HALF = TAK / 2
 
 /** Klokkekurva midja bit med — kopi av body.ts, av same grunn som resten. */
 const bell = (u: number, c: number, w: number) => {
@@ -53,7 +55,13 @@ export function applyFix(
         uLo = u
       }
     }
-    const s = Math.min(1, HALF / (q.planA * rhoMax), HALF / (q.planB * rhoMax))
+    // same innpassing som body.ts: sige tek plass i djupna, so han står i
+    // nemnaren der òg
+    const s = Math.min(
+      1,
+      HALF / (q.planA * rhoMax + Math.abs(q.lut) / 2),
+      HALF / (q.planB * rhoMax),
+    )
     return { rhoMax, rhoLo, uLo, A: q.planA * s, B: q.planB * s }
   }
   const shoulder = () => (q.ribbT + q.pressfit) / 2 + 10
@@ -71,12 +79,53 @@ export function applyFix(
     }
   }
 
+  // Massen, estimert av godset med bogekuttet trekt frå. Ryggen tel med som
+  // ei HØGD: stiginga bak legg gods på kvar einaste ribbe, og middelet av
+  // henne over planet er 0,1625 av rygg — integralet av smooth-kurva over
+  // dei siste 65 prosentane av setedjupna.
+  const RYGGSNITT = 0.1625
+  const trimMass = () => {
+    const g = grid()
+    let rbar = 0
+    for (let k = 0; k <= 60; k++) rbar += rhoOf(k / 60)
+    rbar /= 61
+    const rho0 = rhoOf(0)
+    const ah = q.bogeH * q.hogd
+    const awx = q.bogeBX * g.A * rho0
+    const awy = q.bogeBY * g.B * rho0
+    const RHO = 680 * 1e-9
+    const hEff = q.hogd + RYGGSNITT * q.rygg
+    const f1 = q.ribbT * hEff * 2 * rbar * (q.ribbX * g.B + q.ribbY * g.A) * RHO
+    const f2 = q.ribbT * ah * (q.ribbX * awy + q.ribbY * awx) * RHO
+    const est = 0.69 * f1 - 1.601 * f2
+    if (est <= 10.3) return
+    const tMin = Math.max(R.ribbT.min, q.hogd / 74) // slank-regelen
+    fix("ribbT", Math.max(tMin, q.ribbT * (10.3 / est)))
+    // om tjukna ikkje strekk til: ta ribber bort i staden
+    const f1b = q.ribbT * hEff * 2 * rbar * (q.ribbX * g.B + q.ribbY * g.A) * RHO
+    const f2b = q.ribbT * ah * (q.ribbX * awy + q.ribbY * awx) * RHO
+    const est2 = 0.69 * f1b - 1.601 * f2b
+    if (est2 > 10.9) {
+      const cut = 10.9 / est2
+      fix("ribbX", Math.max(R.ribbX.min, Math.floor(q.ribbX * cut)))
+      fix("ribbY", Math.max(R.ribbY.min, Math.floor(q.ribbY * cut)))
+    }
+  }
+
   // --- sitjehøgda: gropa og lårletta dreg middelet under bandet -------------
   const sitEst = () => q.hogd - 0.8 * q.sokk - 0.1 * q.framkant
   if (sitEst() < 383) fix("hogd", 383 + 0.8 * q.sokk + 0.1 * q.framkant)
   if (sitEst() < 383) fix("sokk", Math.max(0, (q.hogd - 383 - 0.1 * q.framkant) / 0.8))
 
-  for (let pass = 0; pass < 2; pass++) {
+  // --- ryggen står OVER setekanten, og kuben måler toppen ------------------
+  // Sidevegs vert planet klemt ned av innpassinga; oppover finst det inga
+  // slik klemme, so summen av høgda og ryggen må haldast under taket her.
+  if (q.hogd + q.rygg > TAK) fix("rygg", Math.max(0, TAK - q.hogd))
+
+  // Tre gjennomgangar og ikkje to. Silhuett-leddet er det siste som rører
+  // fot og skulder, og ein feitare silhuett er meir gods: utan ein
+  // gjennomgang til vert vekta rekna på ein kropp som ikkje står der lenger.
+  for (let pass = 0; pass < 3; pass++) {
     // --- setet: brukbar sitjeflate over 320 på den korte leia ---------------
     {
       const { A, B } = profile()
@@ -128,33 +177,7 @@ export function applyFix(
     }
 
     // --- massen: estimert av godset, med bogekuttet trekt frå ---------------
-    {
-      const g = grid()
-      let rbar = 0
-      for (let k = 0; k <= 60; k++) rbar += rhoOf(k / 60)
-      rbar /= 61
-      const rho0 = rhoOf(0)
-      const ah = q.bogeH * q.hogd
-      const awx = q.bogeBX * g.A * rho0
-      const awy = q.bogeBY * g.B * rho0
-      const RHO = 680 * 1e-9
-      const f1 = q.ribbT * q.hogd * 2 * rbar * (q.ribbX * g.B + q.ribbY * g.A) * RHO
-      const f2 = q.ribbT * ah * (q.ribbX * awy + q.ribbY * awx) * RHO
-      const est = 0.69 * f1 - 1.601 * f2
-      if (est > 10.3) {
-        const tMin = Math.max(R.ribbT.min, q.hogd / 74) // slank-regelen
-        fix("ribbT", Math.max(tMin, q.ribbT * (10.3 / est)))
-        // om tjukna ikkje strekk til: ta ribber bort i staden
-        const f1b = q.ribbT * q.hogd * 2 * rbar * (q.ribbX * g.B + q.ribbY * g.A) * RHO
-        const f2b = q.ribbT * ah * (q.ribbX * awy + q.ribbY * awx) * RHO
-        const est2 = 0.69 * f1b - 1.601 * f2b
-        if (est2 > 10.9) {
-          const cut = 10.9 / est2
-          fix("ribbX", Math.max(R.ribbX.min, Math.floor(q.ribbX * cut)))
-          fix("ribbY", Math.max(R.ribbY.min, Math.floor(q.ribbY * cut)))
-        }
-      }
-    }
+    trimMass()
 
     // --- ytste ribba i kroppen i alle høgder, og HJØRNET anten heilt med
     // --- eller heilt ute: midjeluka skal aldri byrje inne i eit hjørneledd
@@ -169,9 +192,14 @@ export function applyFix(
       // berre aksen: ved låg planN blør hjørnet inn i g
       const pXin = q.ribbX % 2 ? g.pitchX : g.pitchX / 2
       const pYin = q.ribbY % 2 ? g.pitchY : g.pitchY / 2
+      // Sige flyttar planet inntil |lut|/2 vekk frå ribba i X. Ribba står
+      // stille, so det er PLANET som må vera stort nok til å halde henne
+      // inne i den verste høgda — elles står den ytste X-ribba utanfor
+      // kroppen ved golvet og har korkje fot eller ledd.
+      const drag = Math.abs(q.lut) / 2
       const needAxis = Math.max(
-        gAt(g.axr + sh + 2, Math.min(pYin, g.byr)),
-        gAt(Math.min(pXin, g.axr), g.byr + sh + 2),
+        gAt(g.axr + drag + sh + 2, Math.min(pYin, g.byr)),
+        gAt(Math.min(pXin, g.axr) + drag, g.byr + sh + 2),
       )
       const swm = (q.ribbT + q.pressfit) / 2 + 8
       const sroom = (q.ribbT + q.pressfit) / 2 + 12
@@ -256,10 +284,19 @@ export function applyFix(
       const wxMin = (q.ribbX % 2 ? g.pitchX : g.pitchX / 2) + sh + 4
       const wyMin = (q.ribbY % 2 ? g.pitchY : g.pitchY / 2) + sh + 4
       const FOOT = 30
+      // Foten på den ytste ribba ligg i HJØRNET av planet, og der er planet
+      // smalare enn på aksen: X-ribba ved x = axr har berre kordelengda si i
+      // Y å setje foten i, ikkje heile breidda. Sig planet, står ho endå
+      // lenger ute ved golvet — og då er foten hennar ein flis mellom
+      // kvelvinga og plankanten, som ber som ein flis.
+      const nP = q.planN
+      const chord = (pos: number, Ext: number, Perp: number) =>
+        Ext * Math.pow(Math.max(0, Math.pow(rho0, nP) - Math.pow(pos / Perp, nP)), 1 / nP)
+      const drag = Math.abs(q.lut) / 2
       const bMinX = wxMin / (g.A * rho0)
-      const bMaxX = (g.axr - FOOT) / (g.A * rho0)
+      const bMaxX = (Math.min(g.axr, chord(g.byr, g.A, g.B)) - FOOT) / (g.A * rho0)
       const bMinY = wyMin / (g.B * rho0)
-      const bMaxY = (g.byr - FOOT) / (g.B * rho0)
+      const bMaxY = (Math.min(g.byr, chord(g.axr + drag, g.B, g.A)) - FOOT) / (g.B * rho0)
       if (bMinX > bMaxX || bMinY > bMaxY || bMaxX <= 0.05 || bMaxY <= 0.05) {
         fix("bogeH", 0)
       } else {
