@@ -340,17 +340,6 @@ function makeBodyRaw(p: Params): Body {
   const voidZ1 = Math.min(p.tomTil * H, zFinTop - 3)
 
   /**
-   * VEGGEN ER TREKT AV RADIEN, IKKJE FORSKUVEN.
-   * Ei ekte innoverforskyving av eit polygon rundar av eit skarpt hjørne
-   * innanfrå og kan dele kurva i to; her vert veggtjukna berre trekt av
-   * radien i kvar retning. For ein superellipse med n = 3,6 i midja tyder
-   * det at hjørna på innsida står skarpare enn dei skulle, og at veggen
-   * ikkje er 28 mm overalt: målt tvers over eit bein varierer han frå kring
-   * 22 til kring 31 millimeter på standardobjektet. Det er godt nok til å
-   * telje bein og areal med, og det er for grovt til å måle limflate med —
-   * og det er difor regelen «smalaste beinet» måler og ikkje les.
-   */
-  /**
    * TOMSKYVET: tomrommet skuva sidevegs utan at ytterflata rører seg.
    * Skyvet vert lagt på RADIEN og ikkje på senteret — d millimeter meir i
    * `tomretning`, d mindre rett imot — so tomrommet held seg ei stjerneform
@@ -364,6 +353,17 @@ function makeBodyRaw(p: Params): Body {
   const voidDir = p.tomretning * DEG
   const skyv = { d: 0 }
 
+  /**
+   * VEGGEN ER TREKT AV RADIEN, IKKJE FORSKUVEN.
+   * Ei ekte innoverforskyving av eit polygon rundar av eit skarpt hjørne
+   * innanfrå og kan dele kurva i to; her vert veggtjukna berre trekt av
+   * radien i kvar retning. For ein superellipse med n = 3,6 i midja tyder
+   * det at hjørna på innsida står skarpare enn dei skulle, og at veggen
+   * ikkje er 28 mm overalt: målt tvers over eit bein varierer han frå kring
+   * 22 til kring 31 millimeter på standardobjektet. Det er godt nok til å
+   * telje bein og areal med, og det er for grovt til å måle limflate med —
+   * og det er difor regelen «smalaste beinet» måler og ikkje les.
+   */
   const ri = (th: number, z: number) => {
     if (z <= voidZ0 || z >= voidZ1) return 0
     const g = Math.min(
