@@ -16,11 +16,19 @@ import { SKIVE } from "./skive/engine"
 import { STRAUM } from "./straum/engine"
 import { RIBBE } from "./ribbe/engine"
 import { VAFFEL } from "./vaffel/engine"
+import { KOTE } from "./kote/engine"
+import { FLETT } from "./flett/engine"
+import { BRETT } from "./brett/engine"
+import { STAV } from "./stav/engine"
+import { SKRIN } from "./skrin/engine"
 
 // VAFFEL fyrst: han er standardobjektet og øvst i nedtrekket. SKAL er
 // teken ut av registeret — kjelda hans står att for dokumentpipelinen,
 // men han er ikkje lenger ein modul i sandkassen.
-export const ENGINES: readonly EngineDef[] = [VAFFEL, SKIVE, STRAUM, RIBBE]
+export const ENGINES: readonly EngineDef[] = [
+  VAFFEL, SKIVE, STRAUM, RIBBE,
+  KOTE, FLETT, BRETT, STAV, SKRIN,
+]
 
 export const ENGINE_IDS = ENGINES.map((e) => e.id) as readonly EngineId[]
 
