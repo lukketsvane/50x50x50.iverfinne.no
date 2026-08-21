@@ -7,7 +7,7 @@
  *   npx tsx scripts/posar.ts          alle motorar
  *   npx tsx scripts/posar.ts skive    berre éin
  */
-import { ENGINES } from "../lib/engines.ts"
+import { ALLE_MOTORAR as ENGINES } from "../lib/engines.ts"
 import { POSES as VAFFEL_POSES } from "../lib/vaffel/params.ts"
 import { POSES as SKIVE_POSES } from "../lib/skive/params.ts"
 import { POSES as STRAUM_POSES } from "../lib/straum/params.ts"

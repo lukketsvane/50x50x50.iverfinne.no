@@ -12,7 +12,7 @@
  *   npx tsx scripts/geometri.ts skive    berre éin
  */
 import { seeded } from "../lib/core.ts"
-import { ENGINES } from "../lib/engines.ts"
+import { ALLE_MOTORAR as ENGINES } from "../lib/engines.ts"
 
 /** held punktet dei harde reglane? Geometrikrava gjeld byggbare design —
  *  eit design som alt er raudt får ha slivers, men aldri NaN. */

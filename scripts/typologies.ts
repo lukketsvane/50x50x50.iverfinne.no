@@ -14,7 +14,7 @@
  * lukka, at ingen tal er NaN, og at objektet står i kuben.
  */
 import { CUBE, seeded, type EngineDef, type DetailKey, type ExportKind, type View } from "../lib/core.ts"
-import { ENGINES } from "../lib/engines.ts"
+import { ALLE_MOTORAR as ENGINES } from "../lib/engines.ts"
 
 const VIEWS: View[] = ["flate", "lag", "kontur"]
 const DETAILS: DetailKey[] = ["lav", "mid", "hog"]

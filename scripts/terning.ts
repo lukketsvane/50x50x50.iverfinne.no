@@ -10,7 +10,7 @@
  *   npx tsx scripts/terning.ts skive 500   éin motor, eige tal kast
  */
 import { seeded } from "../lib/core.ts"
-import { ENGINES } from "../lib/engines.ts"
+import { ALLE_MOTORAR as ENGINES } from "../lib/engines.ts"
 
 const berre = process.argv[2]
 const N = Number(process.argv[3] ?? 200)
