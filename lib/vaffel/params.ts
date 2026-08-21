@@ -2,7 +2,7 @@
  * VAFFEL — parameterrommet.
  *
  * Eitt objekt er eitt punkt her inne. Kroppen, bogen, ribbene og ledda er
- * alle funksjonar av desse to og tjue tala, og ingen annan fil i mappa held
+ * alle funksjonar av desse fire og tjue tala, og ingen annan fil i mappa held
  * eit tal som ikkje kjem herifrå.
  *
  * Aksar: X = fram(+)/bak(−), Y = sideveg, Z = opp. Alle mål i millimeter,
@@ -35,10 +35,12 @@ export type Params = {
   midjeZ: number // høgda for det trongaste, normalisert
   midjeW: number // kor brei innsnøringa er
   skulder: number // kor mykje planet opnar seg att under setekanten
+  lut: number // kor langt planet sig framover på vegen opp, mm
 
   // --- SETE ---------------------------------------------------------------
   sokk: number // setegropa på det djupaste, mm
   framkant: number // lårlette framme, mm
+  rygg: number // kor høgt setekanten stig bak, mm
   kantR: number // setekantradius, mm
 
   // --- RIBBER -------------------------------------------------------------
@@ -70,9 +72,11 @@ export const PARAM_RANGES: Record<string, Range> = {
   midjeZ: { min: 0.18, max: 0.72, step: 0.005, label: "midjehøgd" },
   midjeW: { min: 0.14, max: 0.62, step: 0.005, label: "midjebreidd" },
   skulder: { min: 0.86, max: 1.16, step: 0.005, label: "skulder" },
+  lut: { min: -50, max: 50, step: 1, label: "framoverlut", unit: "mm" },
 
   sokk: { min: 0, max: 42, step: 0.5, label: "setegrop", unit: "mm" },
   framkant: { min: 0, max: 26, step: 0.5, label: "lårlette", unit: "mm" },
+  rygg: { min: 0, max: 70, step: 1, label: "rygg", unit: "mm" },
   kantR: { min: 2, max: 26, step: 0.5, label: "kantradius", unit: "mm" },
 
   ribbX: { min: 3, max: 15, step: 1, label: "ribber langs X", int: true },
@@ -94,9 +98,9 @@ export const GROUPS: readonly Group[] = [
   {
     id: "silhuett",
     label: "silhuett",
-    keys: ["hogd", "fot", "midje", "midjeZ", "midjeW", "skulder"],
+    keys: ["hogd", "fot", "midje", "midjeZ", "midjeW", "skulder", "lut"],
   },
-  { id: "sete", label: "sete", keys: ["sokk", "framkant", "kantR"] },
+  { id: "sete", label: "sete", keys: ["sokk", "framkant", "rygg", "kantR"] },
   {
     id: "ribber",
     label: "ribber",
@@ -130,9 +134,11 @@ export const DEFAULT_PARAMS: Params = {
   midjeZ: 0.44,
   midjeW: 0.26,
   skulder: 1.03,
+  lut: 0,
 
   sokk: 26,
   framkant: 11,
+  rygg: 0,
   kantR: 14,
 
   ribbX: 9,
@@ -168,6 +174,26 @@ export const POSES: readonly Partial<Params>[] = [
     planN: 3.4, planA: 176, planB: 236, hogd: 428, fot: 1.08, midje: 0.075,
     skulder: 1.0, sokk: 20, framkant: 8, ribbX: 7, ribbY: 11, ribbT: 9,
     bogeH: 0.66, bogeBX: 0.42, bogeBY: 0.69, bogeN: 3.8,
+  },
+  // lågryggstolen: setekanten stig seksti seks millimeter bak, og då er
+  // dette ikkje ein krakk lenger — det er ein stol med låg rygg. Setet ligg
+  // lågt (394) for at ryggen skal få høgd innanfor kuben, og planet er
+  // djupare enn det er breitt: ein sit MOT noko, og då treng ein djupn.
+  {
+    planN: 3.2, planA: 198, planB: 178, hogd: 418, fot: 1.02, midje: 0.06,
+    skulder: 1.06, sokk: 30, framkant: 14, rygg: 66, ribbX: 9, ribbY: 9,
+    ribbT: 8, bogeH: 0.6, bogeBX: 0.55, bogeBY: 0.62, bogeN: 3.0,
+  },
+  // lenekrakken: planet sig fire og førti millimeter framover på vegen opp,
+  // so setet heng framom føtene og ein sit halvvegs — perchen. Høgda er
+  // 466 og gropa er grunn med vilje: dette er ikkje ein stad å sitje lenge.
+  // Veltevinkelen fell av seg sjølv (18°), av di vippearmen vert målt frå
+  // setet og setet har flytt seg.
+  {
+    planN: 3.0, planA: 200, planB: 200, hogd: 466, fot: 1.10, midje: 0.03,
+    midjeZ: 0.4, midjeW: 0.3, skulder: 1.07, sokk: 12, framkant: 18, lut: 44,
+    ribbX: 8, ribbY: 8, ribbT: 9.5, bogeH: 0.66, bogeBX: 0.58, bogeBY: 0.58,
+    bogeN: 2.8,
   },
 ]
 

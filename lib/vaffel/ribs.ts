@@ -90,31 +90,68 @@ function profileOf(
 ): Loop[] {
   const p = b.p
   const n = p.planN
-  const lim = (axis === "x" ? b.B * b.rhoMax : b.A * b.rhoMax) + 8
+  // Ruta må dekkje HEILE profilen: sige flyttar planet inntil |lut|/2 til
+  // kvar side, og ein kontur som vert klipt av kanten på ruta er ei open
+  // kjede og ikkje eit polygon. Høgda går til toppen av materialet, som er
+  // over setekanten når setet stig bak.
+  const lim = (axis === "x" ? b.B * b.rhoMax : b.A * b.rhoMax) + 8 + Math.abs(p.lut)
   const nt = Math.max(48, Math.ceil((2 * lim) / step))
-  const nz = Math.max(48, Math.ceil((b.zTop + 12) / step))
+  const nz = Math.max(48, Math.ceil((b.zHigh + 12) / step))
   const t0 = -lim
   const dt = (2 * lim) / nt
   const z0 = -6
-  const dz = (b.zTop + 12) / nz
+  const dz = (b.zHigh + 12) / nz
 
   // Alt som berre avheng av kolonnen, éin gong per kolonne.
   const perp = axis === "x" ? Math.abs(pos) / b.A : Math.abs(pos) / b.B
   const cPerp = Math.pow(perp, n)
   const tScale = axis === "x" ? b.B : b.A
   const scale = (b.A + b.B) / 2
-  const gCol = new Float64Array(nt + 1)
+  const tPow = new Float64Array(nt + 1)
   const seatCol = new Float64Array(nt + 1)
   const archCol = new Float64Array(nt + 1)
   for (let i = 0; i <= nt; i++) {
     const t = t0 + i * dt
-    gCol[i] = Math.pow(cPerp + Math.pow(Math.abs(t) / tScale, n), 1 / n)
+    tPow[i] = Math.pow(Math.abs(t) / tScale, n)
     seatCol[i] = axis === "x" ? b.seatSurf(pos, t) : b.seatSurf(t, pos)
     archCol[i] = axis === "x" ? b.arch(pos, t) : b.arch(t, pos)
   }
   // …og alt som berre avheng av rada, éin gong per rad.
   const rhoRow = new Float64Array(nz + 1)
-  for (let j = 0; j <= nz; j++) rhoRow[j] = b.rho((z0 + j * dz) / b.zTop)
+  const sigRow = new Float64Array(nz + 1)
+  for (let j = 0; j <= nz; j++) {
+    const u = (z0 + j * dz) / b.zTop
+    rhoRow[j] = b.rho(u)
+    sigRow[j] = b.sig(u)
+  }
+
+  // Planleddet, ferdig utrekna per rute.
+  //
+  // Står planet stille, er feltet skiljeleg og tabellen er den gamle
+  // kolonnetabellen — same tal, ein potens mindre per rute. Sig planet, er
+  // det ikkje skiljeleg lenger, og dei to familiane har kvar sin kostnad:
+  // X-ribba står i eit fast x-plan, so sige er eit RAD-ledd hjå henne,
+  // medan Y-ribba har sige langs sin eigen t-akse og må reknast per rute.
+  const gCell = new Float64Array((nt + 1) * (nz + 1))
+  if (b.sig(0) === b.sig(1)) {
+    for (let i = 0; i <= nt; i++) {
+      const gc = Math.pow(cPerp + tPow[i], 1 / n)
+      for (let j = 0; j <= nz; j++) gCell[j * (nt + 1) + i] = gc
+    }
+  } else if (axis === "x") {
+    for (let j = 0; j <= nz; j++) {
+      const cp = Math.pow(Math.abs(pos - sigRow[j]) / b.A, n)
+      for (let i = 0; i <= nt; i++) gCell[j * (nt + 1) + i] = Math.pow(cp + tPow[i], 1 / n)
+    }
+  } else {
+    for (let j = 0; j <= nz; j++) {
+      const sh = sigRow[j]
+      for (let i = 0; i <= nt; i++) {
+        gCell[j * (nt + 1) + i] =
+          Math.pow(cPerp + Math.pow(Math.abs(t0 + i * dt - sh) / b.A, n), 1 / n)
+      }
+    }
+  }
 
   // Sporet som eit rektangel med forteikn. Munnen vert dregen fem
   // millimeter forbi kanten, så han bryt gjennom same kvar kanten ligg.
@@ -130,7 +167,7 @@ function profileOf(
     const rr = rhoRow[j]
     for (let i = 0; i <= nt; i++) {
       const t = t0 + i * dt
-      const fPlan = (rr - gCol[i]) * scale
+      const fPlan = (rr - gCell[j * (nt + 1) + i]) * scale
       const fSeat = seatCol[i] - z
       let v = Math.min(roundMin(fSeat, fPlan, p.kantR), z, z - archCol[i])
       for (const q of boxes) {

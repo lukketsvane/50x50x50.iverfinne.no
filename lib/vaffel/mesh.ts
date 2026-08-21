@@ -193,13 +193,15 @@ export function shellMesh(b: Body, d: { nt: number; nz: number }) {
   for (let i = 0; i < NT; i++) {
     const th = (i / NT) * Math.PI * 2
     const [sx, sy] = superPt(th, p.planN)
-    // kanten er der veggen møter setet
+    // kanten er der veggen møter setet — og han kan liggje OVER setekanten,
+    // av di ryggen stig bak. Difor er leitinga si øvre grense zHigh.
     let lo = 0
-    let hi = b.zTop
+    let hi = b.zHigh
     for (let k = 0; k < 40; k++) {
       const m = (lo + hi) / 2
-      const rh = b.rho(m / b.zTop)
-      const x = b.A * rh * sx
+      const u = m / b.zTop
+      const rh = b.rho(u)
+      const x = b.sig(u) + b.A * rh * sx
       const y = b.B * rh * sy
       if (b.seatSurf(x, y) > m) lo = m
       else hi = m
@@ -207,10 +209,13 @@ export function shellMesh(b: Body, d: { nt: number; nz: number }) {
     cols.push({ ux: sx, uy: sy, zRim: (lo + hi) / 2 })
   }
 
+  // Veggen sig framover med planet: den glatte kroppen er den forma
+  // ribbene tilnærmar, og lener dei seg, lener han seg.
   const wallAt = (i: number, z: number): Vec3 => {
     const c = cols[i]
-    const rh = b.rho(z / b.zTop)
-    return [b.A * rh * c.ux, b.B * rh * c.uy, z]
+    const u = z / b.zTop
+    const rh = b.rho(u)
+    return [b.sig(u) + b.A * rh * c.ux, b.B * rh * c.uy, z]
   }
 
   for (let j = 0; j <= NZ; j++) {
@@ -228,8 +233,10 @@ export function shellMesh(b: Body, d: { nt: number; nz: number }) {
     for (let i = 0; i < NT; i++) {
       const c = cols[i]
       const w = wallAt(i, Math.max(0, c.zRim - r))
-      const L = Math.hypot(w[0], w[1]) || 1
-      const inx = -w[0] / L
+      // innover er mot MIDTEN AV PLANET i denne høgda, ikkje mot aksen
+      const cx = b.sig(w[2] / b.zTop)
+      const L = Math.hypot(w[0] - cx, w[1]) || 1
+      const inx = -(w[0] - cx) / L
       const iny = -w[1] / L
       row.push([
         w[0] + inx * r * (1 - Math.cos(a)),
@@ -245,11 +252,12 @@ export function shellMesh(b: Body, d: { nt: number; nz: number }) {
   // hjørne gjev NT utsvolta trekantar og dobbelt opp med retta kantar, og
   // eit slikt nett er ikkje lukka same kor tett det ser ut.
   const NS = Math.max(6, Math.round(NZ / 3))
+  const xs = b.sig(1)
   for (let s = 1; s < NS; s++) {
     const t = s / NS
     const row: Vec3[] = []
     for (let i = 0; i < NT; i++) {
-      const x = rim[i][0] * (1 - t)
+      const x = xs + (rim[i][0] - xs) * (1 - t)
       const y = rim[i][1] * (1 - t)
       const z0 = rim[i][2]
       // nær kanten skal setet halde seg til radien det kom frå
@@ -257,7 +265,7 @@ export function shellMesh(b: Body, d: { nt: number; nz: number }) {
     }
     grid.push(row)
   }
-  const mid: Vec3 = [0, 0, b.seatSurf(0, 0)]
+  const mid: Vec3 = [xs, 0, b.seatSurf(xs, 0)]
 
   // glatte normalar: eit rutenett har naboar, og då treng ikkje ei krum
   // flate sjå ut som ho er hoggen i fasettar
