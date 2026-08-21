@@ -28,6 +28,7 @@ export type Params = {
   djup: number // sete frå nase til rygg, mm
   grop: number // setegropa på det djupaste, mm
   nase: number // naseradius framme, mm
+  setevipp: number // setet vippa bakover kring nasen, grader — negativt kronar bak
 
   // --- RYGG ---------------------------------------------------------------
   ryggH: number // ryggkanten over setet, mm — null er ein krakk
@@ -67,6 +68,7 @@ export const PARAM_RANGES: Record<string, Range> = {
   djup: { min: 300, max: 420, step: 1, label: "setedjup", unit: "mm" },
   grop: { min: 0, max: 40, step: 0.5, label: "setegrop", unit: "mm" },
   nase: { min: 8, max: 45, step: 0.5, label: "naseradius", unit: "mm" },
+  setevipp: { min: -3, max: 8, step: 0.5, label: "setevipp", unit: "°" },
 
   ryggH: { min: 0, max: 120, step: 1, label: "rygghøgd", unit: "mm" },
   ryggV: { min: 0, max: 28, step: 0.5, label: "rygglening", unit: "°" },
@@ -97,7 +99,7 @@ export const PARAM_RANGES: Record<string, Range> = {
 }
 
 export const GROUPS: readonly Group[] = [
-  { id: "sete", label: "sete", keys: ["hogd", "djup", "grop", "nase"] },
+  { id: "sete", label: "sete", keys: ["hogd", "djup", "grop", "nase", "setevipp"] },
   { id: "rygg", label: "rygg", keys: ["ryggH", "ryggV", "ryggB", "ryggT", "grep"] },
   {
     id: "bein",
@@ -126,6 +128,7 @@ export const DEFAULT_PARAMS: Params = {
   djup: 324,
   grop: 16,
   nase: 26,
+  setevipp: 0,
 
   ryggH: 90,
   ryggV: 13,
@@ -163,6 +166,8 @@ export const DEFAULT_PARAMS: Params = {
  * referansen med høg kuppel; den lette er luft og nesten ingenting anna.
  * Pidestallen, akvedukten og sleden er dei tre nye familiane: sokkelen
  * utan boge, midtfoten som kløyver bogen, og bereholet i ryggen.
+ * Kvilestolen er den siste: setet vippa bakover kring nasen, so ryggfoten
+ * fell og det vert rom under kubelokket til ein rygg ein kan lena seg mot.
  */
 export const POSES: readonly Partial<Params>[] = [
   // grotta
@@ -232,6 +237,16 @@ export const POSES: readonly Partial<Params>[] = [
     bogeH: 300, kuppel: 0, hogd: 404, djup: 340, grop: 22, sidefall: 14,
     frambein: 120, bakbein: 120, bogefall: 0.15,
   },
+  // kvilestolen: setet vippa åtte grader bakover kring nasen og ryggen
+  // lena tjueto — ein sit ikkje oppreist i han, ein søkk bakover. Vippen
+  // senkar ryggfoten femti millimeter og kjøper heile ryggen plass under
+  // lokket, og setehøgda står på 440 av di dei femti er betalte att.
+  {
+    setevipp: 8, ryggV: 22, ryggH: 100, hogd: 440, djup: 360, bakflare: 0.3,
+    grop: 18, sidefall: 10, ryggB: 22, ryggT: 54, bogeH: 310, bogeN: 2.4,
+    skiver: 11, plyT: 12.5, luft: 32, kuppel: 0.4, frambein: 120,
+    bakbein: 130, innsving: 0.05, nase: 30,
+  },
 ]
 
 /** kva to fingrar på lerretet skrur på */
@@ -274,12 +289,45 @@ export function randomParams(
   if (q.luft >= 5 && q.luft < 25) fix("luft", q.luft < 12 ? 4.5 : 25)
   // under 324 mm setedjup fell sitjeflata under 320-bandet
   if (q.djup < 324) fix("djup", 324)
-  // sitjehøgda: gropa dreg middelet ned med ~0.65 av seg, sidefallet berre
-  // ~0.08 — og NEGATIVT sidefall kronar setet, det dreg ikkje ned
-  if (q.hogd - 0.65 * q.grop - 0.08 * Math.max(0, q.sidefall) < 383) {
-    fix("grop", Math.max(0, (q.hogd - 383 - 0.08 * Math.max(0, q.sidefall)) / 0.65))
+
+  // --- setevippen: den NEGATIVE betaler fyrst -------------------------------
+  // Vippen dreg setet ned med tan(vipp)·djup/2 i middel — nett den arma
+  // skanninga i metrics har — og bakkanten med tan(vipp)·djup. Negativ vipp
+  // snur begge oppover: han lyfter sitjehøgda mot 480-taket OG heile
+  // ryggfoten mot kubelokket. Vinkelen er det billegaste å gje frå seg, so
+  // han vert kappa mot begge to før noko anna vert rørt.
+  const vippSig = () => Math.tan(q.setevipp * deg) * (q.djup / 2)
+  const vippTak = () => {
+    if (q.setevipp >= 0) return
+    const kUp0 = 1 - Math.min(0, q.kuppel)
+    const krone = Math.max(0, -(q.grop + q.sidefall))
+    // øvre skjøn på sitjehøgda før vippen: gropa dreg minst 0.6 av seg ned,
+    // og negativt sidefall kronar setet oppover
+    const sitHi = q.hogd - 0.6 * q.grop + 0.08 * Math.max(0, -q.sidefall)
+    const budsjett = Math.max(0, 494 - q.hogd - Math.max(q.ryggH * kUp0, krone))
+    const tak = Math.max(0, Math.min((477 - sitHi) / (q.djup / 2), budsjett / q.djup))
+    if (-Math.tan(q.setevipp * deg) > tak) fix("setevipp", -Math.atan(tak) / deg)
   }
-  if (q.hogd - 0.65 * q.grop < 383) fix("hogd", 383 + 0.65 * q.grop)
+  vippTak()
+
+  // sitjehøgda: gropa dreg middelet ned med ~0.65 av seg, sidefallet berre
+  // ~0.08 — og NEGATIVT sidefall kronar setet, det dreg ikkje ned. Vippen
+  // kjem i tillegg, med forteikn: han senkar det låge og lyfter det høge.
+  if (q.hogd - 0.65 * q.grop - 0.08 * Math.max(0, q.sidefall) - vippSig() < 383) {
+    fix("grop", Math.max(0, (q.hogd - 383 - 0.08 * Math.max(0, q.sidefall) - vippSig()) / 0.65))
+  }
+  if (q.hogd - 0.65 * q.grop - vippSig() < 383) fix("hogd", 383 + 0.65 * q.grop + vippSig())
+
+  // --- setebandet må halde seg heilt ----------------------------------------
+  // Bogetoppen sit midt i spennet, og der er setet alt vippa ned med halve
+  // arma si. Fire millimeter over dei tretti regelen krev er mon mot
+  // bogedrifta; ein rest under seksti er slissebogen si daudsone, og då er
+  // pidestallen svaret i staden.
+  const heilFix = () => {
+    const tak = q.hogd - q.grop - Math.max(0, q.sidefall) - 34 - vippSig()
+    if (q.bogeH > tak) fix("bogeH", tak < 60 ? 0 : tak)
+  }
+  heilFix()
 
   // --- breidda er ein sum og et kuben fyrst ---------------------------------
   const n = Math.max(2, Math.round(q.skiver))
@@ -357,12 +405,20 @@ export function randomParams(
 
   // --- kube-kaskaden --------------------------------------------------------
   // (Z) negativ kuppel LYFTER ryggen ute ved kantane, og krona (negativ
-  // grop+sidefall) lyfter setet — høgda må målast der ho er høgst.
-  const kUp = 1 - Math.min(0, q.kuppel)
-  if (q.hogd + q.ryggH * kUp > 494) fix("ryggH", (494 - q.hogd) / kUp)
-  if (q.hogd + Math.max(0, -(q.grop + q.sidefall)) > 494) {
-    fix("sidefall", -(q.grop + (494 - q.hogd)))
+  // grop+sidefall) lyfter setet — høgda må målast der ho er høgst. Ryggen
+  // står på setet sin bakkant, og den kanten fylgjer vippen: positiv vipp
+  // senkar foten med tan(vipp)·djup og KJØPER rygg, negativ lyfter han og
+  // krev rygg tilbake. Krona kan aldri koma over hogd under positiv vipp,
+  // so ho les setekanten rein.
+  const kubeZ = () => {
+    const kUp = 1 - Math.min(0, q.kuppel)
+    const fall = Math.tan(q.setevipp * deg) * q.djup
+    if (q.hogd - fall + q.ryggH * kUp > 494) fix("ryggH", (494 - q.hogd + fall) / kUp)
+    if (q.hogd + Math.max(0, -(q.grop + q.sidefall)) > 494) {
+      fix("sidefall", -(q.grop + (494 - q.hogd)))
+    }
   }
+  kubeZ()
   // (X/Y) konvolutten: nase + flare framme, rygg + bakflare eller lening
   // bak, alt skalert av negativt innsving — og vifta et av BEGGE aksane.
   const env = () => {
@@ -406,5 +462,11 @@ export function randomParams(
   }
   // siste utveg: ryggtjukna
   if (e.envX > wMax) fix("ryggT", q.ryggT - (e.envX - wMax))
+  // Konvolutt-kaskaden kan ha krympa djupna, og djupna er sjølve arma
+  // vippen verkar gjennom: både taket på vinkelen, kube-Z og setebandet
+  // må reknast om på det djupet som faktisk står att.
+  vippTak()
+  kubeZ()
+  heilFix()
   return q
 }

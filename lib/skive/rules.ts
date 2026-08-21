@@ -68,7 +68,10 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
   })
 
   // --- 5 silhuetten er eitt stykke (hard) ------------------------------------
-  const bandMin = m.seatZ - p.grop - p.sidefall - p.bogeH
+  // Bogetoppen sit midt i spennet, so det er setet ved x = 0 bandet vert
+  // rekna mot — og der har setevippen teke halve fallet sitt.
+  const vippMidt = Math.tan((p.setevipp * Math.PI) / 180) * (p.djup / 2)
+  const bandMin = m.seatZ - p.grop - p.sidefall - p.bogeH - vippMidt
   add({
     id: "heil",
     label: "silhuetten er eitt stykke",
