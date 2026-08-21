@@ -157,27 +157,27 @@ export const PARAM_KEYS = GROUPS.flatMap((g) => g.keys)
  */
 export const DEFAULT_PARAMS: Params = {
   lober: 3,
-  rundhet: 0.55,
+  rundhet: 0.28,
   sidebog: 0.04,
   rundvri: 0.1,
   vri: 0,
 
   hogd: 450,
-  fotR: 176,
-  midjeR: 122,
-  seteR: 180,
-  midjeH: 0.55,
+  fotR: 210,
+  midjeR: 146,
+  seteR: 192,
+  midjeH: 0.6,
   fotkurve: 1.25,
-  setekurve: 1,
+  setekurve: 1.2,
 
-  holhogd: 232,
-  holZ: 0.24,
-  holdjup: 0.45,
-  holbreidd: 46,
-  holtal: 3,
+  holhogd: 250,
+  holZ: 0.3,
+  holdjup: 0.5,
+  holbreidd: 44,
+  holtal: 1,
   holfase: 0,
 
-  plyT: 22,
+  plyT: 20,
   luft: 26,
   sokkel: 0,
 
@@ -188,7 +188,7 @@ export const DEFAULT_PARAMS: Params = {
   kileB: 5,
   kileH: 26,
 
-  skaal: 14,
+  skaal: 8,
   riller: 5,
   skaalR: 0.47,
 
@@ -206,10 +206,10 @@ export const POSES: readonly Partial<Params>[] = [
   // rundt av naudsyn og ikkje av smak — ein djup lobe som vrir seg står
   // med toppen sin utanfor naboen sin, og då heng han.
   {
-    lober: 4, vri: 55, rundhet: 0.72, rundvri: 0.16, sidebog: 0.02,
+    lober: 4, vri: 55, rundhet: 0.34, rundvri: 0.16, sidebog: 0.02,
     hogd: 450, fotR: 178, midjeR: 132, seteR: 180, midjeH: 0.5,
     fotkurve: 1.1, setekurve: 1,
-    holhogd: 230, holZ: 0.26, holdjup: 0.3, holbreidd: 34, holtal: 4, holfase: 0,
+    holhogd: 250, holZ: 0.26, holdjup: 0.2, holbreidd: 34, holtal: 4, holfase: 0,
     plyT: 22, luft: 26, sokkel: 0,
     stavar: 4, stavD: 13, stavInn: 16, stavOver: 24, kileB: 5, kileH: 26,
     skaal: 11, riller: 6, skaalR: 0.5,
@@ -218,8 +218,8 @@ export const POSES: readonly Partial<Params>[] = [
   // på fire kotar og resten står som eit tårn av få, tjukke plater oppå
   // han. Krakken får ei tung rot og ei lett krone.
   {
-    lober: 3, vri: 0, rundhet: 0.68, rundvri: -0.1, sidebog: 0.1,
-    hogd: 440, fotR: 188, midjeR: 144, seteR: 182, midjeH: 0.6,
+    lober: 3, vri: 0, rundhet: 0.30, rundvri: -0.1, sidebog: 0.1,
+    hogd: 440, fotR: 196, midjeR: 150, seteR: 210, midjeH: 0.6,
     fotkurve: 1.9, setekurve: 0.9,
     holhogd: 210, holZ: 0.3, holdjup: 0.24, holbreidd: 34, holtal: 3, holfase: 0,
     plyT: 24, luft: 28, sokkel: 3,
@@ -242,7 +242,7 @@ export const POSES: readonly Partial<Params>[] = [
   // einsleg bit må vera høgt — det er berre høgda som gjev taket over
   // opninga plater nok til å lukke seg over.
   {
-    lober: 3, vri: 0, rundhet: 0.74, rundvri: 0, sidebog: 0.06,
+    lober: 3, vri: 0, rundhet: 0.34, rundvri: 0, sidebog: 0.06,
     hogd: 432, fotR: 190, midjeR: 158, seteR: 186, midjeH: 0.46,
     fotkurve: 1.5, setekurve: 0.85,
     holhogd: 250, holZ: 0.3, holdjup: 0.28, holbreidd: 50, holtal: 1, holfase: 0,

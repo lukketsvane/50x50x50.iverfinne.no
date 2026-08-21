@@ -12,12 +12,14 @@ import { POSES as VAFFEL_POSES } from "../lib/vaffel/params.ts"
 import { POSES as SKIVE_POSES } from "../lib/skive/params.ts"
 import { POSES as STRAUM_POSES } from "../lib/straum/params.ts"
 import { POSES as RIBBE_POSES } from "../lib/ribbe/params.ts"
+import { POSES as KOTE_POSES } from "../lib/kote/params.ts"
 
 const POSAR: Record<string, readonly Record<string, number | string>[]> = {
   vaffel: VAFFEL_POSES as never,
   skive: SKIVE_POSES as never,
   straum: STRAUM_POSES as never,
   ribbe: RIBBE_POSES as never,
+  kote: KOTE_POSES as never,
 }
 
 const NAMN: Record<string, readonly string[]> = {
@@ -31,6 +33,7 @@ const NAMN: Record<string, readonly string[]> = {
   ],
   straum: ["vridd søyle", "timeglas", "dokumentobjektet", "amfora", "diagonaltrauet"],
   ribbe: ["vridd", "timeglas", "sopp", "krysset", "blomen"],
+  kote: ["skruen", "sokkelen", "kløveren", "porten", "trakta", "kotekartet"],
 }
 
 const berre = process.argv[2]

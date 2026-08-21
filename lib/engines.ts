@@ -30,12 +30,12 @@ import { BOYG } from "./boyg/engine"
  * motor vert flytta hit ned FYRST når han byggjer sin eigen geometri og
  * held alle fem portane.
  */
-const UNDER_BYGGING: readonly EngineDef[] = [KOTE, FLETT, KARVE, BOYG]
+const UNDER_BYGGING: readonly EngineDef[] = [FLETT, KARVE, BOYG]
 
 // VAFFEL fyrst: han er standardobjektet og øvst i nedtrekket. SKAL er
 // teken ut — kjelda hans står att for dokumentpipelinen, men han er ikkje
 // lenger ein modul i sandkassen.
-export const ENGINES: readonly EngineDef[] = [VAFFEL, SKIVE, STRAUM, RIBBE]
+export const ENGINES: readonly EngineDef[] = [VAFFEL, SKIVE, STRAUM, RIBBE, KOTE]
 
 /** alt, ferdig og uferdig — det prøveskripta skal måle */
 export const ALLE_MOTORAR: readonly EngineDef[] = [...ENGINES, ...UNDER_BYGGING]
