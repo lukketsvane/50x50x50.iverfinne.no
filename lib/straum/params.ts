@@ -343,10 +343,24 @@ function repair(q: Params, locked: ReadonlySet<string>): Params {
       if (nOpen >= 9) fix("finnar", Math.min(n0, nOpen))
       else if (nDense <= Math.min(39, nMaxT)) fix("finnar", nDense)
     }
-    // samanheng: midja må halde minst tre finnar heile vegen gjennom
-    // (kalibrert: under tre gjennomgåande er aldri sett over 2,74 · deling,
-    // og ei midje på 0,31 · spennet styrer aldri spennvidda sjølv)
-    const midjeMin = 2.8 * (spanTrue / Math.round(q.finnar))
+    // samanheng: midja må halde minst tre finnar heile vegen gjennom.
+    //
+    // PARITETEN avgjer, ikkje eit kalibrert snitt. Plana ligg symmetrisk om
+    // midten: eit ULIKT tal har eit plan PÅ midten (0, ±1, ±2 · deling) og
+    // treng ei halvbreidd på éi deling for tre plan; eit LIKT tal har inkje
+    // midtplan (±0,5, ±1,5 · deling) og treng halvanna. Den gamle
+    // konstanten 2,8 låg midt imellom dei to og heldt berre for det ulike
+    // talet — eit kast med ti finnar og midja på 3,07 · deling gjekk rett
+    // gjennom vakta og kom ut med to gjennomgåande finnar.
+    // Skråstillinga skyv plana utover med høgda: eit plan som står inne
+    // ved skivesenteret kan stå UTANFOR i midja, og då er finna broten
+    // nett der ho skulle bera. Difor er kravet halvbreidda plana treng
+    // PLUSS skyvet frå senterhøgda ned til midja.
+    const nFin = Math.round(q.finnar)
+    const deling = spanTrue / nFin
+    const halv = (nFin % 2 === 1 ? 1 : 1.5) * deling
+    const skyvet = Math.tan(q.skraa * DEG) * Math.abs(q.midjeH - q.planSenter) * q.hogd
+    const midjeMin = 2 * (halv + skyvet + 0.2 * deling)
     if (q.midjeB < midjeMin) fix("midjeB", midjeMin)
     if (q.midjeD < midjeMin) fix("midjeD", midjeMin)
   }

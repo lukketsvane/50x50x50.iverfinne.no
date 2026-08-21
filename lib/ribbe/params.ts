@@ -27,6 +27,9 @@ import {
   type ParamBag,
   type Range,
 } from "../core"
+// metrics.ts hentar berre TYPEN Params herifrå, so importen er asyklisk
+import { measure } from "./metrics"
+import type { Metrics } from "../core"
 
 /** Params må vera tildelbar til ParamBag, difor eit type-alias og ikkje
  *  eit interface: eit interface har ingen indekssignatur og let seg ikkje
@@ -517,6 +520,65 @@ function fiksTerning(q: Params, locked: ReadonlySet<string>): Params {
       fix("blades", nMax)
       navFix()
     }
+  }
+
+  // HALSEN, målt og ikkje gissa.
+  //
+  // Alt over reknar på eit aksesymmetrisk blad. Det held for kuben, navet
+  // og veltevinkelen, men ikkje for utnyttinga: der midja dreg ytterkanten
+  // inn OG den indre tomkjernen stig ut i same høgda, står det att ein hals
+  // på nokre få millimeter i EITT blad — og den halsen finst ikkje i
+  // gjennomsnittet modellen les. Verre: spaken ein skulle tru hjelpte gjer
+  // det motsette, av di navradien veks med bladtjukna og snører halsen
+  // ytterlegare (eit måld kast gjekk frå 104 % til 813 % av seks
+  // millimeter tjukkare blad).
+  //
+  // Difor spør dette siste steget geometrien sjølv. Det kostar ei måling
+  // (kring 40 ms mot 1 ms for resten av kastet), og berre dei kasta som
+  // faktisk ligg over grensa betalar for fleire. Grepa er dei tre som
+  // måling viste er einsretta: mindre midje, mindre tomkjerne og kortare
+  // overlapp i sporet — alle gjer objektet mindre ekstremt, aldri meir.
+  // Veltevinkelen har same blindsone: modellen reknar vippearmen som
+  // fotradien gonga cosinus til halve bladvinkelen, men den verkelege
+  // armen går til KONVEKSE HYLSTERET av føtene, og med flikar i planet
+  // ligg dalane innanfor det snittet. Difor står han i same lykkja.
+  for (let pass = 0; pass < 8; pass++) {
+    let m: Metrics
+    try {
+      m = measure(q)
+    } catch {
+      break // eit kast som ikkje let seg måle er ikkje eit kast dette steget kan berge
+    }
+    const halsen = Number.isFinite(m.util) && m.util > 0.95
+    const vippen = Number.isFinite(m.tipAngle) && m.tipAngle < 15.5
+    if (!halsen && !vippen) break
+    let rørt = false
+    if (halsen) {
+      if (
+        (!locked.has("waist") && q.waist > 0.01) ||
+        (!locked.has("inner") && q.inner > PARAM_RANGES.inner.min + 0.01) ||
+        (!locked.has("bandOut") && q.bandOut < q.bandW - 0.5)
+      ) {
+        fix("waist", q.waist * 0.55)
+        fix("inner", q.inner - 0.05)
+        fix("bandOut", q.bandOut + (q.bandW - q.bandOut) * 0.5)
+        rørt = true
+      }
+    }
+    if (vippen) {
+      // Foten er den einaste spaken som flytter vippearmen utan å røre
+      // sitjehøgda — og han rører ikkje omhyllinga heller, av di han er
+      // eit FORHOLD til planet og ikkje eit mål. Midja hjelper berre når
+      // ho når heilt ned i foten, so ho kjem sist.
+      if (!locked.has("footR") && q.footR < PARAM_RANGES.footR.max) {
+        fix("footR", Math.min(PARAM_RANGES.footR.max, q.footR + 0.07))
+        rørt = true
+      } else if (!locked.has("waist") && q.waist > 0.01) {
+        fix("waist", q.waist * 0.7)
+        rørt = true
+      }
+    }
+    if (!rørt) break
   }
   return q
 }
