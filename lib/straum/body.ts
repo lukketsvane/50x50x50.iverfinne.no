@@ -230,14 +230,24 @@ function makeBodyRaw(p: Params): Body {
 
   // --- salen -------------------------------------------------------------
   // seatZ − salsøkk(1 − f²) − sidesøkk·s² − framkant·clip(f,0,1)³, der f og
-  // s er normaliserte setekoordinatar. f er fram og attende, s er på tvers,
-  // og salen fylgjer verdsaksane og ikkje vridinga: ein sit i rommet, ikkje
-  // i snittet. Trauet går difor på tvers og ryggen på langs, same kor mykje
-  // snittet under er vridd.
+  // s er normaliserte setekoordinatar. f er langs salen, s er på tvers, og
+  // salen fylgjer si EIGA ramme og ikkje vridinga: ein sit i rommet, ikkje
+  // i snittet. Snittet under kan vera vridd so mykje det vil — salen står.
+  //
+  // SALRETNINGA dreiar heile salforma kring setesenteret, ikkje berre
+  // trauaksen: f og s er same paret som før, lese i ei ramme som er dreidd
+  // `salretning` grader. Difor er trauet like djupt og framkanten like
+  // brei kva veg salen ligg, og null grader gjev nøyaktig gamal åtferd —
+  // cos 0 = 1 og sin 0 = 0 er eksakte, so kvart ledd fell attende på seg
+  // sjølv, ikkje på noko som liknar.
+  const cosS = Math.cos(p.salretning * DEG)
+  const sinS = Math.sin(p.salretning * DEG)
   const seatTop = (x: number, y: number) => {
     const c = ctr(H)
-    const f = (x - c[0]) / Math.max(1, ax(1))
-    const s = (y - c[1]) / Math.max(1, ay(1))
+    const dx = x - c[0]
+    const dy = y - c[1]
+    const f = (dx * cosS + dy * sinS) / Math.max(1, ax(1))
+    const s = (dy * cosS - dx * sinS) / Math.max(1, ay(1))
     const fc = Math.min(1, Math.max(0, f))
     return (
       H -
@@ -340,6 +350,20 @@ function makeBodyRaw(p: Params): Body {
    * telje bein og areal med, og det er for grovt til å måle limflate med —
    * og det er difor regelen «smalaste beinet» måler og ikkje les.
    */
+  /**
+   * TOMSKYVET: tomrommet skuva sidevegs utan at ytterflata rører seg.
+   * Skyvet vert lagt på RADIEN og ikkje på senteret — d millimeter meir i
+   * `tomretning`, d mindre rett imot — so tomrommet held seg ei stjerneform
+   * kring same senteret som kroppen, og kvar lesar som spør «kor langt ut
+   * går hola i denne retninga» får framleis eitt svar. Retninga peikar mot
+   * den LETTE sida: der veggen vert tynnast og beinet lettast.
+   *
+   * `skyv.d` er ikkje `p.tomskyv`. Han vert klemt mot rommet som verkeleg
+   * finst, sett etter innpassinga — sjå `fitVoidShift`.
+   */
+  const voidDir = p.tomretning * DEG
+  const skyv = { d: 0 }
+
   const ri = (th: number, z: number) => {
     if (z <= voidZ0 || z >= voidZ1) return 0
     const g = Math.min(
@@ -348,7 +372,7 @@ function makeBodyRaw(p: Params): Body {
     )
     if (g <= 0) return 0
     const r = ro(th, z)
-    return Math.max(0, Math.min(r * 0.92, r - p.veggT)) * g
+    return Math.max(0, Math.min(r * 0.92, r - p.veggT) + skyv.d * Math.cos(th - voidDir)) * g
   }
 
   // --- konturar ----------------------------------------------------------
@@ -431,8 +455,56 @@ function makeBodyRaw(p: Params): Body {
   }
 
   fitToCube(body, box, () => topCache.clear())
+  fitVoidShift(body, skyv)
   layPlanes(body)
   return body
+}
+
+// =============================================================================
+// TOMSKYVET MOT ROMMET SITT
+// =============================================================================
+/**
+ * Skyvet legg d til tomromsradien i éi retning og trekk d frå i den
+ * motsette. To ting kan då gå til null, og begge er hòl i nettet og ikkje
+ * berre stygge tal:
+ *
+ *   veggen  (ro − ri) − d  — ein vegg pressa til null er to skal som ligg
+ *           oppå kvarandre, og godset mellom sokkel og kappe er borte
+ *   radien  w − d          — eit tomrom snørt heilt inn til senter gjev ei
+ *           rad utarta trekantar, og eit utarta lokk er eit hòl
+ *
+ * Rommet vert difor målt RETNINGSVIST og ikkje som eitt tal: skyvet et av
+ * veggen berre der han legg til (cos > 0) og av radien berre der han trekk
+ * frå (cos < 0), og bidraget er d·cos og ikkje d. Eit trongt punkt som ligg
+ * på tvers av skyvretninga kostar difor ingen ting — det er nettopp difor
+ * aksen har noko å gå på i det heile. Berre 45 % av rommet vert teke ut,
+ * so minst 55 % av både vegg og radius står att kvar einaste stad, og
+ * lukkinga fylgjer av konstruksjonen og ikkje av at ingen har prøvd.
+ *
+ * Der `w` alt er null eller under, er tomrommet stengt i den retninga frå
+ * før — skyvet har ingen radius å øydeleggje der, og den grensa gjeld ikkje.
+ *
+ * Målinga må stå ETTER innpassinga: radien er lineær i skalafaktoren, og
+ * eit rom målt før krympinga er eit rom som ikkje finst. `ri` vert aldri
+ * lesen før dette — korkje innpassinga eller planlegginga spør etter hola.
+ */
+function fitVoidShift(b: Body, skyv: { d: number }) {
+  const want = Math.max(0, b.p.tomskyv)
+  if (!(want > 0)) return
+  const dir = b.p.tomretning * DEG
+  let room = want
+  for (let j = 1; j < 12; j++) {
+    const z = b.voidZ0 + ((b.voidZ1 - b.voidZ0) * j) / 12
+    for (let i = 0; i < 72; i++) {
+      const th = (i / 72) * TAU
+      const c = Math.cos(th - dir)
+      const r = b.ro(th, z)
+      const w = Math.min(r * 0.92, r - b.p.veggT)
+      if (c > 1e-6) room = Math.min(room, (0.45 * (r - w)) / c)
+      else if (c < -1e-6 && w > 0) room = Math.min(room, (0.45 * w) / -c)
+    }
+  }
+  skyv.d = Math.max(0, room)
 }
 
 // =============================================================================
