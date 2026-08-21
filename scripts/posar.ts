@@ -15,6 +15,7 @@ import { POSES as RIBBE_POSES } from "../lib/ribbe/params.ts"
 import { POSES as KOTE_POSES } from "../lib/kote/params.ts"
 import { POSES as KARVE_POSES } from "../lib/karve/params.ts"
 import { POSES as FLETT_POSES } from "../lib/flett/params.ts"
+import { POSES as BOYG_POSES } from "../lib/boyg/params.ts"
 
 const POSAR: Record<string, readonly Record<string, number | string>[]> = {
   vaffel: VAFFEL_POSES as never,
@@ -24,6 +25,7 @@ const POSAR: Record<string, readonly Record<string, number | string>[]> = {
   kote: KOTE_POSES as never,
   karve: KARVE_POSES as never,
   flett: FLETT_POSES as never,
+  boyg: BOYG_POSES as never,
 }
 
 const NAMN: Record<string, readonly string[]> = {
