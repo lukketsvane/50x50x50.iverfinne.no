@@ -26,13 +26,19 @@ export const DETAIL: Record<"lav" | "mid" | "hog", ProfDetail> = {
 
 const N = (base: number, k: number) => Math.max(3, Math.round(base * k))
 
-/** setetoppen ved x, FØR morf: gropa er djupast 60 % bak på setet */
+/**
+ * Setetoppen ved x, FØR morf: gropa er djupast 60 % bak på setet, og heile
+ * setelina er vippa kring NASEN — nasen står fast, bakkanten fell med
+ * tan(setevipp)·djup. Nasehøgda, zSeteB, ryggen, berehòlet og den målte
+ * sitjehøgda les alle same funksjon, so vippen flyttar dei i lag.
+ */
 function seatTop(p: Params, x: number, gropEkstra: number): number {
   const xN = p.djup / 2
   const xB = -p.djup / 2
   const t = Math.min(1, Math.max(0, (xN - x) / (xN - xB)))
   const bell = Math.sin(Math.PI * Math.pow(t, 0.85)) ** 2
-  return p.hogd - (p.grop + gropEkstra) * bell
+  const vipp = Math.tan((p.setevipp * Math.PI) / 180) * (xN - x)
+  return p.hogd - (p.grop + gropEkstra) * bell - vipp
 }
 
 export type Profile = {

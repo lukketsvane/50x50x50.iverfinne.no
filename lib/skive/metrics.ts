@@ -65,6 +65,10 @@ export function measure(p: Params, pre?: Build): Metrics {
   // over den midtre flata ein faktisk sit på — gropa OG sidefallet rekna med.
   const mid = profileAt(p, 0, 0.6)
   const seatZ = p.hogd
+  // NEGATIV setevipp lyfter bakkanten over setekanten: skiljet som held
+  // ryggen ute av målinga må stige med han, elles les skanninga bogen i
+  // staden for setet.
+  const vippLyft = Math.max(0, -Math.tan((p.setevipp * Math.PI) / 180)) * p.djup
   let ssum = 0
   let sn = 0
   for (let i = 0; i <= 8; i++) {
@@ -79,7 +83,7 @@ export function measure(p: Params, pre?: Build): Metrics {
         const c = prof[(q + 1) % prof.length]
         if (x >= Math.min(a[0], c[0]) && x < Math.max(a[0], c[0]) && a[0] !== c[0]) {
           const z = a[1] + ((x - a[0]) / (c[0] - a[0])) * (c[1] - a[1])
-          if (z > top && z < p.hogd + 2) top = z
+          if (z > top && z < p.hogd + vippLyft + 2) top = z
         }
       }
       if (top > 0) { ssum += top; sn++ }
@@ -139,10 +143,12 @@ export function measure(p: Params, pre?: Build): Metrics {
   for (let i = 1; i < 30; i++) {
     const x = xB0 + (i / 30) * (xN0 - xB0)
     const runs = runsAt(prof, Math.min(p.bogeH, p.hogd - p.grop) - 1)
-    // høgda på bandet over bogen ved x: setetopp minus bogekurva
+    // høgda på bandet over bogen ved x: setetopp minus bogekurva. Bogen er
+    // høgst midt i spennet, og der har setevippen alt teke halve arma si —
+    // bandet vert TYNNARE av vippen, so bøyinga må lesa same tal som regelen.
     const w = Math.abs(2 * ((xN0 - x) / (xN0 - xB0)) - 1)
     const boge = p.bogeH * Math.pow(Math.max(0, 1 - Math.pow(w, p.bogeN)), 1 / p.bogeN)
-    const top = p.hogd - p.grop
+    const top = p.hogd - p.grop - Math.tan((p.setevipp * Math.PI) / 180) * (p.djup / 2)
     const d = top - boge
     if (runs.length && d < depth) depth = d
   }
