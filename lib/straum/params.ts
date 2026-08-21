@@ -50,6 +50,8 @@ export type Params = {
   tomTil: number // der han vert massiv att
   veggT: number // veggtjukn, mm
   kile: number // innkiling i kvar ende, del av høgda
+  tomskyv: number // tomrommet skuva sidevegs, mm på radien
+  tomretning: number // kva veg det er skuve — mot den lette sida, grader
 
   // --- SKIVER -------------------------------------------------------------
   finnar: number // tal skiveplan
@@ -60,6 +62,7 @@ export type Params = {
   // --- SETE ---------------------------------------------------------------
   salsokk: number // salen ned på langs, mm
   sidesokk: number // salen ned på tvers, mm
+  salretning: number // salen vridd ut av verdsaksane, grader
   framkant: number // lårlette i framkanten, mm
   kantR: number // setekantradius, mm
 
@@ -94,6 +97,8 @@ export const PARAM_RANGES: Record<string, Range> = {
   tomTil: { min: 0.5, max: 0.95, step: 0.005, label: "tomrom til" },
   veggT: { min: 12, max: 60, step: 0.5, label: "veggtjukn", unit: "mm" },
   kile: { min: 0.004, max: 0.09, step: 0.001, label: "innkiling" },
+  tomskyv: { min: 0, max: 24, step: 0.5, label: "tomskyv", unit: "mm" },
+  tomretning: { min: 0, max: 360, step: 1, label: "tomretning", unit: "°" },
 
   finnar: { min: 9, max: 39, step: 1, label: "skiveplan", int: true },
   skraa: { min: 0, max: 26, step: 0.5, label: "skråstilling", unit: "°" },
@@ -102,6 +107,7 @@ export const PARAM_RANGES: Record<string, Range> = {
 
   salsokk: { min: 8, max: 60, step: 0.5, label: "salsøkk", unit: "mm" },
   sidesokk: { min: 0, max: 30, step: 0.5, label: "sidesøkk", unit: "mm" },
+  salretning: { min: 0, max: 180, step: 1, label: "salretning", unit: "°" },
   framkant: { min: 0, max: 24, step: 0.5, label: "framkant", unit: "mm" },
   kantR: { min: 2, max: 26, step: 0.5, label: "setekant", unit: "mm" },
 
@@ -160,6 +166,10 @@ export const DEFAULT_PARAMS: Params = {
   tomTil: 0.87,
   veggT: 34,
   kile: 0.018,
+  // skyv 0 er nøytralt: tomrommet ligg kring same senteret som kroppen,
+  // og retninga har ingen ting å flytte
+  tomskyv: 0,
+  tomretning: 0,
 
   finnar: 12,
   skraa: 12,
@@ -168,6 +178,8 @@ export const DEFAULT_PARAMS: Params = {
 
   salsokk: 30,
   sidesokk: 5,
+  // null grader er salen langs verdsaksane, nøyaktig som før aksen kom
+  salretning: 0,
   framkant: 6,
   kantR: 12,
 
@@ -190,13 +202,21 @@ export const GROUPS: readonly Group[] = [
     ],
   },
   { id: "vriding", label: "vriding", keys: ["vridFot", "vridSete", "vridSenter"] },
-  { id: "tomrom", label: "tomrom", keys: ["tomFra", "tomTil", "veggT", "kile"] },
+  {
+    id: "tomrom",
+    label: "tomrom",
+    keys: ["tomFra", "tomTil", "veggT", "kile", "tomskyv", "tomretning"],
+  },
   {
     id: "skiver",
     label: "skiver",
     keys: ["finnar", "skraa", "planSenter", "planRetning"],
   },
-  { id: "sete", label: "sete", keys: ["salsokk", "sidesokk", "framkant", "kantR"] },
+  {
+    id: "sete",
+    label: "sete",
+    keys: ["salsokk", "sidesokk", "framkant", "kantR", "salretning"],
+  },
   {
     id: "bygg",
     label: "bygg",
@@ -226,6 +246,18 @@ export const POSES: readonly Partial<Params>[] = [
   {
     mage: 76, mageH: 0.7, midjeB: 140, midjeD: 110, seteB: 360, seteD: 345,
     fotB: 310, fotD: 300, finnar: 9, morfOpp: 3,
+  },
+  // diagonaltrauet: salen vridd 50 grader ut av verdsaksane, so trauet går
+  // frå hjørne til hjørne og ikkje på tvers. Setet er kvadratisk nettopp
+  // difor — på eit avlangt sete ville diagonalen berre lese som eit skeivt
+  // tverrtrau. Sidesøkket er nesten null so trauet står åleine, og
+  // tomrommet er skuve mot framkanten: tynn vegg under lårlette, tung vegg
+  // i ryggen, med ein vegg på 40 mm som gjev 28 mm bein òg på den lette sida
+  {
+    salretning: 50, salsokk: 50, sidesokk: 2, framkant: 2, kantR: 14,
+    seteB: 430, seteD: 430, fotB: 345, fotD: 345, midjeB: 205, midjeD: 205,
+    veggT: 40, finnar: 13, skraa: 6, vridFot: 0, vridSete: 22,
+    morfNed: 4, morfOpp: 2.6, tomskyv: 12, tomretning: 50,
   },
 ]
 
@@ -329,8 +361,28 @@ function repair(q: Params, locked: ReadonlySet<string>): Params {
     }
   }
 
-  // --- 7 veggen: beinet i midja må bera to finnetjukner -------------------
-  if (q.veggT < 2 * q.finneT) fix("veggT", 2 * q.finneT + 1)
+  // --- 7 veggen ER beinet i midja -----------------------------------------
+  // Tomrommet deler finna, og det som står att på kvar side er veggtjukna.
+  // Difor er det same talet som må bera to finnetjukner OG tole tommelen:
+  // 25 mm, det same talet regelen «smalaste beinet» les. At den regelen
+  // aldri vart retta er grunnen til at han braut i kvart sjuande kast.
+  //
+  // Skyvet et av veggen på den lette sida, so det er veggT MINUS skyvet
+  // som vert målt. Kroppen klemmer skyvet mot rommet som verkeleg finst,
+  // so `tomskyv` er eit strengt overmål av kor mykje som vert teke.
+  //
+  // Veggen har eit tak òg: et han opp midjesnittet, er det ikkje noko
+  // tomrom att til å dele finnene, og då fell «bein i midja» i staden.
+  // Taket vinn — ein massiv kropp med eit perfekt bein er ikkje denne
+  // typologien — og då er det skyvet som må vike fyrst.
+  const beinMin = Math.max(2 * q.finneT, 25)
+  const veggTak = Math.max(2 * q.finneT + 1, 0.3 * Math.min(q.midjeB, q.midjeD))
+  if (q.veggT - q.tomskyv < beinMin) {
+    if (q.veggT < beinMin + q.tomskyv + 1) {
+      fix("veggT", Math.min(veggTak, beinMin + q.tomskyv + 1))
+    }
+    if (q.veggT - q.tomskyv < beinMin) fix("tomskyv", q.veggT - beinMin - 1)
+  }
 
   return q
 }
