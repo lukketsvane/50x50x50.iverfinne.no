@@ -314,9 +314,8 @@ export type EngineId =
   | "skive"
   | "kote"
   | "flett"
-  | "brett"
-  | "stav"
-  | "skrin"
+  | "karve"
+  | "boyg"
 
 export type EngineDef = {
   id: EngineId
