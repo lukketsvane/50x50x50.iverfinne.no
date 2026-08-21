@@ -21,12 +21,15 @@ const POSAR: Record<string, readonly Record<string, number | string>[]> = {
 }
 
 const NAMN: Record<string, readonly string[]> = {
-  vaffel: ["tett rutenett", "mjuk sylinder", "nesten kube", "timeglas", "portalbenken"],
+  vaffel: [
+    "tett rutenett", "mjuk sylinder", "nesten kube", "timeglas", "portalbenken",
+    "lågryggstolen", "lenekrakken",
+  ],
   skive: [
     "grotta", "benken", "stolen", "den lette", "vifta", "vengene", "spent",
-    "pidestallen", "akvedukten", "sleden", "orgelet",
+    "pidestallen", "akvedukten", "sleden", "orgelet", "kvilestolen",
   ],
-  straum: ["vridd søyle", "timeglas", "dokumentobjektet", "amfora"],
+  straum: ["vridd søyle", "timeglas", "dokumentobjektet", "amfora", "diagonaltrauet"],
   ribbe: ["vridd", "timeglas", "sopp", "krysset", "blomen"],
 }
 
