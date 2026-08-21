@@ -83,7 +83,7 @@ export type Felt = {
   kvelv: number
   /** kjølen etter at freseradien har butta han */
   kryssEff: number
-  k: number
+  /** beintalet som heiltal — snittskanninga deler etter det */
   kb: number
 
   stripe(th: number): Stripe
@@ -244,7 +244,7 @@ function feltRaw(p: Params): Felt {
   }
 
   return {
-    p, H, zw, kvelv, kryssEff, k, kb,
+    p, H, zw, kvelv, kryssEff, kb,
     stripe, rSete, rFot, rMidje,
     zEdge: (th) => stripe(th).ze,
     rOut, zSete, zKvelv,
@@ -686,6 +686,9 @@ export function snitt(k: Karv): Snitt {
   // midja veks snittet til heile setekroppen, og heilt oppe under
   // setekanten krympar det til null att — men det er ikkje eit berande
   // snitt, det er kanten på ei plate ingen sit på.
+  // Botnen av skanninga ligg over fotavrundinga: dei fyrste
+  // millimeterane over golvet er fasen på puta og ikkje gods som ber.
+  const zLo = Math.max(8, p.foteR * 0.5)
   const zLim = zw + (H - zw) * 0.1
   const zLegLo = Math.max(12, p.foteR + 6)
   let minA = Infinity
@@ -703,7 +706,7 @@ export function snitt(k: Karv): Snitt {
   const rhi = new Float64Array(kb)
 
   for (let s = 1; s < NZ; s++) {
-    const z = 3 + ((s - 1) / (NZ - 1)) * (zLim - 3)
+    const z = zLo + ((s - 1) / (NZ - 1)) * (zLim - zLo)
     A.fill(0)
     S1.fill(0)
     S2.fill(0)

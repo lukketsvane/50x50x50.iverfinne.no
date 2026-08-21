@@ -33,7 +33,7 @@ import {
 } from "../core"
 import { nest } from "../vaffel/nest"
 import { DETAIL, karv, plater, snitt, type Karv, type Snitt } from "./form"
-import { flateMesh, koteMaal } from "./mesh"
+import { flateMesh, koteMaal, type Kote } from "./mesh"
 import { buildParts } from "./parts"
 import type { Params } from "./params"
 
@@ -56,7 +56,7 @@ export type Bunt = {
   pl: ReturnType<typeof buildParts>
   sheets: number
   sn: Snitt
-  kote: ReturnType<typeof koteMaal>
+  kote: Kote
   emneV: number
   boksV: number
   envX: number
