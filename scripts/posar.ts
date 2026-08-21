@@ -14,6 +14,7 @@ import { POSES as STRAUM_POSES } from "../lib/straum/params.ts"
 import { POSES as RIBBE_POSES } from "../lib/ribbe/params.ts"
 import { POSES as KOTE_POSES } from "../lib/kote/params.ts"
 import { POSES as KARVE_POSES } from "../lib/karve/params.ts"
+import { POSES as FLETT_POSES } from "../lib/flett/params.ts"
 
 const POSAR: Record<string, readonly Record<string, number | string>[]> = {
   vaffel: VAFFEL_POSES as never,
@@ -22,6 +23,7 @@ const POSAR: Record<string, readonly Record<string, number | string>[]> = {
   ribbe: RIBBE_POSES as never,
   kote: KOTE_POSES as never,
   karve: KARVE_POSES as never,
+  flett: FLETT_POSES as never,
 }
 
 const NAMN: Record<string, readonly string[]> = {
@@ -37,6 +39,10 @@ const NAMN: Record<string, readonly string[]> = {
   ribbe: ["vridd", "timeglas", "sopp", "krysset", "blomen"],
   kote: ["skruen", "sokkelen", "kløveren", "porten", "trakta", "kotekartet"],
   karve: ["kløveren", "sommarfuglen", "trefoten", "steinen", "trakta", "kassa"],
+  flett: [
+    "toskaftet", "ripsen", "korga", "bogekrakken",
+    "fire bein og fire rammer", "lenestolen", "slakken", "omslaget",
+  ],
 }
 
 const berre = process.argv[2]

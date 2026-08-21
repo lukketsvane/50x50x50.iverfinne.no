@@ -152,12 +152,12 @@ export const PARAM_KEYS = GROUPS.flatMap((g) => g.keys)
  */
 export const DEFAULT_PARAMS: Params = {
   hogd: 412,
-  djup: 336,
-  breidd: 348,
+  djup: 384,
+  breidd: 372,
   planN: 4.4,
   bakflat: 0.35,
   rammeT: 18,
-  rammeH: 60,
+  rammeH: 42,
   rammetype: 0,
 
   beinB: 88,
@@ -165,14 +165,14 @@ export const DEFAULT_PARAMS: Params = {
   bogeN: 2.4,
   fotfas: 12,
 
-  renW: 45,
+  renW: 44,
   renT: 2,
-  renN: 7,
+  renN: 5,
   renFall: 0,
 
-  innW: 43.5,
+  innW: 44,
   innT: 2,
-  innN: 7,
+  innN: 5,
   innFall: 0,
 
   flott: 2,
@@ -224,6 +224,7 @@ export const POSES: readonly Partial<Params>[] = [
   // millimeter breie, og ei roleg flate — heile bøyebudsjettet gjekk med
   // til sjølve flettinga.
   {
+    breidd: 348, djup: 336,
     hogd: 410, planN: 3.6, rammeH: 56, beinB: 100, spreie: 5.5, fotfas: 14,
     renW: 65.4, renT: 1.6, renN: 5, innW: 63, innT: 1.6, innN: 5,
     flott: 1, spenn: 0.2, kroneTvers: 8, kroneLangs: -3, vulst: 4,
@@ -233,6 +234,8 @@ export const POSES: readonly Partial<Params>[] = [
   // ingen ting som avgrensar kor tett renningane kan liggje. Tjue smale
   // band mot åtte breie: same mønsterfamilie, heilt anna tekstur.
   {
+    innN: 7, innW: 43.5,
+    rammeH: 60,
     hogd: 408, djup: 334, breidd: 346, planN: 5.4, rammeT: 20, beinB: 96,
     renW: 13.5, renT: 2.2, renN: 20, innT: 2.2, skift: 0, spenn: 0.12,
     kroneTvers: 14, kroneLangs: -6, vulst: 3.6,
@@ -253,6 +256,7 @@ export const POSES: readonly Partial<Params>[] = [
   // heilt ned: krafta som står der heile døgeret, er dyrare for ei kutta
   // ramme enn lasta sjølv.
   {
+    renN: 7, innN: 7, renW: 45, innW: 43.5,
     hogd: 402, djup: 332, breidd: 340, planN: 4.8, rammetype: 1,
     rammeT: 26, rammeH: 74, beinB: 100, spreie: 4, bogeN: 2.8,
     renT: 1.8, innT: 1.8, spenn: 0.05, kroneLangs: -4,
@@ -262,6 +266,7 @@ export const POSES: readonly Partial<Params>[] = [
   // spriker mest — momentet er halvanna gong bogekrakken sitt, av di dei
   // fire bitane ikkje heng saman kring hjørna. Lange flott på tre.
   {
+    innN: 7, innW: 43.5,
     hogd: 414, djup: 332, breidd: 338, planN: 6.6, rammetype: 2,
     rammeT: 20, rammeH: 70, beinB: 76, spreie: 4.9, fotfas: 18,
     renW: 24.4, renT: 2.2, renN: 12, innT: 2.2, flott: 3,
@@ -273,6 +278,7 @@ export const POSES: readonly Partial<Params>[] = [
   // mønster, berre bøygd opp. Svingen er ei VARIG bøying kring ramma sin
   // bakkant, og difor må ramma vera brei nok til å svinge kring.
   {
+    renN: 7, innN: 7, renW: 45, innW: 43.5,
     hogd: 405, djup: 334, breidd: 344, planN: 6.8, bakflat: 1,
     rammeH: 56, beinB: 96, spreie: 4.2, spenn: 0.16, helling: 5,
     kroneTvers: 9, kroneLangs: -2, vulst: 1.5,
@@ -283,6 +289,7 @@ export const POSES: readonly Partial<Params>[] = [
   // den mjukaste sitjinga typologien kan gje utan å botne på ramma. Prisen
   // står i utnyttinga: strekket i bandet er det høgste i heile familien.
   {
+    djup: 336,
     hogd: 418, breidd: 346, planN: 3.2, rammeT: 16, rammeH: 54, beinB: 106, spreie: 5.5,
     renW: 65, renT: 1.6, renN: 5, innW: 63, innT: 1.6, innN: 5, flott: 1,
     spenn: 0.02, kroneTvers: 14.6, kroneLangs: 4, vulst: 1.4,
@@ -293,6 +300,8 @@ export const POSES: readonly Partial<Params>[] = [
   // tjukk som bandet. Toogtjue millimeter ramme mot eit band på halvanna:
   // omslaget er den festemåten som TVINGAR fram tynne band.
   {
+    renN: 7, innN: 7, renW: 45, innW: 43.5,
+    djup: 336,
     hogd: 406, breidd: 346, planN: 4.6, rammeT: 22, rammeH: 62, beinB: 94,
     renT: 1.6, innT: 1.6, spenn: 0.18, kroneTvers: 13, vulst: 8,
     feste: 1, kant: 40,
