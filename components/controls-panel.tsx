@@ -458,7 +458,14 @@ export function ControlsPanel(props: {
                 />
                 <div
                   role="menu"
-                  className="absolute bottom-full left-0 z-20 mb-2 min-w-32 rounded-2xl border p-1"
+                  // Ni motorar er høgare enn rommet over pilla på ein liten
+                  // telefon, og utan tak renn den fyrste ut over toppen av
+                  // skjermen. Rommet er IKKJE ein del av høgda: arket under
+                  // menyen er om lag like høgt same kor stor skjermen er,
+                  // so taket er høgda MINUS det arket — kring 385 px målt,
+                  // med litt mon. Rullinga held seg i menyen so ho ikkje
+                  // dreg arket med seg.
+                  className="absolute bottom-full left-0 z-20 mb-2 max-h-[max(132px,calc(100dvh-400px))] min-w-32 overflow-y-auto overscroll-contain rounded-2xl border p-1"
                   style={{ ...HAIR, background: "var(--paper)" }}
                 >
                   {ENGINES.map((e) => (
