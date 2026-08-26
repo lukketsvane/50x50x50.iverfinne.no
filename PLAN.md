@@ -597,7 +597,7 @@ eining. Søket (`lib/avl.ts`) er utglødd fjellklatring med frø bak same
 kontrakt som alt anna: kvart kandidatpunkt går gjennom motoren sin eigen
 clamp, terningsprang brukar motoren sin eigen reparasjon, harde brot kostar
 so mykje at inga lovleg løysing taper mot ei ulovleg, og mjuke brot kostar
-litt — dei er val, ikkje veggar. Spira i panelet køyrer 90 steg i
+litt — dei er val, ikkje veggar. Spira (dobbelttrykk på terningen) køyrer 90 steg i
 arbeidaren, eitt steg per makrooppgåve, so skyvarane aldri frys; dreg
 brukaren i noko medan søket går, vinn handa og søket vert lagt frå seg.
 `scripts/avl.ts` køyrer same søket frå kommandolina og skriv ut rekneskapen
@@ -673,6 +673,14 @@ heuristikk. Objektet vert aldri gøymt bak panelet, på noko arknivå.
 **Gesten fekk namn.** To fingrar på lerretet har alltid skrudd to band;
 no seier ein chip KVA band og kva tal, medan draget går. Ein gest utan
 namn er ein løyndom, og løyndomar er ikkje interaksjon.
+
+**Terningen ber avlen.** Spira hadde sin eigen knapp i hovudlina; no er
+han borte, og avlen ligg som dobbelttrykk på terningen — same språket
+som låsen på modulveljaren. Trykket ventar det same vesle vindauga på
+tvillingen sin, av di rekkjefylgja ber meining: eit kast som fyrte fyrst
+ville flytte punktet avlen skulle starte i. Lina vart ein knapp kortare,
+og dei to generative flytane bur i same fingeren: eitt trykk spreier,
+to trykk strammar.
 
 **Vurdert og lagt vekk:** direkte 3D-handtak på sjølve objektet. Det krev
 ankerpunkt i geometrien per motor — kvar sit «midja» på ein KARVE? — og

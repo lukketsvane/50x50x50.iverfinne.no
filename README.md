@@ -46,9 +46,9 @@ kan gjerast med skyvarane bak, og veggen ser alt draget gjorde.
 han er. Finstilling, ikkje fyrsteinntrykk.
 
 På lerretet skrur to fingrar dei to banda som formar mest (per motor), og
-ein chip syner bandet og talet medan draget går. Terningen kastar, avlen
-søkjer — dei to er dei generative hovudflytane, og båe respekterer låste
-skruar.
+ein chip syner bandet og talet medan draget går. Terningen ber begge dei
+generative flytane: eitt trykk kastar, dobbelttrykk avlar — og båe
+respekterer låste skruar.
 
 ## Dei to aksane
 
@@ -67,7 +67,7 @@ val kastar meir av arket enn typologien treng.
 NS-EN 1728 seier kor hardt materialet faktisk arbeider; materiale som ikkje
 ber, er avfall som står att i møbelet.
 
-**Avlen** bind dei to saman: eit generativt søk (spira i panelet, eller
+**Avlen** bind dei to saman: eit generativt søk (dobbelttrykk på terningen, eller
 `scripts/avl.ts`) som startar i punktet som står, held alle dei harde
 reglane, og minimerer eitt tal — *plata gjennom maskina*, delane pluss
 avfallet kring dei, i kubikkdesimeter. Talet fell når delane vert færre,
