@@ -22,8 +22,11 @@
 import type { EngineId, ParamBag, View } from "./core"
 import { getEngine, isEngineId } from "./engines"
 
-/** versjonen av kodinga — byt bokstav om banda endrar seg */
-const VERSJON = "a"
+/** Versjonen av kodinga — byt bokstav om banda endrar seg. «a» levde eit
+ *  par timar på ei førehandsvising og las view med radiks 3; «b» gjev dei
+ *  tre små felta fast radiks med rom å vekse i, so eit nytt ledd aldri
+ *  meir krev ein ny bokstav. */
+const VERSJON = "b"
 
 /** motor → bokstav, fryst. Fjerna motorar (flett, kote, karve) fekk
  *  aldri ein bokstav; lenkjene deira var #p= og fell til standard. */
@@ -39,12 +42,17 @@ const BOKSTAV_MOTOR: Record<string, EngineId> = Object.fromEntries(
   Object.entries(MOTOR_BOKSTAV).map(([m, b]) => [b, m as EngineId]),
 )
 
-/** frosne rekkjefylgjer for dei tre vala utanfor parameterrommet */
-const VIEWS: readonly View[] = ["flate", "lag", "kontur"]
+/** Frosne rekkjefylgjer for dei tre vala utanfor parameterrommet — nye
+ *  ledd VERT LAGDE TIL bakarst. Radiksane har rom å vekse i, so eit
+ *  tillegg aldri flytter eit einaste bit. */
+const VIEWS: readonly View[] = ["flate", "lag", "kontur", "last"]
+const VIEW_RADIX = 8
 const MATERIAL: readonly string[] = ["bjork", "bok", "poppel"]
+const MATERIAL_RADIX = 8
 const BEIS: readonly string[] = [
   "natur", "aho", "kvit", "petrol", "marine", "gron", "rust", "svart",
 ]
+const BEIS_RADIX = 16
 
 /** kor mange trinn eit band har — indeksane går frå 0 til og med steps */
 const trinn = (min: number, max: number, step: number) =>
@@ -85,9 +93,9 @@ export function kortHash(
   const legg = (idx: number, radix: number) => {
     acc = acc * BigInt(radix) + BigInt(Math.min(radix - 1, Math.max(0, idx)))
   }
-  legg(Math.max(0, VIEWS.indexOf(view)), VIEWS.length)
-  legg(Math.max(0, BEIS.indexOf(beis)), BEIS.length)
-  legg(Math.max(0, MATERIAL.indexOf(String(params.material))), MATERIAL.length)
+  legg(Math.max(0, VIEWS.indexOf(view)), VIEW_RADIX)
+  legg(Math.max(0, BEIS.indexOf(beis)), BEIS_RADIX)
+  legg(Math.max(0, MATERIAL.indexOf(String(params.material))), MATERIAL_RADIX)
   for (const k of eng.keys) {
     const r = eng.ranges[k]
     const n = trinn(r.min, r.max, r.step)
@@ -135,8 +143,9 @@ export function lesHash(
     const n = trinn(r.min, r.max, r.step)
     obj[k] = +(r.min + dra(n + 1) * r.step).toFixed(4)
   }
-  obj.material = MATERIAL[dra(MATERIAL.length)]
-  obj.beis = BEIS[dra(BEIS.length)]
-  obj.view = VIEWS[dra(VIEWS.length)]
+  // ein indeks utanfor lista (frå ei framtidig lenkje) fell stilt til standard
+  obj.material = MATERIAL[dra(MATERIAL_RADIX)] ?? MATERIAL[0]
+  obj.beis = BEIS[dra(BEIS_RADIX)] ?? BEIS[1]
+  obj.view = VIEWS[dra(VIEW_RADIX)] ?? VIEWS[1]
   return { engine, obj }
 }

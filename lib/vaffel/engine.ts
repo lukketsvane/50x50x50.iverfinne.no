@@ -27,6 +27,7 @@ import { makeBody } from "./body"
 import { buildGrid } from "./ribs"
 import { DETAIL, contourLines, lagMesh, shellMesh } from "./mesh"
 import { measure } from "./metrics"
+import { feltPaMesh } from "./last"
 import { checkRules } from "./rules"
 import { buildParts } from "./parts"
 import { nest } from "./nest"
@@ -63,6 +64,8 @@ export const VAFFEL: EngineDef = {
   poses: POSAR,
   hovuddrag: HOVUDDRAG,
   unitLabel: "ribber",
+  // lastkartet: VAFFEL er svaret prosjektet landar på, og han svarar fyrst
+  kanLast: true,
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
   random: (rnd, prev, locked) =>
@@ -84,6 +87,14 @@ export const VAFFEL: EngineDef = {
     if (view === "lag") {
       const m = lagMesh(g)
       return { ...m, lines: EMPTY(), heavy: EMPTY() }
+    }
+
+    if (view === "last") {
+      // Lastkartet: same nett som «lag», med utnyttinga per hjørne attåt.
+      // Modellen står i last.ts og er den same som measure brukar — kartet
+      // og tavla kan ikkje seie kvar sitt.
+      const m = lagMesh(g)
+      return { ...m, felt: feltPaMesh(g, m.positions), lines: EMPTY(), heavy: EMPTY() }
     }
 
     // Konturteikninga legg ribbene flatt ved sida av kvarandre og fyller

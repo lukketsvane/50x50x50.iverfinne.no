@@ -52,6 +52,40 @@ export const BEIS: readonly { id: string; label: string; hex: string }[] = [
   { id: "svart", label: "svartbeisa", hex: "#2e2b28" },
 ]
 
+/**
+ * Skalaen til lastkartet, av husets eigne fargar: marine → petrol → sand
+ * → aho-oransje → mørkraud. 0 er urørt, 1,0 ER kapasiteten — same talet
+ * som «utnytting» i tavla. Fargane vert rekna per hjørne éin gong per
+ * bygg; shaderen les dei som vanlege vertex-fargar.
+ */
+const LAST_STOPP: readonly [number, number, number, number][] = [
+  [0.0, 0x2b / 255, 0x4a / 255, 0x68 / 255],
+  [0.3, 0x3f / 255, 0x7d / 255, 0x8c / 255],
+  [0.55, 0xe9 / 255, 0xe2 / 255, 0xd2 / 255],
+  [0.8, 0xed / 255, 0x52 / 255, 0x0f / 255],
+  [1.0, 0x7f / 255, 0x1d / 255, 0x1d / 255],
+]
+
+function feltFargar(felt: Float32Array): Float32Array {
+  const out = new Float32Array(felt.length * 3)
+  for (let i = 0; i < felt.length; i++) {
+    // Kvadratrotskala. Eit lovleg møbel ligg under 40 % utnytting, og på
+    // lineær skala var heile kartet då marineblått. Rota spreier den låge
+    // enden utan å lyge om tala: skalaen i panelet er teikna med SAME
+    // rot, so ein farge peikar på same prosent begge stader.
+    const u = Math.sqrt(Math.min(1, Math.max(0, felt[i])))
+    let k = 1
+    while (k < LAST_STOPP.length - 1 && LAST_STOPP[k][0] < u) k++
+    const a = LAST_STOPP[k - 1]
+    const b = LAST_STOPP[k]
+    const t = (u - a[0]) / (b[0] - a[0] || 1)
+    out[i * 3] = a[1] + (b[1] - a[1]) * t
+    out[i * 3 + 1] = a[2] + (b[2] - a[2]) * t
+    out[i * 3 + 2] = a[3] + (b[3] - a[3]) * t
+  }
+  return out
+}
+
 function makeStriped(
   color: string,
   roughness: number,
@@ -194,6 +228,10 @@ export function ObjectMesh({
         }
       }
       g.setAttribute("aKant", new THREE.BufferAttribute(kant, 1))
+      // lastkartet: utnyttinga per hjørne, ferdig farga etter skalaen
+      if (data.view === "last" && data.felt && data.felt.length === nv) {
+        g.setAttribute("color", new THREE.BufferAttribute(feltFargar(data.felt), 3))
+      }
       // Kula kjem frå min/maks motoren alt har rekna — å skanne kvart
       // hjørne ein gong til her ville kosta ein full gjennomgang av
       // nettet per bygg, på hovudtråden, for eit tal vi alt har.
@@ -255,6 +293,19 @@ export function ObjectMesh({
     [dark, rough],
   )
   useEffect(() => () => mat.dispose(), [mat])
+  // Lastkartet sitt eige materiale: berre fargane, ingen ved og inga beis
+  // — kartet er ei måling, ikkje eit materiale.
+  const matLast = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.85,
+        metalness: 0,
+        side: THREE.DoubleSide,
+      }),
+    [],
+  )
+  useEffect(() => () => matLast.dispose(), [matLast])
   useEffect(() => {
     uPly.current.value = stripePly
     uBeisOn.current.value = beis ? 1 : 0
@@ -280,7 +331,12 @@ export function ObjectMesh({
           </lineSegments>
         </>
       ) : (
-        <mesh geometry={built.g} castShadow receiveShadow material={mat} />
+        <mesh
+          geometry={built.g}
+          castShadow
+          receiveShadow
+          material={data?.view === "last" && data.felt?.length ? matLast : mat}
+        />
       )}
     </group>
   )
