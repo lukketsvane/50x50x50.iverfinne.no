@@ -25,6 +25,7 @@ import { alleArkSvg } from "../vaffel/export-svg"
 import { buildSlices, DETAIL } from "./profile"
 import { contourLines, lagMesh, loftMesh } from "./mesh"
 import { feltPaMesh, lastVerste } from "./last"
+import { finmaskNett } from "../lastnett"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
 import { buildParts } from "./parts"
@@ -83,9 +84,11 @@ export const SKIVE: EngineDef = {
     }
 
     if (view === "last") {
-      // Lastkartet: same nett som «lag», med utnyttinga per hjørne attåt.
+      // Lastkartet: same nett som «lag», FINMASKA so hjørna samplar feltet
+      // tett nok — store flate trekantar smører fargane diagonalt elles.
       // Ankeret er det analytiske maksimumet — same talet som tavla viser.
-      const m = lagMesh(p, b)
+      const m0 = lagMesh(p, b)
+      const m = { ...m0, ...finmaskNett(m0) }
       return {
         ...m,
         felt: feltPaMesh(p, b, m.positions),

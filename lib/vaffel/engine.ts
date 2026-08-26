@@ -29,6 +29,7 @@ import { DETAIL, contourLines, lagMesh, shellMesh } from "./mesh"
 import { measure } from "./metrics"
 import { feltPaMesh, lastVerste } from "./last"
 import { lastForm } from "./lastform"
+import { finmaskNett } from "../lastnett"
 import { checkRules } from "./rules"
 import { buildParts } from "./parts"
 import { nest } from "./nest"
@@ -92,10 +93,12 @@ export const VAFFEL: EngineDef = {
     }
 
     if (view === "last") {
-      // Lastkartet: same nett som «lag», med utnyttinga per hjørne attåt.
-      // Modellen står i last.ts og er den same som measure brukar — kartet
-      // og tavla kan ikkje seie kvar sitt.
-      const m = lagMesh(g)
+      // Lastkartet: same nett som «lag», FINMASKA — store flate trekantar
+      // smører hjørnefargane lineært diagonalt over flata, og då synte
+      // kartet interpolasjonen i staden for feltet. Utnyttinga per hjørne
+      // attåt; modellen står i last.ts og er den same som measure brukar.
+      const m0 = lagMesh(g)
+      const m = { ...m0, ...finmaskNett(m0) }
       // Ankeret er det analytiske maksimumet, ikkje hjørna sitt: hjørna
       // samplar og glattar smale toppar, og fargane skal strekkjast mot
       // det talet tavla faktisk viser.
