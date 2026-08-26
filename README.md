@@ -25,6 +25,31 @@ eige parameterrom, sine eigne ledd og si eiga grense — og det er grensene
 som skil dei. Kvar motor held på sitt eige punkt: byter du fram og attende,
 står objektet der du forlét det.
 
+## Inngangane
+
+Eit parameterrom med 21 til 45 band er ikkje eit grensesnitt — det er eit
+arkiv. Panelet har difor tre nivå, og skyvarveggen er det siste av dei:
+
+**Posane.** Kvar motor ber ei lita liste namngjevne punkt — handdesigna
+utgangspunkt som terningen alltid har jittra kring. No står dei som chips
+øvst i panelet, med «standard» fyrst: eit trykk er eit hopp til nøyaktig
+det punktet. Posane er ikkje ein presetmeny av ferdige svar; dei er
+inngangar i rommet, og alt dei peikar på kan skruast vidare.
+
+**Hovuddraga.** Tre til seks kontrollar per motor som styrer det som
+verkeleg formar: høgd, plan, midje, sete, delingsgrad. Eit drag kan flytte
+fleire band saman — BOGE i vaffel flytter høgda og begge breiddene på
+kvelvinga i eitt tak — men det opnar aldri eit nytt: alt eit drag gjer,
+kan gjerast med skyvarane bak, og veggen ser alt draget gjorde.
+
+**Alt.** Måltavla og heile skyvarveggen står bak ein knapp som seier kva
+han er. Finstilling, ikkje fyrsteinntrykk.
+
+På lerretet skrur to fingrar dei to banda som formar mest (per motor), og
+ein chip syner bandet og talet medan draget går. Terningen kastar, avlen
+søkjer — dei to er dei generative hovudflytane, og båe respekterer låste
+skruar.
+
 ## Dei to aksane
 
 Prosjektet spissar seg mot konseptpresentasjonen, og konseptet er ei

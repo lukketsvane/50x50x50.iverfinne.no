@@ -355,7 +355,7 @@ export function Studio() {
   // rammar inn objektet i bandet som står att, i staden for å late arket
   // gøyme det. Tala er målte, ikkje utleidde: arket er innhaldsstyrt.
   const pad = isDesktop
-    ? mode === "lukka" ? 0.07 : mode === "halv" ? 0.52 : 0.58
+    ? mode === "lukka" ? 0.07 : mode === "halv" ? 0.52 : 0.64
     : mode === "lukka" ? 0.1 : mode === "halv" ? 0.55 : 0.62
 
   // gestechipen: namnet på bandet gesten skrur på, og talet det står i no
@@ -397,11 +397,13 @@ export function Studio() {
         </a>
       </header>
 
-      {/* gesten får eit namn medan han går: kva band, kva tal */}
+      {/* gesten får eit namn medan han går: kva band, kva tal. Chipen står
+          rett over arkkanten, same kva steg arket er i. */}
       {hud && hudR && hudVal !== null && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+76px)] z-10 flex justify-center"
+          className="pointer-events-none absolute inset-x-0 z-10 flex justify-center"
+          style={{ bottom: `calc(${(pad * 100).toFixed(0)}% + 18px)` }}
         >
           <div
             className="flex items-baseline gap-2 rounded-full border px-3.5 py-1.5 text-[11px]"
