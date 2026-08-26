@@ -688,11 +688,8 @@ export function ControlsPanel(props: {
             1fr i staden for at innhaldet sprett inn og ut, og eit lukka
             ark er `inert` so ingen knapp bak kanten kan få fokus. */}
         <div
-          style={{
-            display: "grid",
-            gridTemplateRows: open ? "1fr" : "0fr",
-            transition: "grid-template-rows 280ms ease",
-          }}
+          className="glid"
+          style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr" }}
         >
           <div className="min-h-0 overflow-hidden">
           <div
@@ -929,11 +926,8 @@ export function ControlsPanel(props: {
             {/* «alt»-nivået glid òg: alltid montert, høgda mellom 0fr og
                 1fr, inert når det er samanfalde */}
             <div
-              style={{
-                display: "grid",
-                gridTemplateRows: mode === "full" ? "1fr" : "0fr",
-                transition: "grid-template-rows 280ms ease",
-              }}
+              className="glid"
+              style={{ display: "grid", gridTemplateRows: mode === "full" ? "1fr" : "0fr" }}
             >
               <div className="min-h-0 overflow-hidden" inert={mode !== "full"}>
             <h3 className="mt-3 pb-0.5 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
