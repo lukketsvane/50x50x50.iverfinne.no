@@ -90,7 +90,6 @@ export function Viewer({
   stripePly,
   beis,
   material,
-  hiDetail,
   pad,
   light,
   onNudge,
@@ -105,7 +104,6 @@ export function Viewer({
   beis: string
   /** materialvalet frå panelet — bjork/bok/poppel/mdf/akryl */
   material: string
-  hiDetail: boolean
   /** kor stor del av skjermhøgda arket nedst dekkjer, 0–0,7 */
   pad: number
   light: LightDir
@@ -113,16 +111,25 @@ export function Viewer({
   onLight: (dxPx: number, dyPx: number) => void
 }) {
   const bg = dark ? "#000000" : "#ffffff"
-  const shadow = hiDetail ? 4096 : 2048
-  // Éi styrbar hovudlyskjelde på ein fast kuppel, pluss to svake fyll.
-  // Ingen omgjevingskart og ingen mjuk kontaktflekk: eit møbel skal kaste
-  // éin hard skugge, slik det gjer i eit verkstadlys.
+  const shadow = 4096
+  // Éi styrbar hovudlyskjelde på ein fast kuppel — sjå kommentaren ved
+  // lyset sjølv. Scena teiknar berre på etterspurnad, so det store
+  // skuggekartet kostar minne, ikkje bilete i sekundet.
   const lightPos = useMemo<[number, number, number]>(() => {
     const R = 8.6
     const h = R * Math.cos(light.el)
     return [h * Math.cos(light.az), R * Math.sin(light.el), h * Math.sin(light.az)]
   }, [light])
   const [fit, setFit] = useState<{ r: number; cy: number } | null>(null)
+  // Skuggekameraet SÅ TRANGT som objektet tillèt: før stod frustumet på
+  // ±5 einingar (2,5 meter) same kva som stod i scena, og kvar teksel
+  // dekte over ein millimeter. No fylgjer det objektradien pluss rommet
+  // slagskuggen treng ved låg sol — kvantisert i halve einingar so lyset
+  // ikkje vert remontert for kvar minste radiusendring.
+  const skuggeVidd = useMemo(() => {
+    const r = fit?.r ?? 1.4
+    return Math.min(5, Math.ceil((r * 1.5 + 1.9) * 2) / 2)
+  }, [fit])
   // Stabil identitet heile vegen, elles går scena i sjølvsving: ein
   // onFit-lambda laga på nytt per teikning fyrer ObjectMesh sin effekt på
   // nytt, effekten lagar eit nytt fit-objekt, det nye objektet teiknar
@@ -160,21 +167,21 @@ export function Viewer({
           éi hard, varm lyskjelde med skarpkanta skugge, og det som vender
           bort frå henne ligg i mørker, slik det gjer i sollys. */}
       <directionalLight
-        key={shadow}
+        key={`${shadow}-${skuggeVidd}`}
         position={lightPos}
         color="#fff9f0"
         intensity={3.4}
         castShadow
         shadow-mapSize={[shadow, shadow]}
-        shadow-radius={1.4}
-        shadow-bias={-0.0002}
-        shadow-normalBias={0.05}
-        shadow-camera-left={-5}
-        shadow-camera-right={5}
-        shadow-camera-top={5}
-        shadow-camera-bottom={-5}
+        shadow-radius={1.2}
+        shadow-bias={-0.00015}
+        shadow-normalBias={0.03}
+        shadow-camera-left={-skuggeVidd}
+        shadow-camera-right={skuggeVidd}
+        shadow-camera-top={skuggeVidd}
+        shadow-camera-bottom={-skuggeVidd}
         shadow-camera-near={0.5}
-        shadow-camera-far={24}
+        shadow-camera-far={16}
       />
 
 
