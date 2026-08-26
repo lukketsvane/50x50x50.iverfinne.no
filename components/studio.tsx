@@ -359,6 +359,15 @@ export function Studio() {
   const liveSyn = syn && syn.engine === engine ? syn.svg : null
   const metrics: Metrics | null = liveTal?.metrics ?? null
   const rules: Rule[] = useMemo(() => liveTal?.rules ?? [], [liveTal])
+  // det verste punktet i lastkartet, i prosent av kapasiteten — fargane i
+  // kartet er strekte til dette talet, og skalaen i panelet må seie det
+  const lastMaks = useMemo(() => {
+    const f = live?.felt
+    if (!f || !f.length) return 0
+    let m = 0
+    for (let i = 0; i < f.length; i++) if (f[i] > m) m = f[i]
+    return m
+  }, [live])
 
   // Kor stor del av skjermhøgda arket dekkjer i kvart steg — kameraet
   // rammar inn objektet i bandet som står att, i staden for å late arket
@@ -445,6 +454,7 @@ export function Studio() {
         metrics={metrics}
         rules={rules}
         view={view}
+        lastMaks={lastMaks}
         beis={beis}
         syn={liveSyn}
         engineLock={engineLock}

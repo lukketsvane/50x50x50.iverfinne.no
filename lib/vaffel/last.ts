@@ -15,9 +15,11 @@
  *
  * Same last (1600 N etter NS-EN 1728, delt på fire ribber), same
  * kapasitetar (NS-EN 1995-1-1). Verdien 1,0 ER kapasiteten — kartet og
- * tavla kan ikkje seie kvar sitt. Det kartet IKKJE er: elementmetode.
- * Ingen samverknad mellom ribbene, inga skiveverknad i rutenettet — det
- * er eit overslag, og det seier det sjølv.
+ * tavla kan ikkje seie kvar sitt. Ei ribbe som ikkje når golvet sjølv
+ * spenner mellom dei ytste kryssa sine i staden for å falle ut av
+ * rekninga. Det kartet IKKJE er: elementmetode. Ingen samverknad utover
+ * kryssoverføringa, inga skiveverknad i rutenettet — det er eit overslag,
+ * og det seier det sjølv.
  */
 import { SEAT_LOAD, capacities, type Material } from "../core"
 import type { Grid, Rib } from "./ribs"
@@ -49,17 +51,37 @@ export function lastFelt(g: Grid): LastFelt {
 
   const build = (r: Rib): RibFelt | null => {
     const foot = runsOnRib(r, 1.2)
-    if (foot.length < 2) return null
-    const legL = (foot[0][0] + foot[0][1]) / 2
-    const legR = (foot[foot.length - 1][0] + foot[foot.length - 1][1]) / 2
+    let legL: number
+    let legR: number
+    let uc: number
+    if (foot.length >= 2) {
+      legL = (foot[0][0] + foot[0][1]) / 2
+      legR = (foot[foot.length - 1][0] + foot[foot.length - 1][1]) / 2
+      const legW = Math.min(
+        foot[0][1] - foot[0][0],
+        foot[foot.length - 1][1] - foot[foot.length - 1][0],
+      )
+      uc = nLoad / 2 / Math.max(1, legW * p.ribbT) / cap.capC
+    } else {
+      // Ribba når ikkje golvet sjølv — bogen har lyfta henne. Ho ber
+      // likevel: lasta går ut i kryssa og ned dei kryssande ribbene, so
+      // overslaget lèt henne spenne mellom dei YTSTE kryssa sine. Utan
+      // bein er trykkleddet null. Før returnerte desse ribbene null, og
+      // då stod halve nettet med eksakt 0 i kartet — som om dei indre
+      // ribbene ikkje fanst for lasta i det heile.
+      if (r.slots.length < 2) return null
+      let lo = Infinity
+      let hi = -Infinity
+      for (const q of r.slots) {
+        if (q.t < lo) lo = q.t
+        if (q.t > hi) hi = q.t
+      }
+      legL = lo
+      legR = hi
+      uc = 0
+    }
     const span = legR - legL
     if (span < 1) return null
-
-    const legW = Math.min(
-      foot[0][1] - foot[0][0],
-      foot[foot.length - 1][1] - foot[foot.length - 1][0],
-    )
-    const uc = nLoad / 2 / Math.max(1, legW * p.ribbT) / cap.capC
 
     const z0: number[] = []
     const z1: number[] = []

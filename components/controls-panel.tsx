@@ -55,7 +55,7 @@ const VIEWS: readonly { id: View; label: string; hint: string }[] = [
   { id: "lag", label: "lag", hint: "delane slik dei faktisk er, montert" },
   { id: "kontur", label: "kontur", hint: "dei flate kuttprofilane" },
   // berre motorar med kanLast får denne chipen — sjå filtreringa i rada
-  { id: "last", label: "last", hint: "lastkartet: utnyttinga under 1600 N (NS-EN 1728), måla på flata" },
+  { id: "last", label: "last", hint: "lastkartet: kvar lasta frå NS-EN 1728 bur i objektet — fargane strekte til det verste punktet, maksimumet står ved skalaen" },
 ]
 
 const EXPORTS: readonly { id: "stl" | "dxf" | "svg" | "ark"; label: string; hint: string }[] = [
@@ -356,6 +356,8 @@ export function ControlsPanel(props: {
   metrics: Metrics | null
   rules: Rule[]
   view: View
+  /** det verste punktet i lastkartet, som del av kapasiteten (0–1) */
+  lastMaks: number
   beis: string
   /** flatene som bilete (SVG-tekst), generert automatisk av arbeidaren */
   syn: string | null
@@ -390,6 +392,7 @@ export function ControlsPanel(props: {
     metrics,
     rules,
     view,
+    lastMaks,
     beis,
     syn,
     engineLock,
@@ -918,9 +921,12 @@ export function ControlsPanel(props: {
               )}
             </div>
 
-            {/* Skalaen til lastkartet, berre når det står på: null til
-                kapasiteten, med lasta i midten som namn. Kartet og tavla
-                les same tal — 100 % HER er 100 % DER. */}
+            {/* Skalaen til lastkartet, berre når det står på. Fargane er
+                strekte til objektet sitt eige verste punkt — elles var
+                heile kartet blått på kvart einaste lovlege møbel — og
+                DERFOR må skalaen seie kva det verste punktet er: talet til
+                høgre er maksimumet i prosent av kapasiteten under 1600 N,
+                same rekning som «utnytting» i tavla. */}
             {view === "last" && (
               <div className="flex items-center gap-2 py-1 text-[10px]">
                 <span className="tab opacity-55">0</span>
@@ -933,8 +939,11 @@ export function ControlsPanel(props: {
                       "linear-gradient(90deg, #2b4a68, #3f7d8c 55%, #e9e2d2 74%, #ed520f 89%, #7f1d1d)",
                   }}
                 />
-                <span className="tab opacity-55">kapasitet</span>
-                <span className="uppercase tracking-[0.14em] opacity-40">1600 N</span>
+                <span className="tab opacity-55">maks</span>
+                <span className="tab">
+                  {lastMaks > 0 ? `${n0(lastMaks * 100)} %` : DASH}
+                </span>
+                <span className="uppercase tracking-[0.14em] opacity-40">av 1600 N-kapasiteten</span>
               </div>
             )}
 

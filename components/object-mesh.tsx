@@ -54,9 +54,10 @@ export const BEIS: readonly { id: string; label: string; hex: string }[] = [
 
 /**
  * Skalaen til lastkartet, av husets eigne fargar: marine → petrol → sand
- * → aho-oransje → mørkraud. 0 er urørt, 1,0 ER kapasiteten — same talet
- * som «utnytting» i tavla. Fargane vert rekna per hjørne éin gong per
- * bygg; shaderen les dei som vanlege vertex-fargar.
+ * → aho-oransje → mørkraud. 0 er urørt, 1,0 er objektet sitt VERSTE punkt
+ * — kva det punktet er i prosent av kapasiteten, står ved skalaen i
+ * panelet. Fargane vert rekna per hjørne éin gong per bygg; shaderen les
+ * dei som vanlege vertex-fargar.
  */
 const LAST_STOPP: readonly [number, number, number, number][] = [
   [0.0, 0x2b / 255, 0x4a / 255, 0x68 / 255],
@@ -67,13 +68,21 @@ const LAST_STOPP: readonly [number, number, number, number][] = [
 ]
 
 function feltFargar(felt: Float32Array): Float32Array {
+  // Strekt til objektet sitt eige maksimum. På absoluttskalaen ligg eit
+  // lovleg møbel under 40 % utnytting og det meste av godset under 10 —
+  // då var HEILE kartet blått, same kva ein skrudde på, og eit kart som
+  // alltid seier det same seier ingenting. Relativt syner kartet det han
+  // finst for: KVAR lasta bur i objektet. Kva maksimumet er i prosent av
+  // kapasiteten står ved skalaen i panelet, so absoluttalet er ikkje
+  // gøymt — det er flytta dit tal høyrer heime.
+  let maks = 0
+  for (let i = 0; i < felt.length; i++) if (felt[i] > maks) maks = felt[i]
+  const inv = maks > 1e-6 ? 1 / maks : 0
   const out = new Float32Array(felt.length * 3)
   for (let i = 0; i < felt.length; i++) {
-    // Kvadratrotskala. Eit lovleg møbel ligg under 40 % utnytting, og på
-    // lineær skala var heile kartet då marineblått. Rota spreier den låge
-    // enden utan å lyge om tala: skalaen i panelet er teikna med SAME
-    // rot, so ein farge peikar på same prosent begge stader.
-    const u = Math.sqrt(Math.min(1, Math.max(0, felt[i])))
+    // Kvadratrota spreier den låge enden; skalaen i panelet er teikna
+    // med same rot, so ein farge peikar på same relative nivå begge stader.
+    const u = Math.sqrt(Math.min(1, Math.max(0, felt[i] * inv)))
     let k = 1
     while (k < LAST_STOPP.length - 1 && LAST_STOPP[k][0] < u) k++
     const a = LAST_STOPP[k - 1]
