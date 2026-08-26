@@ -612,10 +612,21 @@ function fiksTerning(q: Params, locked: ReadonlySet<string>): Params {
   return q
 }
 
+/** produksjonsval, ikkje form: tjukner og ledd vel ein etter plata og
+ *  maskina ein faktisk har — terningen rører dei aldri */
+const FREDA = ["bladeT", "bandT", "seatT", "fit", "relief", "corner", "bit"] as const
+
 export const randomParams = (
   rnd: () => number,
   prev: Params,
-  locked: ReadonlySet<string> = new Set(),
+  laastInn: ReadonlySet<string> = new Set(),
+): Params =>
+  randomMedFreda(rnd, prev, new Set([...laastInn, ...FREDA]))
+
+const randomMedFreda = (
+  rnd: () => number,
+  prev: Params,
+  locked: ReadonlySet<string>,
 ): Params =>
   fiksTerning(
     (poseBag(

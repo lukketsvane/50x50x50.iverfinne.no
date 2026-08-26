@@ -19,7 +19,10 @@ import type {
   ExportOut,
   ParamBag,
   View,
+  Maskin,
 } from "../core"
+import { LASER } from "../core"
+import { skalerDelar } from "../nestraster"
 import { meshToStl } from "../skal/export-stl"
 import { makeBody, type Body } from "./body"
 import { buildParts, type Build } from "./parts"
@@ -141,7 +144,7 @@ export const STRAUM: EngineDef = {
     return checkRules(p, m, { body: c.body, build: c.parts() })
   },
 
-  exportFile(bag: ParamBag, what: ExportKind): ExportOut {
+  exportFile(bag: ParamBag, what: ExportKind, maskin?: Maskin): ExportOut {
     const p = asP(bag)
     const { body: bd, parts } = ctx(p)
     if (what === "stl") {
@@ -152,17 +155,20 @@ export const STRAUM: EngineDef = {
         data: bytes.buffer.slice(0) as ArrayBuffer,
       }
     }
-    if (what === "dxf") {
-      return {
-        name: "straum.dxf",
-        mime: "application/dxf",
-        text: partsToDxf(nest(parts().parts)),
+    if (what === "dxf" || what === "ark") {
+      // laseren: modellskala tjukn/finneT — og ÉI plate for alt: sokkel
+      // og kappe vert kutta or same tynne arket som finnane
+      const laser = maskin?.id === "laser" ? maskin : null
+      const s = laser ? laser.tjukn / p.finneT : 1
+      let dl = skalerDelar(parts().parts, s)
+      if (laser) dl = dl.map((q) => ({ ...q, t: laser.tjukn }))
+      const ns = nest(dl, laser ? LASER : undefined)
+      const merk = laser ? "-laser" : ""
+      if (what === "dxf") {
+        return { name: "straum" + merk + ".dxf", mime: "application/dxf", text: partsToDxf(ns) }
       }
-    }
-    if (what === "ark") {
-      const ns = nest(parts().parts)
       return {
-        name: "straum-" + ns.sheets.length + "ark.svg",
+        name: "straum-" + ns.sheets.length + "ark" + merk + ".svg",
         mime: "image/svg+xml",
         text: alleArkSvg(ns),
       }

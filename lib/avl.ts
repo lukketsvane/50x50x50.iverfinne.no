@@ -133,9 +133,6 @@ export function* avlGen(
   const frie = eng.keys.filter(
     (k) => !locked.has(k) && typeof p0[k] === "number" && eng.ranges[k],
   )
-  const materialFri = !locked.has("material")
-  const materialar = Object.keys(MATERIALS)
-
   // utgløding: store steg fyrst, små til slutt. Temperaturen er i same
   // eining som målet (dm³), så eit oppoversteg på ein tidels liter er
   // sannsynleg tidleg og utenkjeleg seint.
@@ -150,11 +147,10 @@ export function* avlGen(
     let kandidat: ParamBag
     const kast = rnd()
     if (kast < 0.06) {
-      // terningen, med motoren sin eigen reparasjon — hopp ut av dalen
+      // terningen, med motoren sin eigen reparasjon — hopp ut av dalen.
+      // Materialet står: det er eit produksjonsval, ikkje ein akse søket
+      // eig — avlen optimerer objektet i plata brukaren faktisk har.
       kandidat = eng.random(rnd, noverande.p, locked)
-    } else if (kast < 0.1 && materialFri) {
-      const andre = materialar.filter((q) => q !== noverande.p.material)
-      kandidat = { ...noverande.p, material: andre[Math.floor(rnd() * andre.length)] }
     } else {
       const n = 1 + Math.floor(rnd() * 3)
       const b: ParamBag = { ...noverande.p }

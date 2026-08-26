@@ -464,11 +464,16 @@ function repair(q: Params, locked: ReadonlySet<string>): Params {
   return q
 }
 
+/** produksjonsval, ikkje form: tjukner og innpassing vel ein etter plata
+ *  og maskina ein faktisk har — terningen rører dei aldri */
+const FREDA = ["finneT", "sokkelT", "kappeT", "pressfit", "fresD"] as const
+
 export function randomParams(
   rnd: () => number,
   prev: Params,
-  locked: ReadonlySet<string> = new Set(),
+  laastInn: ReadonlySet<string> = new Set(),
 ): Params {
+  const locked = new Set([...laastInn, ...FREDA])
   const posed = poseBag(
     rnd,
     prev as unknown as ParamBag,

@@ -256,15 +256,20 @@ export function clampParams(o: unknown, prev: Params): Params {
   return clampBag(o, prev, PARAM_RANGES, PARAM_KEYS)
 }
 
+/** produksjonsval, ikkje form: tjukna og innpassinga vel ein etter plata
+ *  og maskina ein faktisk har — terningen rører dei aldri */
+const FREDA = ["ribbT", "pressfit", "lapp"] as const
+
 export function randomParams(
   rnd: () => number,
   prev: Params,
   locked: ReadonlySet<string> = new Set(),
 ): Params {
-  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, locked)
-  const q = posed ?? randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked)
+  const laast = new Set([...locked, ...FREDA])
+  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, laast)
+  const q = posed ?? randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, laast)
   // Terningen får kaste kva han vil, men krava er summar av fleire tal og
   // eit fritt kast bryt dei oftare enn ikkje. Reparasjonen rører berre
   // ulåste skyvarar, alltid innanfor banda — sjå reparasjon.ts.
-  return applyFix(q, locked, PARAM_RANGES)
+  return applyFix(q, laast, PARAM_RANGES)
 }

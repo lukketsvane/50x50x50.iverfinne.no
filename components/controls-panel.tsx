@@ -14,6 +14,7 @@ import {
   applyDrag,
   type EngineId,
   type Hovuddrag,
+  type Maskin,
   type Material,
   type Metrics,
   type ParamBag,
@@ -71,6 +72,8 @@ const WOOD: Record<Material, string> = {
   bjork: "#e9dcc0",
   bok: "#d9b48d",
   poppel: "#f2ead2",
+  mdf: "#b09a7e",
+  akryl: "#cfe4e6",
 }
 
 const DASH = "–"
@@ -514,6 +517,9 @@ export function ControlsPanel(props: {
   onToggleDetail: () => void
   onExport: (kind: "stl" | "dxf" | "svg" | "ark") => void
   onShare: () => void
+  /** maskina som skal kutte — styrer eksportane, aldri terningen */
+  maskin: Maskin
+  onMaskin: (m: Maskin) => void
 }): JSX.Element {
   const {
     engine,
@@ -545,6 +551,8 @@ export function ControlsPanel(props: {
     onToggleDetail,
     onExport,
     onShare,
+    maskin,
+    onMaskin,
   } = props
 
   // lukka → halv (posar, hovuddrag, lesemåtar, eksport) → full («alt»)
@@ -1188,7 +1196,45 @@ export function ControlsPanel(props: {
             {/* materialet og beisen i EI rad: fargen ER etiketten, namna
                 ligg i title. Beisen sit på plateflatene; kutta står som rå
                 finér — kvar motor merkjer sjølv kva som er kva. */}
+            {/* maskina fyrst: ho avgjer kva kuttfilene ER. Fresen skjer
+                1:1 or heil plate; laseren gjev ein modell i skala
+                tjukn/hovudtjukn på 600 × 400-senga, so spora passar. */}
             <div className="flex flex-wrap items-center gap-1.5 py-1">
+              <button
+                type="button"
+                aria-pressed={maskin.id === "fres"}
+                title="CNC-fres · heil plate · kuttfilene 1:1"
+                onClick={() => onMaskin({ id: "fres" })}
+                className={CHIP}
+                style={chipStyle(maskin.id === "fres")}
+              >
+                fres
+              </button>
+              <button
+                type="button"
+                aria-pressed={maskin.id === "laser"}
+                title="laserkuttar · seng 600 × 400 mm · kuttfilene vert modell i skala tjukn/platetjukn, so kvart spor passar arket"
+                onClick={() => onMaskin({ id: "laser", tjukn: maskin.id === "laser" ? maskin.tjukn : 3 })}
+                className={CHIP}
+                style={chipStyle(maskin.id === "laser")}
+              >
+                laser
+              </button>
+              {maskin.id === "laser" &&
+                [2, 3].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    aria-pressed={maskin.tjukn === t}
+                    title={`arktjukn ${t} mm — set modellskalaen`}
+                    onClick={() => onMaskin({ id: "laser", tjukn: t })}
+                    className={CHIP + " tab"}
+                    style={chipStyle(maskin.tjukn === t)}
+                  >
+                    {t} mm
+                  </button>
+                ))}
+              <span aria-hidden="true" className="mx-1 h-4 w-px" style={{ background: "var(--rule)" }} />
               {(Object.keys(MATERIALS) as Material[]).map((mk) => (
                 <button
                   key={mk}

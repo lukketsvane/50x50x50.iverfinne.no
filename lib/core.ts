@@ -24,16 +24,21 @@ export type Vec3 = [number, number, number]
 // =============================================================================
 // MATERIALE
 // =============================================================================
-export type Material = "bjork" | "poppel" | "bok"
+export type Material = "bjork" | "poppel" | "bok" | "mdf" | "akryl"
 
 export const MATERIALS: Record<
   Material,
   { label: string; rho: number; fmk: number; fck: number }
 > = {
-  // rho kg/m³ · fm,k og fc,k i MPa, karakteristiske verdiar for finér
+  // rho kg/m³ · fm,k og fc,k i MPa, karakteristiske verdiar. Finér er
+  // fresarvegen; MDF og akryl er laservegen — tynne plater til modellar
+  // og småting. kmod/γM er treverdiar og vert borne konservativt av dei
+  // andre òg; for ein laserkutta modell er styrken uansett ikkje saka.
   bjork: { label: "bjørkefinér", rho: 680, fmk: 40, fck: 26 },
   bok: { label: "bøkefinér", rho: 720, fmk: 44, fck: 28 },
   poppel: { label: "poppelkjerne", rho: 460, fmk: 24, fck: 15 },
+  mdf: { label: "MDF", rho: 750, fmk: 18, fck: 10 },
+  akryl: { label: "akryl (PMMA)", rho: 1190, fmk: 60, fck: 65 },
 }
 
 /** NS-EN 1728, kontraktnivå: 1600 N konsentrert på setet. */
@@ -299,6 +304,19 @@ export type View = "flate" | "lag" | "kontur" | "last"
 
 export type ExportKind = "stl" | "dxf" | "svg" | "ark"
 
+/**
+ * Maskina som skal kutte. Fresen skjer 1:1 or heil plate; laseren kuttar
+ * tynne MDF- eller akrylark på ei lita seng, og då vert kuttfilene ein
+ * MODELL: heile geometrien skalert med tjukn/hovudtjukn, so kvart spor
+ * framleis passar plata nøyaktig — det er den einaste skaleringa som
+ * held fugene sanne. Laserens eigen kerf (~0,15 mm) gjev klaringa.
+ */
+export type Maskin = { id: "fres" } | { id: "laser"; tjukn: number }
+
+/** laserseng og luft — 600 × 400 er den vanlege verkstadlaseren, og to
+ *  millimeter mellom delane er rikeleg for ein strålebreidd under 0,2 */
+export const LASER = { sheetW: 600, sheetH: 400, gap: 2, cell: 2 }
+
 export type BuildOut = {
   positions: Float32Array<ArrayBufferLike>
   normals: Float32Array<ArrayBufferLike>
@@ -447,7 +465,7 @@ export type EngineDef = {
   build(p: ParamBag, detail: DetailKey, view: View): BuildOut
   measure(p: ParamBag): Metrics
   rules(p: ParamBag, m: Metrics): Rule[]
-  exportFile(p: ParamBag, what: ExportKind): ExportOut
+  exportFile(p: ParamBag, what: ExportKind, maskin?: Maskin): ExportOut
 }
 
 // =============================================================================
