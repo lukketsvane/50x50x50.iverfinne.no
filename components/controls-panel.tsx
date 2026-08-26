@@ -881,44 +881,6 @@ export function ControlsPanel(props: {
               </div>
             )}
 
-            {/* materialet og beisen i EI rad: fargen ER etiketten, namna
-                ligg i title. Beisen sit på plateflatene; kutta står som rå
-                finér — kvar motor merkjer sjølv kva som er kva. */}
-            <div className="flex flex-wrap items-center gap-1.5 py-1.5">
-              {(Object.keys(MATERIALS) as Material[]).map((mk) => (
-                <button
-                  key={mk}
-                  type="button"
-                  aria-pressed={params.material === mk}
-                  aria-label={`materiale: ${MATERIALS[mk].label}`}
-                  title={MATERIALS[mk].label}
-                  onClick={() => onChange({ ...params, material: mk })}
-                  className="h-6 w-6 rounded-full border transition active:scale-90"
-                  style={{
-                    backgroundColor: WOOD[mk],
-                    borderColor: params.material === mk ? "var(--ink)" : "var(--rule)",
-                    boxShadow: params.material === mk ? "0 0 0 1px var(--ink)" : undefined,
-                  }}
-                />
-              ))}
-              <span aria-hidden="true" className="mx-1 h-4 w-px" style={{ background: "var(--rule)" }} />
-              {BEIS.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  aria-pressed={beis === b.id}
-                  aria-label={`beis: ${b.label}`}
-                  title={b.label}
-                  onClick={() => onBeis(b.id)}
-                  className="h-6 w-6 rounded-full border transition active:scale-90"
-                  style={{
-                    backgroundColor: b.hex || "#cfc7bb",
-                    borderColor: beis === b.id ? "var(--ink)" : "var(--rule)",
-                    boxShadow: beis === b.id ? "0 0 0 1px var(--ink)" : undefined,
-                  }}
-                />
-              ))}
-            </div>
 
             {/* reglane som ryk: éi line kvar, grunngjevinga i title. Panelet
                 seier KVA som er gale; KVIFOR ligg eit fingertrykk unna. */}
@@ -954,44 +916,6 @@ export function ControlsPanel(props: {
               </ul>
             )}
 
-            {/* flatene, automatisk: kvar del slik han ligg på plata. Det
-                ein før måtte laste ned ein SVG for å sjå, står i menyen og
-                fylgjer kvar einaste parameterendring. */}
-            {syn && (
-              <div
-                className="my-1.5 overflow-hidden rounded-2xl border p-2"
-                style={{ ...HAIR, background: "#ffffff" }}
-              >
-                {/* Arket ber talet sitt sjølv: kor stor del av den medgåtte
-                    plata som vert delar, og kor mange plater det tek. Det
-                    er den eine aksen i avfallsrekninga, rett på biletet av
-                    henne. */}
-                <div className="flex items-baseline justify-between px-1 pb-1 text-[10px]">
-                  <span className="uppercase tracking-[0.24em] opacity-35">arket</span>
-                  {metrics && (
-                    <span
-                      className="tab"
-                      style={{
-                        color: isHard(R_PLATE) ? "var(--warn)" : "var(--ink)",
-                        opacity: isHard(R_PLATE) ? 1 : 0.6,
-                        textDecoration: isSoft(R_PLATE) ? "underline dotted" : undefined,
-                        textUnderlineOffset: 3,
-                      }}
-                    >
-                      {n0(metrics.sheetUtil * 100)} % · {n0(metrics.sheets)}{" "}
-                      {metrics.sheets === 1 ? "plate" : "plater"}
-                    </span>
-                  )}
-                </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
-                  alt="alle flatene, slik dei ligg på plata"
-                  className="max-h-40 w-full object-contain"
-                  style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
-                />
-              </div>
-            )}
 
             {/* eksporten og verktøya i EI rad: fire filformat, attende til
                 standard, del lenkja */}
@@ -1045,6 +969,84 @@ export function ControlsPanel(props: {
               style={{ display: "grid", gridTemplateRows: mode === "full" ? "1fr" : "0fr" }}
             >
               <div className="min-h-0 overflow-hidden" inert={mode !== "full"}>
+            {/* Materialet, beisen og arket høyrer finstillinga til:
+                halvope ark er posane, draga og lesemåtane — resten bur her. */}
+            {/* materialet og beisen i EI rad: fargen ER etiketten, namna
+                ligg i title. Beisen sit på plateflatene; kutta står som rå
+                finér — kvar motor merkjer sjølv kva som er kva. */}
+            <div className="flex flex-wrap items-center gap-1.5 py-1.5">
+              {(Object.keys(MATERIALS) as Material[]).map((mk) => (
+                <button
+                  key={mk}
+                  type="button"
+                  aria-pressed={params.material === mk}
+                  aria-label={`materiale: ${MATERIALS[mk].label}`}
+                  title={MATERIALS[mk].label}
+                  onClick={() => onChange({ ...params, material: mk })}
+                  className="h-6 w-6 rounded-full border transition active:scale-90"
+                  style={{
+                    backgroundColor: WOOD[mk],
+                    borderColor: params.material === mk ? "var(--ink)" : "var(--rule)",
+                    boxShadow: params.material === mk ? "0 0 0 1px var(--ink)" : undefined,
+                  }}
+                />
+              ))}
+              <span aria-hidden="true" className="mx-1 h-4 w-px" style={{ background: "var(--rule)" }} />
+              {BEIS.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={beis === b.id}
+                  aria-label={`beis: ${b.label}`}
+                  title={b.label}
+                  onClick={() => onBeis(b.id)}
+                  className="h-6 w-6 rounded-full border transition active:scale-90"
+                  style={{
+                    backgroundColor: b.hex || "#cfc7bb",
+                    borderColor: beis === b.id ? "var(--ink)" : "var(--rule)",
+                    boxShadow: beis === b.id ? "0 0 0 1px var(--ink)" : undefined,
+                  }}
+                />
+              ))}
+            </div>
+            {/* flatene, automatisk: kvar del slik han ligg på plata. Det
+                ein før måtte laste ned ein SVG for å sjå, står i menyen og
+                fylgjer kvar einaste parameterendring. */}
+            {syn && (
+              <div
+                className="my-1.5 overflow-hidden rounded-2xl border p-2"
+                style={{ ...HAIR, background: "#ffffff" }}
+              >
+                {/* Arket ber talet sitt sjølv: kor stor del av den medgåtte
+                    plata som vert delar, og kor mange plater det tek. Det
+                    er den eine aksen i avfallsrekninga, rett på biletet av
+                    henne. */}
+                <div className="flex items-baseline justify-between px-1 pb-1 text-[10px]">
+                  <span className="uppercase tracking-[0.24em] opacity-35">arket</span>
+                  {metrics && (
+                    <span
+                      className="tab"
+                      style={{
+                        color: isHard(R_PLATE) ? "var(--warn)" : "var(--ink)",
+                        opacity: isHard(R_PLATE) ? 1 : 0.6,
+                        textDecoration: isSoft(R_PLATE) ? "underline dotted" : undefined,
+                        textUnderlineOffset: 3,
+                      }}
+                    >
+                      {n0(metrics.sheetUtil * 100)} % · {n0(metrics.sheets)}{" "}
+                      {metrics.sheets === 1 ? "plate" : "plater"}
+                    </span>
+                  )}
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
+                  alt="alle flatene, slik dei ligg på plata"
+                  className="max-h-40 w-full object-contain"
+                  style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
+                />
+              </div>
+            )}
             <h3 className="mt-3 pb-0.5 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
               måltavla
             </h3>
