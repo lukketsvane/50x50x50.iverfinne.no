@@ -167,7 +167,7 @@ export const VAFFEL: EngineDef = {
     const laser = maskin?.id === "laser" ? maskin : null
     const s = laser ? laser.tjukn / p.ribbT : 1
     const pl = buildParts(g, p.material as Material)
-    const ns = nest(skalerDelar(pl.parts, s), laser ? LASER : undefined)
+    const ns = nest(skalerDelar(pl.parts, s), laser ? { ...LASER, tett: true } : { cell: 4, tett: true })
     const merk = laser ? "-laser" : ""
     if (what === "ark") {
       return { name: "vaffel-" + ns.sheets.length + "ark" + merk + ".svg", mime: "image/svg+xml", text: alleArkSvg(ns) }

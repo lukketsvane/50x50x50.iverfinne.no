@@ -152,7 +152,7 @@ export const SKIVE: EngineDef = {
     // laseren: modellskala tjukn/plyT, nesta på lasersenga
     const laser = maskin?.id === "laser" ? maskin : null
     const s = laser ? laser.tjukn / p.plyT : 1
-    const ns = nest(skalerDelar(buildParts(p, b).parts, s), laser ? LASER : undefined)
+    const ns = nest(skalerDelar(buildParts(p, b).parts, s), laser ? { ...LASER, tett: true } : { cell: 4, tett: true })
     const merk = laser ? "-laser" : ""
     if (what === "ark") {
       return { name: "skive-" + ns.sheets.length + "ark" + merk + ".svg", mime: "image/svg+xml", text: alleArkSvg(ns) }

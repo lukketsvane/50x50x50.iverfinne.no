@@ -95,7 +95,7 @@ export const RIBBE: EngineDef = {
     const laser = maskin?.id === "laser" ? maskin : null
     const s = laser ? laser.tjukn / p.bladeT : 1
     const pl = buildParts(sh, g, MATERIALS[p.material].rho)
-    const ns = nest(skalerDelar(pl.parts, s), laser ? LASER : undefined)
+    const ns = nest(skalerDelar(pl.parts, s), laser ? { ...LASER, tett: true } : { cell: 4, tett: true })
     const merk = laser ? "-laser" : ""
     if (what === "ark") {
       return { name: "ribbe-" + ns.sheets.length + "ark" + merk + ".svg", mime: "image/svg+xml", text: alleArkSvg(ns) }

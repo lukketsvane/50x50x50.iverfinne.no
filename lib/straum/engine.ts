@@ -162,7 +162,7 @@ export const STRAUM: EngineDef = {
       const s = laser ? laser.tjukn / p.finneT : 1
       let dl = skalerDelar(parts().parts, s)
       if (laser) dl = dl.map((q) => ({ ...q, t: laser.tjukn }))
-      const ns = nest(dl, laser ? LASER : undefined)
+      const ns = nest(dl, laser ? { ...LASER, tett: true } : { cell: 4, tett: true })
       const merk = laser ? "-laser" : ""
       if (what === "dxf") {
         return { name: "straum" + merk + ".dxf", mime: "application/dxf", text: partsToDxf(ns) }

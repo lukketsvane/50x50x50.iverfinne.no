@@ -938,6 +938,19 @@ laserens eigen kerf gjev fugeklaringa. STRAUM legg attpåtil sokkel og
 kappe i same tynne arket som finnane: éin materiale, éin modell.
 Standardvaffelen på 3 mm MDF: to laserark, 53 % utnytting.
 
+**Taket, målt.** «Burde lett nå 80–90» vart prøvd mot geometrien:
+delane sjølve er 50–67 % av eigne omskrivne boksar (netto/boks: vaffel
+67, skive 58, straum 52, ribbe 50) — kammane, bogane, tomromma og
+ringsentera er luft FORMA ber med seg, og ingen pakkar får dei
+prosentane att. Tre spakar vart likevel dregne: hòla i delane er no
+LEDIG plate (skrotet i eit ringsenter fell ut same kva, so smådelar
+ligg inne i tomromma), eksporten pakkar med celle 4/1 og prøver tre
+sorteringar (den levande målinga held budsjettet sitt på celle 6), og
+STRAUM sin per-ark-etikett les mot brukt stripe som alle andre.
+Eksportpakkinga treffer no 96–110 % av delane sin eigen bokstettleik
+— straum 43 → 56 % — og DER ligg taket: skal talet høgare, må FORMA
+endrast (færre tomrom, éi tjukn), ikkje pakkaren.
+
 ---
 
 ## 6 Kva som skal målast
