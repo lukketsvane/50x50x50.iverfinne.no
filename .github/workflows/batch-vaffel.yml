@@ -1,0 +1,48 @@
+name: batch-vaffel
+
+on:
+  push:
+    branches:
+      - chatgpt/vaffel-batch-320
+    paths:
+      - 'scripts/batch-vaffel-screenshots.mjs'
+      - '.github/workflows/batch-vaffel.yml'
+  workflow_dispatch:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start site
+        run: |
+          npm run dev -- --hostname 127.0.0.1 --port 3170 > /tmp/50x.log 2>&1 &
+          echo $! > /tmp/50x.pid
+      - name: Wait for site
+        run: |
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:3170/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/50x.log
+          exit 1
+      - name: Capture 320 variants
+        env:
+          COUNT: 320
+          BASE_URL: http://127.0.0.1:3170/
+          OUT: batch-vaffel
+        run: node scripts/batch-vaffel-screenshots.mjs
+      - name: Zip output
+        run: zip -9 -r vaffel-320.zip batch-vaffel
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vaffel-320
+          path: vaffel-320.zip
+          retention-days: 14
