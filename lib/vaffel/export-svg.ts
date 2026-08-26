@@ -52,21 +52,22 @@ export function sheetSvg(n: Nesting, index = 0): string {
 }
 
 /**
- * Profilarket: alle bladprofilane lagde oppå kvarandre i sitt eige plan, og
- * ringane sett ovanfrå ved sida av. Det er den einaste teikninga som viser
- * kva som er felles og kva som skil.
-
-/**
  * Profilarket. Alle ribbene lagde ut ved sida av kvarandre i den
  * rekkjefylgja dei står i, X-familien øvst og Y-familien nedst.
  *
  * Arket svarar på eitt spørsmål: kor mange ULIKE delar er dette? Er planet
  * kvadratisk og ribbetalet likt, fell dei to familiane saman og heile
  * møbelet er nitten kopiar av ni delar. Er planet ovalt, er dei atten.
+ *
+ * Arket er FAST og innhaldet skalert inn, ikkje omvendt: eit ark i
+ * millimeter etter atten ribber vart over to meter breidt, og på det
+ * arket var ein strek på 0,6 mm usynleg i panelet. Kuttfila er ARK-en;
+ * denne teikninga er til å lesa.
  */
 export function profileSvg(g: Grid): string {
-  const GAP = 24
-  const rows: { ribs: typeof g.ribs; y: number }[] = []
+  const W = 1200
+  const M = 40
+  const GAP = 24 // luft mellom ribbene, i røynda-millimeter før skalering
   const xr = g.ribs.filter((r) => r.axis === "x")
   const yr = g.ribs.filter((r) => r.axis === "y")
 
@@ -89,19 +90,21 @@ export function profileSvg(g: Grid): string {
   }
   const ex = extent(xr)
   const ey = extent(yr)
-  const W = Math.max(ex.w, ey.w) + GAP
-  const H = ex.h + ey.h + 3 * GAP
+  const contentW = Math.max(ex.w, ey.w)
+  const contentH = ex.h + ey.h + GAP
+  // breidda styrer skalaen; høgda fylgjer innhaldet, so arket er tett
+  // kring teikninga i staden for å bera ei halv side kvit luft. Taket på
+  // 700 vernar mot eit smalt, høgt rutenett med få, høge ribber.
+  const sc = Math.min((W - 2 * M) / Math.max(1, contentW), (700 - 2 * M - 70) / Math.max(1, contentH))
+  const H = Math.ceil(30 + M + contentH * sc + 36 + M / 2)
 
   const out: string[] = []
-  out.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${f(W)}mm" height="${f(H)}mm" ` +
-      `viewBox="0 0 ${f(W)} ${f(H)}">`,
-  )
-  out.push(`<rect width="${f(W)}" height="${f(H)}" fill="#fff"/>`)
+  out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`)
+  out.push(`<rect width="${W}" height="${H}" fill="#fff"/>`)
 
-  let yOff = GAP + ex.h
+  let yOff = M + 30 + ex.h * sc
   for (const rs of [xr, yr]) {
-    let x = GAP
+    let x = M
     for (const r of rs) {
       let lo = Infinity
       let hi = -Infinity
@@ -111,17 +114,20 @@ export function profileSvg(g: Grid): string {
       if (!Number.isFinite(lo)) continue
       for (const ring of [...r.outlines, ...r.holes]) {
         // Y vert spegla: SVG reknar nedover, og ei ribbe står oppreist.
-        const pts = ring.map((q) => [x + (q[0] - lo), yOff - q[1]] as Pt)
-        out.push(`<path d="${path(pts)}" fill="none" stroke="#111" stroke-width="0.6"/>`)
+        const pts = ring.map((q) => [x + (q[0] - lo) * sc, yOff - q[1] * sc] as Pt)
+        out.push(`<path d="${path(pts)}" fill="none" stroke="#111" stroke-width="0.9"/>`)
       }
       out.push(
-        `<text x="${f(x + 2)}" y="${f(yOff + 8)}" font-family="sans-serif" ` +
-          `font-size="7" fill="#666">${r.axis.toUpperCase()}${r.k + 1}</text>`,
+        `<text x="${f(x + 2)}" y="${f(yOff + 14)}" font-family="monospace" ` +
+          `font-size="11" fill="#666">${r.axis.toUpperCase()}${r.k + 1}</text>`,
       )
-      x += hi - lo + GAP
+      x += (hi - lo) * sc + GAP * sc
     }
-    yOff += ey.h + GAP + 12
+    yOff += ey.h * sc + GAP * sc + 18
   }
+  out.push(
+    `<text x="${M}" y="30" font-family="monospace" font-size="16" fill="#111">VAFFEL · ${xr.length} ribber langs X · ${yr.length} langs Y</text>`,
+  )
   out.push("</svg>")
   return out.join("\n")
 }
