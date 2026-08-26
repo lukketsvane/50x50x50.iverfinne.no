@@ -62,6 +62,8 @@ export function Studio() {
   // flatene som bilete, generert av arbeidaren etter kvar måling
   const [syn, setSyn] = useState<SynRes | null>(null)
   const [busy, setBusy] = useState(true)
+  // avlen undervegs: kva steg søket står på, eller null når ingen går
+  const [avlGang, setAvlGang] = useState<{ steg: number; total: number } | null>(null)
   const [mounted, setMounted] = useState(false)
   // kvitt, alltid — sjå globals.css
   const dark = false
@@ -138,6 +140,19 @@ export function Studio() {
       }
       if (r.kind === "syn") {
         setSyn((prev) => (prev && prev.id > r.id ? prev : r))
+        return
+      }
+      if (r.kind === "avl") {
+        if (!r.ferdig) {
+          setAvlGang({ steg: r.steg, total: r.total })
+          return
+        }
+        setAvlGang(null)
+        // eit avbrote søk vert kasta: brukaren har alt flytta seg, og eit
+        // svar som overskriv handa hans er verre enn ingen svar
+        if (!r.avbroten) {
+          setBags((b) => ({ ...b, [r.engine]: r.best }))
+        }
         return
       }
       if (r.kind === "feil") {
@@ -276,6 +291,25 @@ export function Studio() {
     [engine, params],
   )
 
+  // Avlen: same objekt, mindre plate. Søket startar i punktet som står,
+  // held dei harde reglane og minimerer materialet gjennom maskina —
+  // låste skruar står, som med terningen. Frøet ber tida, so to trykk
+  // gjev to ulike søk: avlen er ein reiskap, ikkje ein fasit.
+  const startAvl = useCallback(() => {
+    if (avlGang) return
+    setAvlGang({ steg: 0, total: 90 })
+    const msg: Req = {
+      kind: "avl",
+      id: ++reqId.current,
+      engine,
+      params,
+      steg: 90,
+      frø: `avl-${engine}-${Date.now()}`,
+      locked: [...locked],
+    }
+    worker.current?.postMessage(msg)
+  }, [avlGang, engine, params, locked])
+
   const share = useCallback(() => {
     const url = window.location.href
     if (navigator.share) void navigator.share({ url })
@@ -354,6 +388,8 @@ export function Studio() {
         onView={setView}
         onBeis={setBeis}
         onShuffle={shuffle}
+        onAvl={startAvl}
+        avlGang={avlGang}
         onReset={() => setParams({ ...eng.defaults })}
         onToggleLock={toggleLock}
         onToggleDetail={() => setHiDetail((d) => !d)}
