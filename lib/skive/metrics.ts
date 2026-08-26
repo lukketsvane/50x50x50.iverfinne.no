@@ -204,8 +204,3 @@ export function measure(p: Params, pre?: Build): Metrics {
     list,
   }
 }
-
-/** netto areal av alle skivene — nest og kuttliste treng det same talet */
-export function slicesArea(b: Build): number {
-  return b.slices.reduce((s, sl) => s + Math.abs(shoelace(sl.outline)), 0)
-}

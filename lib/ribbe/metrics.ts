@@ -248,10 +248,3 @@ export function measure(p: Params, pre?: { sh?: Shell; g?: Built }): Metrics {
     list,
   }
 }
-
-/** det målinga elles ville kasta bort — reglane treng dei same tala */
-export function measureDeep(p: Params, sh?: Shell) {
-  const s = sh ?? makeShell(p)
-  const g = buildAll(p, DETAIL.lav, s)
-  return { sh: s, g, m: measure(p, { sh: s, g }) }
-}
