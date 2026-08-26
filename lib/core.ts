@@ -316,6 +316,66 @@ export type ExportOut = {
 }
 
 // =============================================================================
+// POSAR OG HOVUDDRAG — inngangane til eit parameterrom
+// =============================================================================
+/**
+ * Ein pose er eit namngjeve, handdesigna punkt i parameterrommet — same
+ * punkta terningen jittrar kring. Dei har alltid vore der; no ber dei
+ * namnet sitt sjølve, so panelet kan syne dei som inngangar i staden for
+ * å gøyme dei som terning-krydder. Ein pose er IKKJE ein ny parameter:
+ * han er ei peiking inn i rommet som alt finst.
+ */
+export type Pose = {
+  namn: string
+  bag: Readonly<Partial<Record<string, number | string>>>
+}
+
+/**
+ * Eit hovuddrag er éin semantisk kontroll som styrer eitt eller fleire
+ * EKSISTERANDE band saman: fyrste nøkkelen er primæren og gjev draget
+ * posisjonen og talet sitt på skjermen, resten fylgjer med same
+ * normaliserte steg, skalert med vekta si. Ingen nye parametrar vert
+ * opna — eit drag les og skriv berre band som alt står i `ranges`, og
+ * skyvarveggen bak («alt»-nivået) ser nøyaktig det draget gjorde.
+ */
+export type Hovuddrag = {
+  id: string
+  label: string
+  /** [nøkkel, vekt] — fyrste er primæren og skal ha vekt 1 */
+  keys: readonly (readonly [string, number])[]
+}
+
+/**
+ * Flytt eit hovuddrag: primæren til `value`, fylgjarane med same
+ * normaliserte steg gonger vekta. Alt vert klemt inn i sitt eige band og
+ * snappa til sitt eige steg — eit drag kan aldri skyve eit tal ut av
+ * rommet, berre gjennom det.
+ */
+export function applyDrag(
+  drag: Hovuddrag,
+  value: number,
+  prev: ParamBag,
+  ranges: Record<string, Range>,
+): ParamBag {
+  const [pk] = drag.keys[0]
+  const pr = ranges[pk]
+  if (!pr) return prev
+  const cur = typeof prev[pk] === "number" ? (prev[pk] as number) : pr.min
+  const v = clamp1(value, pr)
+  if (!Number.isFinite(v)) return prev
+  const dt = (v - cur) / (pr.max - pr.min)
+  const out = { ...prev, [pk]: v } as Record<string, number | string>
+  for (const [k, w] of drag.keys.slice(1)) {
+    const r = ranges[k]
+    if (!r) continue
+    const at = typeof prev[k] === "number" ? (prev[k] as number) : r.min
+    const nv = clamp1(at + dt * w * (r.max - r.min), r)
+    if (Number.isFinite(nv)) out[k] = nv
+  }
+  return out as ParamBag
+}
+
+// =============================================================================
 // MOTORKONTRAKTEN
 // =============================================================================
 export type EngineId =
@@ -338,10 +398,20 @@ export type EngineDef = {
   groups: readonly Group[]
   keys: readonly string[]
   defaults: ParamBag
-  /** kva to-fingers-rulling på lerretet skrur på */
-  nudge: { vertical: string; horizontal: string }
+  /**
+   * Kva gestane på lerretet skrur på: to fingrar loddrett, to fingrar
+   * vassrett, og klypa. Klypa zoomar IKKJE — alt bur i same 500-kuben og
+   * innramminga er automatisk, so ho er ledig for det klypa tyder:
+   * storleik. Sprikande fingrar gjer møbelet breiare. Peikar ein nøkkel
+   * på primæren i eit hovuddrag, køyrer gesten heile draget.
+   */
+  nudge: { vertical: string; horizontal: string; pinch: string }
   /** namnet på det motoren tel: «lag», «blad», «finnar» */
   unitLabel: string
+  /** namngjevne posar — synlege inngangar i panelet; terningen jittrar kring dei */
+  poses: readonly Pose[]
+  /** hovuddraga: 3–6 semantiske kontrollar som styrer fleire band saman */
+  hovuddrag: readonly Hovuddrag[]
 
   clamp(o: unknown, prev: ParamBag): ParamBag
   random(rnd: () => number, prev: ParamBag, locked: ReadonlySet<string>): ParamBag

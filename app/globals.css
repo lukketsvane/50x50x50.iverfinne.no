@@ -34,25 +34,40 @@ html {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
   }
+  /* Dobbelttrykk er eit språk i panelet (lås, avl). Utan denne ville iOS
+     leggje 300 ms zoom-venting på kvart einaste trykk. */
+  button {
+    touch-action: manipulation;
+  }
 }
 
 /* Skyvaren. Ei line og ein prikk — ingenting anna, fordi alt anna ville
-   konkurrere med objektet om merksemda. */
+   konkurrere med objektet om merksemda. Sjølve elementet er 24 px høgt
+   (fingeren treng meir enn hårstreken), men lina som teiknast er 1 px. */
 .pslider {
   -webkit-appearance: none;
   appearance: none;
-  height: 1px;
+  height: 24px;
   width: 100%;
-  background: color-mix(in srgb, var(--ink) 34%, transparent);
+  background: transparent;
   outline: none;
   cursor: ew-resize;
   touch-action: pan-y;
+}
+.pslider::-webkit-slider-runnable-track {
+  height: 1px;
+  background: color-mix(in srgb, var(--ink) 34%, transparent);
+}
+.pslider::-moz-range-track {
+  height: 1px;
+  background: color-mix(in srgb, var(--ink) 34%, transparent);
 }
 .pslider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   height: 13px;
   width: 13px;
+  margin-top: -6px;
   border-radius: 9999px;
   background: var(--ink);
   border: 3px solid var(--paper);
@@ -67,9 +82,51 @@ html {
 .pslider:focus-visible::-webkit-slider-thumb {
   box-shadow: 0 0 0 2px var(--ink);
 }
-.pslider.locked {
-  background: color-mix(in srgb, var(--ink) 14%, transparent);
+
+/* Poserada rullar sidelengs; rullefeltet ville vore den einaste
+   maskinlina i eit panel av hårstrekar. */
+.noscroll {
+  scrollbar-width: none;
 }
-.pslider.locked::-webkit-slider-thumb {
-  background: color-mix(in srgb, var(--ink) 40%, transparent);
+.noscroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Menyen som opnar seg: innhaldet stig dei siste seks piksla på plass.
+   Éin gong, kort — ei helsing, ikkje ein overgang. */
+.rise {
+  animation: rise 220ms ease-out;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Måltala i hovudlina pulserer medan motoren reknar — rekninga sjølv er
+   indikatoren, ikkje ein eigen prikk som tek plass i lina. */
+.pulsar {
+  animation: pulsar 1.1s ease-in-out infinite;
+}
+@keyframes pulsar {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Arket og «alt»-nivået glid mellom 0fr og 1fr. */
+.glid {
+  transition: grid-template-rows 280ms ease;
+}
+
+/* Den som har bede om ro, får ro: ingen puls, ingen stig, ingen gliding. */
+@media (prefers-reduced-motion: reduce) {
+  .pulsar,
+  .rise {
+    animation: none;
+  }
+  .glid {
+    transition: none;
+  }
 }

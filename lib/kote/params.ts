@@ -19,7 +19,9 @@ import {
   randomBag,
   smooth,
   type Group,
+  type Hovuddrag,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 import { buildStack, hylseAv, luftFor, stackTal, toppHogd } from "./stack"
@@ -284,8 +286,30 @@ export const POSES: readonly Partial<Params>[] = [
   },
 ]
 
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = [
+  "skruen", "sokkelen", "kløveren", "porten", "trakta", "kotekartet",
+]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag,
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["hogd", 1]] },
+  { id: "vriding", label: "vriding", keys: [["vri", 1]] },
+  { id: "midje", label: "midje", keys: [["midjeR", 1]] },
+  { id: "hol", label: "hol", keys: [["holhogd", 1], ["holbreidd", 0.5]] },
+  { id: "luft", label: "luft", keys: [["luft", 1]] },
+  { id: "lober", label: "lober", keys: [["lober", 1]] },
+]
+
 /** kva to fingrar på lerretet skrur på */
-export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "luft" }
+export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "luft", pinch: "fotR" }
 
 export function clampParams(o: unknown, prev: Params): Params {
   return clampBag(o, prev, PARAM_RANGES, PARAM_KEYS)
