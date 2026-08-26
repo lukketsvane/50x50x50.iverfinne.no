@@ -33,6 +33,29 @@ function path(rings: Pt[][]): string {
  * ein del som er spegelvendt i høve til DXF-en er ein del som vert kutta
  * spegelvendt.
  */
+/**
+ * ALLE arka i éi fil, stabla under kvarandre. Arka i STRAUM kan ha ulik
+ * storleik (finner, sokkel og kappe har kvar si platetjukn), so kvart
+ * band er så høgt som sitt eige ark.
+ */
+export function alleArkSvg(nesting: Nesting): string {
+  const GAP = 60
+  const W = Math.max(...nesting.sheets.map((s) => s.w))
+  const total = nesting.sheets.reduce((a, s) => a + s.h, 0) + GAP * (nesting.sheets.length - 1)
+  const out: string[] = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${total}mm" viewBox="0 0 ${W} ${total}">`,
+  ]
+  let off = 0
+  nesting.sheets.forEach((s, i) => {
+    const eitt = sheetSvg(nesting, i)
+    const indre = eitt.slice(eitt.indexOf(">") + 1, eitt.lastIndexOf("</svg>"))
+    out.push(`<g transform="translate(0,${off})">${indre}</g>`)
+    off += s.h + GAP
+  })
+  out.push(`</svg>`)
+  return out.join("\n")
+}
+
 export function sheetSvg(nesting: Nesting, i: number): string {
   const s = nesting.sheets[Math.max(0, Math.min(nesting.sheets.length - 1, i))]
   if (!s) return `<svg xmlns="http://www.w3.org/2000/svg"/>`
