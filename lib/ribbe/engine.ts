@@ -31,7 +31,7 @@ import { nest } from "./nest"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
 import { partsToDxf } from "./export-dxf"
-import { profileSvg, sheetSvg } from "./export-svg"
+import { alleArkSvg, profileSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
   GROUPS,
@@ -89,7 +89,7 @@ export const RIBBE: EngineDef = {
     const pl = buildParts(sh, g, MATERIALS[p.material].rho)
     const ns = nest(pl.parts)
     if (what === "ark") {
-      return { name: "ribbe-ark1.svg", mime: "image/svg+xml", text: sheetSvg(ns, 0) }
+      return { name: "ribbe-" + ns.sheets.length + "ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
     }
     return { name: "ribbe.dxf", mime: "application/dxf", text: partsToDxf(ns, p.bladeT) }
   },

@@ -23,6 +23,30 @@ const path = (pts: Pt[]) =>
  * det: delen som ligg nede til venstre på plata skal liggja nede til
  * venstre på arket.
  */
+/**
+ * ALLE arka i éi fil, stabla under kvarandre. Eit objekt som treng to
+ * plater og berre får ut den fyrste, er eksportert halvt — og ingen ting
+ * seier frå. Éi fil som ber alt er den einaste eksporten som ikkje kan
+ * gløyme noko.
+ */
+export function alleArkSvg(n: Nesting): string {
+  const W = n.sheetW
+  const H = n.sheetH
+  const GAP = 60
+  const total = n.sheets.length * (H + GAP) - GAP
+  const out: string[] = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${total}mm" viewBox="0 0 ${W} ${total}">`,
+  ]
+  n.sheets.forEach((_, i) => {
+    // kvart ark er same teikning som einskildarket, lagd i sitt eige band
+    const eitt = sheetSvg(n, i)
+    const indre = eitt.slice(eitt.indexOf(">") + 1, eitt.lastIndexOf("</svg>"))
+    out.push(`<g transform="translate(0,${i * (H + GAP)})">${indre}</g>`)
+  })
+  out.push(`</svg>`)
+  return out.join("\n")
+}
+
 export function sheetSvg(n: Nesting, index = 0): string {
   const sheet = n.sheets[Math.min(index, n.sheets.length - 1)]
   if (!sheet) return "<svg xmlns='http://www.w3.org/2000/svg'/>"

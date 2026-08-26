@@ -21,7 +21,7 @@ import type {
 import { meshToStl } from "../skal/export-stl"
 import { nest } from "../vaffel/nest"
 import { partsToDxf } from "../vaffel/export-dxf"
-import { sheetSvg } from "../vaffel/export-svg"
+import { alleArkSvg } from "../vaffel/export-svg"
 import { buildSlices, DETAIL } from "./profile"
 import { contourLines, lagMesh, loftMesh } from "./mesh"
 import { measure } from "./metrics"
@@ -128,7 +128,7 @@ export const SKIVE: EngineDef = {
     }
     const ns = nest(buildParts(p, b).parts)
     if (what === "ark") {
-      return { name: "skive-ark1.svg", mime: "image/svg+xml", text: sheetSvg(ns, 0) }
+      return { name: "skive-" + ns.sheets.length + "ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
     }
     return { name: "skive.dxf", mime: "application/dxf", text: partsToDxf(ns, p.plyT) }
   },
