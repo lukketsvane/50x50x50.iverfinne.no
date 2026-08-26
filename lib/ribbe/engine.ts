@@ -30,6 +30,7 @@ import { buildParts } from "./parts"
 import { nest } from "./nest"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
+import { lastForm } from "./lastform"
 import { partsToDxf } from "./export-dxf"
 import { alleArkSvg, profileSvg } from "./export-svg"
 import {
@@ -60,6 +61,7 @@ export const RIBBE: EngineDef = {
   hovuddrag: HOVUDDRAG,
   unitLabel: "blad",
   kanLast: true,
+  lastForm: (bag) => lastForm(asP(bag)) as unknown as ParamBag,
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
   random: (rnd, prev, locked) =>

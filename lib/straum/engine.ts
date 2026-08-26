@@ -25,6 +25,8 @@ import { makeBody, type Body } from "./body"
 import { buildParts, type Build } from "./parts"
 import { assemblyMesh, contourLines } from "./assembly"
 import { buildMesh, DETAIL } from "./surface"
+import { feltPaMesh, lastProfil, snittMaskin } from "./last"
+import { finmaskNett } from "../lastnett"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
 import { nest } from "./nest"
@@ -78,6 +80,7 @@ export const STRAUM: EngineDef = {
   poses: POSAR,
   hovuddrag: HOVUDDRAG,
   unitLabel: "finnar",
+  kanLast: true,
 
   // Params er ein type alias og ikkje eit interface, og difor tildelbar til
   // ParamBag utan eit einaste kast. Vegen andre vegen — frå sekk til
@@ -95,6 +98,24 @@ export const STRAUM: EngineDef = {
     if (view === "lag") {
       const m = assemblyMesh(parts())
       return { ...m, kant: m.kant ?? EMPTY(), lines: EMPTY(), heavy: EMPTY() }
+    }
+    if (view === "last") {
+      // Lastkartet: same nett som «lag», FINMASKA so hjørna samplar feltet
+      // tett nok, farga med utnyttinga til snittet i si høgd. Ankeret er
+      // det analytiske maksimumet — same talet som tavla viser.
+      const B = parts()
+      const m0 = assemblyMesh(B)
+      const g = { ...m0, kant: m0.kant ?? EMPTY() }
+      const m = { ...g, ...finmaskNett(g) }
+      const lp = lastProfil(snittMaskin(p, bd, B), bd.H, p.kappeT)
+      return {
+        ...m,
+        kant: EMPTY(),
+        felt: feltPaMesh(lp, m.positions),
+        feltTak: lp.verste.util,
+        lines: EMPTY(),
+        heavy: EMPTY(),
+      }
     }
     const c = contourLines(parts())
     return {

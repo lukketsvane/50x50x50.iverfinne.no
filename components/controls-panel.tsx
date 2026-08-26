@@ -768,11 +768,15 @@ export function ControlsPanel(props: {
    *  Panelet kan lukkast; rekninga kan ikkje. */
   // heiltal i vinkelen: desimalen høyrer tavla til, og på ein smal telefon
   // er han skilnaden på tre tal og to og eit halvt
+  // Plata står i hovudlina av di ho er halve argumentet: kor mykje av
+  // arket som vert MØBEL. Eit tal ein må opne tavla for å sjå, formar
+  // ingen val; eit tal som alltid stirer på ein, gjer.
   const headline: { text: string; ids: readonly string[] }[] = metrics
     ? [
         { text: `${n1(metrics.mass)} kg`, ids: R_MASSE },
         { text: `${n0(metrics.tipAngle)}°`, ids: R_VELTE },
         { text: `${n0(metrics.util * 100)} %`, ids: R_UTN },
+        { text: `${n0(metrics.sheetUtil * 100)} % ark`, ids: R_PLATE },
       ]
     : []
 

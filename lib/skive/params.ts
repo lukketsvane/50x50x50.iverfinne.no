@@ -119,39 +119,42 @@ export const GROUPS: readonly Group[] = [
 export const PARAM_KEYS = GROUPS.flatMap((g) => g.keys)
 
 /**
- * Standarden siktar på referansespråket: tretten skiver, tjue millimeter
- * luft, ein låg kuppelrygg som fell av mot sidene, og ei stor opning under
- * setet. Ryggen er låg med vilje — kuben på 500 og sitjehøgdbandet i
- * NS-EN 1729 gjev til saman under 120 mm rygg over setet, og det er nok
- * til ei lend, ikkje til eit skulderblad.
+ * Standarden vart lagd om etter materialrekninga: den gamle var 11 skiver
+ * à 14 mm med 31 mm luft — 11,1 kg, to plater, og 97 % av godset gjorde
+ * ingenting. Denne er 9 skiver à 9 mm med 44 mm luft: 6,8 kg, éi plate,
+ * 49 % av arket vert delar — og grotta, sveipen og grepet les betre av di
+ * lufta får sleppe til. Ryggen er låg med vilje — kuben på 500 og
+ * sitjehøgdbandet i NS-EN 1729 gjev under 120 mm rygg over setet, nok til
+ * ei lend og ikkje eit skulderblad. Standardobjektet er argumentet; han
+ * skal ikkje vera den tyngste versjonen av seg sjølv.
  */
 export const DEFAULT_PARAMS: Params = {
   hogd: 404,
-  djup: 324,
+  djup: 340,
   grop: 16,
   nase: 26,
   setevipp: 0,
 
-  ryggH: 90,
-  ryggV: 13,
+  ryggH: 55,
+  ryggV: 15,
   ryggB: 14,
-  ryggT: 50,
-  grep: 0,
+  ryggT: 70,
+  grep: 42,
 
-  frambein: 112,
-  bakbein: 116,
-  bogeH: 290,
-  bogeN: 2.6,
+  frambein: 100,
+  bakbein: 112,
+  bogeH: 240,
+  bogeN: 2.0,
   mellomfot: 0,
-  flare: 2.2,
+  flare: 2.5,
   bakflare: 0.35,
 
-  skiver: 11,
-  plyT: 14,
-  luft: 31,
+  skiver: 9,
+  plyT: 9,
+  luft: 44,
   luftfall: 0,
-  kuppel: 0.42,
-  sidefall: 10,
+  kuppel: 0.3,
+  sidefall: 4,
   innsving: 0.05,
   bogefall: 0,
   bogedrift: 0,
@@ -177,38 +180,52 @@ export const POSES: readonly Partial<Params>[] = [
     bogefall: 0.72, bogedrift: 55, bogeH: 320, bogeN: 2.2,
     skiver: 10, plyT: 14, luft: 34, ryggH: 70, kuppel: 0.15,
     grop: 20, sidefall: 16, innsving: 0.03, djup: 330,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    ryggV: 13, ryggT: 50, grep: 0, frambein: 112, bakbein: 116, flare: 2.2,
   },
   // benken
   {
     ryggH: 0, hogd: 396, djup: 360, frambein: 130, bakbein: 130,
     bogeH: 300, luft: 36, skiver: 10, plyT: 15, kuppel: 0,
     sidefall: 18, grop: 24, bogefall: 0.2,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    ryggV: 13, ryggT: 50, grep: 0, bogeN: 2.6, flare: 2.2,
   },
   // stolen
   {
     ryggH: 100, hogd: 396, ryggV: 20, ryggB: 24, kuppel: 0.55,
     skiver: 12, plyT: 13, luft: 28, djup: 330, grop: 14, sidefall: 8,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    ryggT: 50, grep: 0, frambein: 112, bakbein: 116, bogeH: 290, bogeN: 2.6, flare: 2.2,
   },
   // den lette
   {
     skiver: 8, plyT: 19, luft: 44, bogeH: 320, bogeN: 1.9,
     frambein: 100, bakbein: 104, ryggH: 60, kuppel: 0.3,
     innsving: 0.09, stavD: 14,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    djup: 324, ryggV: 13, ryggT: 50, grep: 0, flare: 2.2, sidefall: 10,
   },
   // vifta: skivene roterte i solfjøs — same kuttfil, heilt anna møbel
   {
     vifte: 7, skiver: 12, plyT: 13, luft: 26, ryggH: 80,
     kuppel: 0.35, grop: 18, djup: 322, bogeH: 290, frambein: 104, bakbein: 106,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    ryggV: 13, ryggT: 50, grep: 0, bogeN: 2.6, flare: 2.2, sidefall: 10,
   },
   // vengene: ryggen STIG ut mot sidene og setet kronar seg
   {
     kuppel: -0.45, ryggH: 68, hogd: 396, sidefall: -12,
     ryggV: 16, skiver: 12, plyT: 14, luft: 27, grop: 22,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    djup: 324, ryggT: 50, grep: 0, frambein: 112, bakbein: 116, bogeH: 290, bogeN: 2.6, flare: 2.2,
   },
   // spent: dei ytste skivene er STØRRE — silhuetten spriker som ein gange
   {
     innsving: -0.08, djup: 324, hogd: 398, frambein: 100, bakbein: 104,
     skiver: 11, plyT: 14, luft: 30, ryggH: 74, kuppel: 0.3, bogeH: 300,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    ryggV: 13, ryggT: 50, grep: 0, bogeN: 2.6, flare: 2.2, sidefall: 10,
   },
   // pidestallen: ingen boge — møbelet er ein massiv sokkel av få, tjukke
   // skiver med mykje luft. Lufta er den einaste opninga som finst.
@@ -216,6 +233,8 @@ export const POSES: readonly Partial<Params>[] = [
     bogeH: 0, ryggH: 0, skiver: 7, plyT: 12, luft: 58, hogd: 414,
     djup: 330, grop: 20, sidefall: 14, frambein: 92, bakbein: 92,
     flare: 0.9, bakflare: 0.05, innsving: 0.1, nase: 20,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    ryggV: 13, ryggT: 50, grep: 0, bogeN: 2.6, kuppel: 0.42,
   },
   // akvedukten: midtfoten kløyver bogen i to — og drifta let han VANDRE
   // gjennom stabelen, so dei to boga byter storleik frå skive til skive
@@ -223,6 +242,8 @@ export const POSES: readonly Partial<Params>[] = [
     mellomfot: 85, bogeH: 250, bogeN: 3, bogedrift: 20, djup: 360,
     ryggH: 0, hogd: 402, frambein: 120, bakbein: 120, bakflare: 0.12,
     skiver: 9, plyT: 12, luft: 42, grop: 24, sidefall: 16, kuppel: 0,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    ryggV: 13, ryggT: 50, grep: 0, flare: 2.2,
   },
   // sleden: bakkanten sparkar langt bakover og grepet sit i ryggen —
   // stolen ein ber med eine handa og set frå seg på skrå
@@ -230,6 +251,8 @@ export const POSES: readonly Partial<Params>[] = [
     grep: 80, ryggH: 100, ryggT: 68, ryggV: 15, hogd: 394,
     bakflare: 0.5, bakbein: 150, bogeH: 260, bogedrift: -30,
     skiver: 12, plyT: 12, luft: 28, kuppel: 0.28, grop: 16, djup: 320,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    frambein: 112, bogeN: 2.6, flare: 2.2, sidefall: 10,
   },
   // orgelet: lufta fell frå midten og ut — skivene står tett som piper
   // midt i benken og glisnar mot kantane. Same kuttfil, berre gapa er
@@ -238,6 +261,8 @@ export const POSES: readonly Partial<Params>[] = [
     luftfall: 0.55, skiver: 9, plyT: 14, luft: 40, ryggH: 0,
     bogeH: 300, kuppel: 0, hogd: 404, djup: 340, grop: 22, sidefall: 14,
     frambein: 120, bakbein: 120, bogefall: 0.15,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    ryggV: 13, ryggT: 50, grep: 0, bogeN: 2.6, flare: 2.2,
   },
   // kvilestolen: setet vippa åtte grader bakover kring nasen og ryggen
   // lena tjueto — ein sit ikkje oppreist i han, ein søkk bakover. Vippen
@@ -248,6 +273,8 @@ export const POSES: readonly Partial<Params>[] = [
     grop: 18, sidefall: 10, ryggB: 22, ryggT: 54, bogeH: 310, bogeN: 2.4,
     skiver: 11, plyT: 12.5, luft: 32, kuppel: 0.4, frambein: 120,
     bakbein: 130, innsving: 0.05, nase: 30,
+    // arva før frå gamle standarden — no eksplisitt, so posen står som han var
+    grep: 0, flare: 2.2,
   },
 ]
 

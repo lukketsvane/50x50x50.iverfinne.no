@@ -182,8 +182,13 @@ export const DEFAULT_PARAMS: Params = {
   waistW: 0.34,
   swell: 0.05,
 
+  // Bladtjukna og bandtjukna stod på 15 og bar 6–7 gonger lasta utan at
+  // nokon hadde spurt: 11 mm held kvar einaste regel, sparer over kiloen
+  // og lyfter arkutnyttinga frå 32 til 38 prosent — plata inn fell med
+  // fjerdedelen. Tynnare enn 11 vipper nestinga til to ark og vinsten
+  // er borte, so dette ER botnen av dalen, ikkje eit kompromiss.
   blades: 22,
-  bladeT: 15,
+  bladeT: 11,
   twist: 0,
   inner: 0.17,
   innerZ: 0.45,
@@ -194,7 +199,7 @@ export const DEFAULT_PARAMS: Params = {
   bands: 3,
   bandZ0: 0.13,
   bandZ1: 0.85,
-  bandT: 15,
+  bandT: 11,
   bandW: 40,
   bandOut: 16,
 
@@ -218,17 +223,20 @@ export const DEFAULT_PARAMS: Params = {
 
 /** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring. */
 export const POSES: readonly Partial<Params>[] = [
+  // tjukner som manglar under er arva før frå gamle standarden (bladeT 15,
+  // bandT 15) — no eksplisitte, so posane står som dei var
   // vridd
-  { twist: 28, blades: 19, bladeT: 11, hubGap: 10, inner: 0.2 },
+  { twist: 28, blades: 19, bladeT: 11, bandT: 15, hubGap: 10, inner: 0.2 },
   // timeglas
-  { waist: 0.32, waistZ: 0.5, waistW: 0.5, footR: 0.9, taper: 1.4 },
+  { waist: 0.32, waistZ: 0.5, waistW: 0.5, footR: 0.9, taper: 1.4, bladeT: 15, bandT: 15 },
   // sopp
-  { footR: 0.55, swell: 0.14, planR: 250, taper: 0.75, moon: 0.3 },
+  { footR: 0.55, swell: 0.14, planR: 250, taper: 0.75, moon: 0.3, bladeT: 15, bandT: 15 },
   // krysset: sju tjukke blad og store opningar — beinkryss-enden av
   // typologien, der objektet sluttar å vera skal
   {
     blades: 7,
     bladeT: 22,
+    bandT: 15,
     inner: 0.12,
     waist: 0.12,
     footR: 0.8,
@@ -240,7 +248,7 @@ export const POSES: readonly Partial<Params>[] = [
     seatT: 22,
   },
   // blomen: fem flikar i planet — kronblad i staden for oval
-  { flikar: 5, flik: 0.14, planN: 2.4, planAsp: 0, blades: 20, waist: 0.18 },
+  { flikar: 5, flik: 0.14, planN: 2.4, planAsp: 0, blades: 20, waist: 0.18, bladeT: 15, bandT: 15 },
 ]
 
 /** Posane med namna sine — same liste, synlege som inngangar i panelet.
