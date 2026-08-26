@@ -1,9 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ENGINES, getEngine, isEngineId } from "@/lib/engines"
+import { ENGINES, getEngine } from "@/lib/engines"
 import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
 import { applyDrag, seeded } from "@/lib/core"
+import { kortHash, lesHash } from "@/lib/hash"
 import type { BuildRes, DetailKey, MaalRes, Req, Res, SynRes } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
 import { BEIS } from "./object-mesh"
@@ -100,24 +101,20 @@ export function Studio() {
 
   // Hashen er ikkje til å stole på: kvart felt vert lese for seg og klemt inn
   // i sitt eige band av motoren sin eigen clamp, så inga laga lenkje kan
-  // skyve NaN eller framande verdiar inn i geometrien.
+  // skyve NaN eller framande verdiar inn i geometrien. Begge formene vert
+  // lesne — #p= (JSON, for alltid) og den korte #s= — og går same vegen.
   useEffect(() => {
     setMounted(true)
-    try {
-      const h = window.location.hash.slice(1)
-      if (!h.startsWith("p=")) return
-      const obj = JSON.parse(decodeURIComponent(h.slice(2))) as Record<string, unknown>
-      const id = isEngineId(obj.engine) ? obj.engine : "vaffel"
-      const e = getEngine(id)
-      setEngine(id)
-      setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
-      const v = obj.view
-      if (v === "lag" || v === "kontur" || v === "flate") setView(v)
-      if (typeof obj.beis === "string" && BEIS.some((b) => b.id === obj.beis)) {
-        setBeis(obj.beis)
-      }
-    } catch {
-      // øydelagd hash — lat standardobjektet stå
+    const lese = lesHash(window.location.hash.slice(1))
+    if (!lese) return
+    const { engine: id, obj } = lese
+    const e = getEngine(id)
+    setEngine(id)
+    setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
+    const v = obj.view
+    if (v === "lag" || v === "kontur" || v === "flate") setView(v)
+    if (typeof obj.beis === "string" && BEIS.some((b) => b.id === obj.beis)) {
+      setBeis(obj.beis)
     }
   }, [])
 
@@ -213,22 +210,13 @@ export function Studio() {
     }
   }, [engine, params, detail, view, mounted, pump])
 
-  // URL-en kodar alltid det objektet som står på skjermen
+  // URL-en kodar alltid det objektet som står på skjermen — kort form:
+  // kvantisert til banda sine eigne steg, kring 30–60 teikn. QR-bar, og
+  // kort nok til at mappa kan bera henne som stempel.
   useEffect(() => {
     if (!mounted) return
     const t = window.setTimeout(() => {
-      window.history.replaceState(
-        null,
-        "",
-        "#p=" +
-          encodeURIComponent(
-            JSON.stringify(
-              beis === "natur"
-                ? { engine, ...params, view }
-                : { engine, ...params, view, beis },
-            ),
-          ),
-      )
+      window.history.replaceState(null, "", "#" + kortHash(engine, params, view, beis))
     }, 500)
     return () => window.clearTimeout(t)
   }, [engine, params, view, beis, mounted])
