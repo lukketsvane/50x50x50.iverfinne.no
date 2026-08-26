@@ -46,9 +46,11 @@ export function Studio() {
   // objektet, og det er dei som skil typologiane frå kvarandre. Den slipte
   // flata er eit klikk unna.
   const [view, setView] = useState<View>("lag")
-  // Dobbelttrykk på nedtrekket låser terningen til den valde modulen.
-  // Ulåst får terningen kaste over ALLE modulane — motor og form i eitt.
-  const [engineLock, setEngineLock] = useState(false)
+  // Dobbelttrykk på nedtrekket låser terningen til den valde modulen —
+  // og han STARTAR låst: VAFFEL er svaret prosjektet landar på, so
+  // terningen kastar form innanfor han til nokon medvite låser opp og
+  // slepper han over motorgrensa.
+  const [engineLock, setEngineLock] = useState(true)
   // beis er ferdig handsaming, som lakk: han bur i visinga og hashen, aldri
   // i parameterrommet — masse og styrke bryr seg ikkje om farge
   // AHO-oransjen er standard — «natur» er eit val, ikkje utgangspunktet
