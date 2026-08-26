@@ -17,7 +17,6 @@ import { STRAUM } from "./straum/engine"
 import { RIBBE } from "./ribbe/engine"
 import { VAFFEL } from "./vaffel/engine"
 import { KOTE } from "./kote/engine"
-import { FLETT } from "./flett/engine"
 import { KARVE } from "./karve/engine"
 import { BOYG } from "./boyg/engine"
 
@@ -35,7 +34,7 @@ const UNDER_BYGGING: readonly EngineDef[] = [BOYG]
 // VAFFEL fyrst: han er standardobjektet og øvst i nedtrekket. SKAL er
 // teken ut — kjelda hans står att for dokumentpipelinen, men han er ikkje
 // lenger ein modul i sandkassen.
-export const ENGINES: readonly EngineDef[] = [VAFFEL, SKIVE, STRAUM, RIBBE, KOTE, KARVE, FLETT]
+export const ENGINES: readonly EngineDef[] = [VAFFEL, SKIVE, STRAUM, RIBBE, KOTE, KARVE]
 
 /** alt, ferdig og uferdig — det prøveskripta skal måle */
 export const ALLE_MOTORAR: readonly EngineDef[] = [...ENGINES, ...UNDER_BYGGING]
