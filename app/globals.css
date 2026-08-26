@@ -114,3 +114,19 @@ html {
     opacity: 0.35;
   }
 }
+
+/* Arket og «alt»-nivået glid mellom 0fr og 1fr. */
+.glid {
+  transition: grid-template-rows 280ms ease;
+}
+
+/* Den som har bede om ro, får ro: ingen puls, ingen stig, ingen gliding. */
+@media (prefers-reduced-motion: reduce) {
+  .pulsar,
+  .rise {
+    animation: none;
+  }
+  .glid {
+    transition: none;
+  }
+}
