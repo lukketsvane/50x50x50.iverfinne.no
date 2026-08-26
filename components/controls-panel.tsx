@@ -201,30 +201,70 @@ function tableRows(m: Metrics | null): TableRow[] {
   ]
 }
 
+/** Dobbelttrykket er låse-språket i heile panelet: modulveljaren,
+ *  hovuddraga og skyvarveggen låser alle på to raske trykk. */
+function useDobbelttrykk(fn: () => void) {
+  const sist = useRef(0)
+  return () => {
+    const no = performance.now()
+    if (no - sist.current < 350) {
+      sist.current = 0
+      fn()
+    } else {
+      sist.current = no
+    }
+  }
+}
+
 /** Eitt hovuddrag: primæren gjev posisjonen og talet, fylgjarane går med.
- *  Ingen lås — draget styrer fleire band, og låsane høyrer banda til. */
+ *  Dobbelttrykk på namnet låser ALLE banda draget styrer mot terningen —
+ *  låsen bur framleis på banda, draget er berre handtaket. */
 function DragRow({
   drag,
   ranges,
   params,
+  locked,
+  onToggleLock,
   onChange,
 }: {
   drag: Hovuddrag
   ranges: Record<string, Range>
   params: ParamBag
+  locked: boolean
+  onToggleLock: () => void
   onChange: (p: ParamBag) => void
 }) {
   const [pk] = drag.keys[0]
   const r = ranges[pk]
   const value = num(params, pk, r.min)
+  const trykk = useDobbelttrykk(onToggleLock)
   return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span
-        className="w-24 shrink-0 text-[10px] uppercase leading-[1.2] tracking-[0.14em]"
+    <div
+      className="flex items-center gap-3 py-1.5 transition-opacity"
+      style={{ opacity: locked ? 0.35 : 1 }}
+    >
+      <button
+        type="button"
+        aria-pressed={locked}
+        title={
+          locked
+            ? "låst mot terningen — dobbelttrykk låser opp"
+            : "dobbelttrykk låser mot terningen (alle banda draget styrer)"
+        }
+        onClick={trykk}
+        className="flex w-24 shrink-0 items-center gap-1.5 text-left text-[10px] uppercase leading-[1.2] tracking-[0.14em]"
         style={{ color: "var(--ink)" }}
       >
-        {drag.label}
-      </span>
+        <span
+          aria-hidden="true"
+          className="block h-[5px] w-[5px] shrink-0 rounded-full"
+          style={{
+            background: locked ? "var(--ink)" : "transparent",
+            border: locked ? "none" : "1px solid color-mix(in srgb, var(--ink) 30%, transparent)",
+          }}
+        />
+        <span className="min-w-0 flex-1">{drag.label}</span>
+      </button>
       <input
         type="range"
         className="pslider flex-1"
@@ -262,6 +302,7 @@ function SliderRow({
   onChange: (k: string, raw: string) => void
   onToggleLock: (k: string) => void
 }) {
+  const trykkLaas = useDobbelttrykk(() => onToggleLock(k))
   return (
     <div
       data-skyvar={k}
@@ -271,8 +312,12 @@ function SliderRow({
       <button
         type="button"
         aria-pressed={locked}
-        title={locked ? "låst mot terningen — trykk for å låse opp" : "trykk for å låse mot terningen"}
-        onClick={() => onToggleLock(k)}
+        title={
+          locked
+            ? "låst mot terningen — dobbelttrykk låser opp"
+            : "dobbelttrykk låser mot terningen"
+        }
+        onClick={trykkLaas}
         className="flex w-24 shrink-0 items-center gap-1.5 text-left text-[10px] uppercase leading-[1.2] tracking-[0.14em]"
         style={{ color: "var(--ink)" }}
       >
@@ -762,15 +807,27 @@ export function ControlsPanel(props: {
                 banda står bak «alt». */}
             {eng.hovuddrag.length > 0 && (
               <div className="pb-1">
-                {eng.hovuddrag.map((d) => (
-                  <DragRow
-                    key={d.id}
-                    drag={d}
-                    ranges={eng.ranges}
-                    params={params}
-                    onChange={onChange}
-                  />
-                ))}
+                {eng.hovuddrag.map((d) => {
+                  // draget er låst når ALLE banda hans er det; dobbelttrykket
+                  // set eller slepper heile flokken under eitt
+                  const dragLaast = d.keys.every(([k]) => locked.has(k))
+                  return (
+                    <DragRow
+                      key={d.id}
+                      drag={d}
+                      ranges={eng.ranges}
+                      params={params}
+                      locked={dragLaast}
+                      onToggleLock={() => {
+                        const paa = !dragLaast
+                        for (const [k] of d.keys) {
+                          if (locked.has(k) !== paa) onToggleLock(k)
+                        }
+                      }}
+                      onChange={onChange}
+                    />
+                  )
+                })}
               </div>
             )}
 
