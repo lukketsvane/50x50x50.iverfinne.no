@@ -274,6 +274,7 @@ export const PARAM_KEYS = GROUPS.flatMap((g) => g.keys)
 export const NUDGE_PARAMS = {
   vertical: "waist" as ParamKey,
   horizontal: "twist" as ParamKey,
+  pinch: "flare" as ParamKey,
 }
 
 /** typesikker skriving av eit talfelt */

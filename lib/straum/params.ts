@@ -286,7 +286,7 @@ export const HOVUDDRAG: readonly Hovuddrag[] = [
 ]
 
 /** Kva to-fingers-rulling på lerretet skrur på. */
-export const NUDGE_PARAMS = { vertical: "midjeB", horizontal: "skraa" }
+export const NUDGE_PARAMS = { vertical: "midjeB", horizontal: "skraa", pinch: "seteB" }
 
 export function clampParams(o: unknown, prev: Params): Params {
   return clampBag(o, prev as unknown as ParamBag, PARAM_RANGES, PARAM_KEYS) as unknown as Params

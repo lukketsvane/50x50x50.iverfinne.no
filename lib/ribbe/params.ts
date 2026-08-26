@@ -265,7 +265,7 @@ export const HOVUDDRAG: readonly Hovuddrag[] = [
 
 /** Kva to-fingers-rulling på lerretet skrur på. Midja og vridinga er dei
  *  to som endrar kva objektet ER og ikkje berre kva det måler. */
-export const NUDGE_PARAMS = { vertical: "waist", horizontal: "twist" }
+export const NUDGE_PARAMS = { vertical: "waist", horizontal: "twist", pinch: "planR" }
 
 export const clampParams = (o: unknown, prev: Params): Params =>
   clampBag(o, prev as unknown as ParamBag, PARAM_RANGES, PARAM_KEYS) as unknown as Params

@@ -398,8 +398,14 @@ export type EngineDef = {
   groups: readonly Group[]
   keys: readonly string[]
   defaults: ParamBag
-  /** kva to-fingers-rulling på lerretet skrur på */
-  nudge: { vertical: string; horizontal: string }
+  /**
+   * Kva gestane på lerretet skrur på: to fingrar loddrett, to fingrar
+   * vassrett, og klypa. Klypa zoomar IKKJE — alt bur i same 500-kuben og
+   * innramminga er automatisk, so ho er ledig for det klypa tyder:
+   * storleik. Sprikande fingrar gjer møbelet breiare. Peikar ein nøkkel
+   * på primæren i eit hovuddrag, køyrer gesten heile draget.
+   */
+  nudge: { vertical: string; horizontal: string; pinch: string }
   /** namnet på det motoren tel: «lag», «blad», «finnar» */
   unitLabel: string
   /** namngjevne posar — synlege inngangar i panelet; terningen jittrar kring dei */

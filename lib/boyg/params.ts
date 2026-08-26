@@ -192,7 +192,7 @@ export const DEFAULT_PARAMS: Params = {
 }
 
 /** kva to fingrar på lerretet skrur på */
-export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "klaring" }
+export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "klaring", pinch: "breidd" }
 
 export const POSES: readonly Partial<Params>[] = []
 
