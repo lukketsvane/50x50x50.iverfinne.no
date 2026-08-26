@@ -18,6 +18,7 @@ import { seatGeom, type SeatGeom } from "./seat"
 import { newSoup, soupToMesh, strip, type Soup } from "./solid"
 // typesirkelen mesh ↔ last er trygg: begge brukar den andre fyrst ved kall
 import { feltPaMesh, lastVerste } from "./last"
+import { finmaskNett } from "../lastnett"
 
 export const DETAIL: Record<DetailKey, { nz: number; nt: number }> = {
   lav: { nz: 26, nt: 96 },
@@ -182,11 +183,13 @@ export function build(p: Params, detail: DetailKey, view: View, sh0?: Shell): Bu
   lagSoup(s, sh, g)
   const m = soupToMesh(s)
   if (view === "last") {
-    // Lastkartet: same nett som «lag», med utnyttinga per hjørne attåt.
+    // Lastkartet: same nett som «lag», FINMASKA so hjørna samplar feltet
+    // tett nok — store flate trekantar smører fargane diagonalt elles.
     // Ankeret er det analytiske maksimumet — same talet som tavla viser.
+    const fm = { ...m, ...finmaskNett(m) }
     return {
-      ...m,
-      felt: feltPaMesh(sh, g, p, m.positions),
+      ...fm,
+      felt: feltPaMesh(sh, g, p, fm.positions),
       feltTak: lastVerste(sh, g, p).util,
       lines: EMPTY(),
       heavy: EMPTY(),
