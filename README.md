@@ -22,6 +22,14 @@ er tekne heilt ut. BØYG (pressbøygde skal) står på stillaset og er ikkje i
 nedtrekket enno; SKAL (dei stabla lamellane) er teken ut av registeret,
 men kjelda står att for dokumentpipelinen.
 
+**VAFFEL er svaret prosjektet landar på.** Dei tre andre står som
+argumentet kring valet. Reiskapen er bygd for å lage ÉIN krakk som passar
+brukaren sin: still høgd, plan og sete etter kroppen (posane, hovuddraga,
+gestane), sjå kva lasta gjer med objektet — lesemåten **last** målar
+utnyttinga under NS-EN 1728-lasta på sjølve flata, med same modell og
+same skala som tavla — og få ut ei kuttliste som kastar minst mogleg av
+plata.
+
 Nedtrekket i panelet byter typologi og ikkje form. Kvar av dei har sitt
 eige parameterrom, sine eigne ledd og si eiga grense — og det er grensene
 som skil dei. Kvar motor held på sitt eige punkt: byter du fram og attende,
