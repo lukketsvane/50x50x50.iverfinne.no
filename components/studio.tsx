@@ -56,7 +56,7 @@ export function Studio() {
   // NATUR er standard: materialet er sanninga, beisen er valet.
   const [beis, setBeis] = useState("natur")
   const [hiDetail, setHiDetail] = useState(false)
-  const [light, setLight] = useState<LightDir>({ az: 0.62, el: 0.92 })
+  const [light, setLight] = useState<LightDir>({ az: 0.85, el: 0.52 })
   const [data, setData] = useState<BuildRes | null>(null)
   // Måltala kjem i eiga melding etter nettet, og berre for det siste
   // punktet: under eit drag står den førre tavla dimma til fingeren
