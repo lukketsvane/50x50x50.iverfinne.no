@@ -460,19 +460,22 @@ blir brukande på ein berbar.
 
 ### 5 · Kort lenkje — GJORD
 
-**Kva det vart, mot planen.** Som planlagt, med registeret teke på alvor:
-kodinga i `lib/hash.ts` er motoruavhengig — versjonsbokstav, motorbokstav,
-so kvart felt kvantisert til sitt eige steg og pakka i blanda radiks.
-Rekkjefylgjene er FROSNE og dokumenterte i fila: ein ny motor eller beis
-vert lagd til bakarst, og endrar eit band seg, byter versjonsbokstaven og
-den gamle avkodinga står att. `#p=` vert lesen for alltid, all avkoding
-går gjennom motoren sin eigen clamp, og søppel gjev null i staden for å
-felle sida.
+**Kva det vart, mot planen.** Som planlagt, med registeret teke på alvor
+— og so korta til beinet: ÉIN bokstav ber både motor og versjon (endrar
+banda i ein motor seg, får han ny bokstav og den gamle står att og les
+gamle lenkjer), so nyttelasta rett på. Kodinga i `lib/hash.ts` er
+motoruavhengig: kvart felt kvantisert til sitt eige steg og pakka i
+blanda radiks. Rekkjefylgjene er FROSNE og dokumenterte i fila; `#p=`
+vert lesen for alltid, all avkoding går gjennom motoren sin eigen clamp,
+og søppel gjev null i staden for å felle sida.
 
-**Målt** (`scripts/hash.ts`, 40 kast per motor): verste lengd 30–44 teikn
-etter motor (mot 1 034 før), ingen verdi flytta over eit halvt steg, og
-andre kvantiseringa flyttar ingenting. Skriptet prøver òg at #p= vert
-lesen felt for felt, og at rusk aldri kastar.
+**Målt** (`scripts/hash.ts`, 40 kast per motor): verste lengd 27 teikn
+for vaffel, 27–41 over motorane (mot 1 034 før — dømelenkja frå eigaren
+gjekk frå 664 til 28 teikn med `#` medrekna). Det ER golvet: nyttelasta
+ligg på summen av log2 av trinna i banda, og under det kjem ingen utan å
+kaste trinn. Ingen verdi flytta over eit halvt steg, andre kvantiseringa
+flyttar ingenting, #p= vert lesen felt for felt, overgangsforma «s=b…»
+frå førehandsvisinga vert lesen, og rusk kastar aldri.
 
 ### 6 · Lenkja er lagringa
 
