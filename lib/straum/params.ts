@@ -17,7 +17,9 @@ import {
   poseBag,
   randomBag,
   type Group,
+  type Hovuddrag,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 // body.ts importerer berre TYPEN Params herifrå, so importen er asyklisk
@@ -259,6 +261,28 @@ export const POSES: readonly Partial<Params>[] = [
     veggT: 40, finnar: 13, skraa: 6, vridFot: 0, vridSete: 22,
     morfNed: 4, morfOpp: 2.6, tomskyv: 12, tomretning: 50,
   },
+]
+
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = [
+  "vridd søyle", "timeglas", "dokumentobjektet", "amfora", "diagonaltrauet",
+]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag: bag as Pose["bag"],
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["hogd", 1]] },
+  { id: "midje", label: "midje", keys: [["midjeB", 1], ["midjeD", 1]] },
+  { id: "sete", label: "sete", keys: [["seteB", 1], ["seteD", 1]] },
+  { id: "vriding", label: "vriding", keys: [["vridSete", 1]] },
+  { id: "skraa", label: "skråstilling", keys: [["skraa", 1]] },
+  { id: "finnar", label: "skiveplan", keys: [["finnar", 1]] },
 ]
 
 /** Kva to-fingers-rulling på lerretet skrur på. */

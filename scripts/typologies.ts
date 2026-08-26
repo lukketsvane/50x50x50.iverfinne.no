@@ -76,6 +76,17 @@ function probe(e: EngineDef) {
   const orphan = Object.keys(e.ranges).filter((k) => !inGroups.includes(k))
   ok(orphan.length === 0, "ingen skyvar utan gruppe", orphan.join(","))
 
+  // --- posane og hovuddraga peikar berre inn i rommet som finst ------------
+  const poseMiss = e.poses.flatMap((p) =>
+    Object.keys(p.bag).filter((k) => k !== "material" && !e.ranges[k]),
+  )
+  ok(poseMiss.length === 0, "kvar pose held seg til banda", poseMiss.join(","))
+  ok(e.poses.every((p) => p.namn.length > 0), "kvar pose har eit namn")
+  const dragMiss = e.hovuddrag.flatMap((d) => d.keys.filter(([k]) => !e.ranges[k]).map(([k]) => k))
+  ok(dragMiss.length === 0, "kvart hovuddrag held seg til banda", dragMiss.join(","))
+  ok(e.hovuddrag.every((d) => d.keys.length > 0 && d.keys[0][1] === 1),
+    "kvart hovuddrag har ein primær med vekt 1")
+
   // --- standarden ligg inne i sitt eige spenn ------------------------------
   const outside = Object.entries(e.ranges).filter(([k, r]) => {
     const v = e.defaults[k]

@@ -88,6 +88,16 @@ export const SKAL: EngineDef = {
   keys: PARAM_KEYS,
   defaults: DEFAULT_PARAMS as unknown as ParamBag,
   nudge: NUDGE_PARAMS,
+  // Ute av registeret: motoren står for dokumentpipelinen, ingen treng
+  // inngangar i eit panel han aldri står i.
+  poses: [],
+  hovuddrag: [
+    { id: "hogd", label: "høgd", keys: [["seatZ", 1]] },
+    { id: "midje", label: "midje", keys: [["waist", 1], ["waistWide", 0.5]] },
+    { id: "vriding", label: "vriding", keys: [["twist", 1]] },
+    { id: "skaal", label: "skål", keys: [["dish", 1]] },
+    { id: "bein", label: "bein", keys: [["legs", 1]] },
+  ],
   unitLabel: "lag",
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,

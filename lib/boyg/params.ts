@@ -22,6 +22,8 @@ import {
   poseBag,
   randomBag,
   type Group,
+  type Hovuddrag,
+  type Pose,
   type Range,
   CUBE,
   type Metrics,
@@ -193,6 +195,18 @@ export const DEFAULT_PARAMS: Params = {
 export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "klaring" }
 
 export const POSES: readonly Partial<Params>[] = []
+
+/** Ingen posar enno — motoren står på stillaset og har ikkje fått ansikt. */
+export const POSAR: readonly Pose[] = []
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["hogd", 1]] },
+  { id: "skal", label: "skal", keys: [["skal", 1]] },
+  { id: "klaring", label: "klaring", keys: [["klaring", 1]] },
+  { id: "fold", label: "framfold", keys: [["foldV", 1]] },
+]
 
 export function clampParams(o: unknown, prev: Params): Params {
   return clampBag(o, prev, PARAM_RANGES, PARAM_KEYS)
