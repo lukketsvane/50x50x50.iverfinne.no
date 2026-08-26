@@ -61,6 +61,7 @@ export type BuildRes = {
   kant: Float32Array<ArrayBufferLike>
   /** lastkartet, berre i lesemåten «last»: utnytting per hjørne, 1,0 = kapasitet */
   felt?: Float32Array<ArrayBufferLike>
+  feltTak?: number
   lines: Float32Array<ArrayBufferLike>
   heavy: Float32Array<ArrayBufferLike>
 }

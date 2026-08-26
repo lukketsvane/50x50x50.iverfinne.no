@@ -33,78 +33,94 @@ type RibFelt = {
   legR: number
   /** trykkutnyttinga i beinet, konstant */
   uc: number
-  /** sampla over bandet: botn (bogen), topp (setet) og bøyeutnyttinga */
+  /** sampla over bandet: botn (bogen), topp (setet), djupn og bøyeutnytting */
   z0: number[]
   z1: number[]
+  d: number[]
   um: number[]
 }
 
 const N = 48
 
+/** kapasitetane og lasta, henta éin gong per rutenett */
+function last(g: Grid) {
+  return {
+    cap: capacities(g.b.p.material as Material),
+    nLoad: SEAT_LOAD / (2 * NRIB),
+  }
+}
+
+function byggRibFelt(
+  g: Grid,
+  cap: { capC: number; capM: number },
+  nLoad: number,
+  r: Rib,
+): RibFelt | null {
+  const p = g.b.p
+  const foot = runsOnRib(r, 1.2)
+  let legL: number
+  let legR: number
+  let uc: number
+  if (foot.length >= 2) {
+    legL = (foot[0][0] + foot[0][1]) / 2
+    legR = (foot[foot.length - 1][0] + foot[foot.length - 1][1]) / 2
+    const legW = Math.min(
+      foot[0][1] - foot[0][0],
+      foot[foot.length - 1][1] - foot[foot.length - 1][0],
+    )
+    uc = nLoad / 2 / Math.max(1, legW * p.ribbT) / cap.capC
+  } else {
+    // Ribba når ikkje golvet sjølv — bogen har lyfta henne. Ho ber
+    // likevel: lasta går ut i kryssa og ned dei kryssande ribbene, so
+    // overslaget lèt henne spenne mellom dei YTSTE kryssa sine. Utan
+    // bein er trykkleddet null. Før returnerte desse ribbene null, og
+    // då stod halve nettet med eksakt 0 i kartet — som om dei indre
+    // ribbene ikkje fanst for lasta i det heile.
+    if (r.slots.length < 2) return null
+    let lo = Infinity
+    let hi = -Infinity
+    for (const q of r.slots) {
+      if (q.t < lo) lo = q.t
+      if (q.t > hi) hi = q.t
+    }
+    legL = lo
+    legR = hi
+    uc = 0
+  }
+  const span = legR - legL
+  if (span < 1) return null
+
+  const z0: number[] = []
+  const z1: number[] = []
+  const d: number[] = []
+  const um: number[] = []
+  for (let i = 0; i <= N; i++) {
+    const t = legL + (i / N) * span
+    const w: [number, number] = r.axis === "x" ? [r.pos, t] : [t, r.pos]
+    const top = g.b.seatSurf(w[0], w[1])
+    const arc = g.b.arch(w[0], w[1])
+    let cut = 0
+    for (const q of r.slots) {
+      if (Math.abs(q.t - t) > q.w / 2) continue
+      cut = Math.max(cut, Math.abs(q.zMouth - q.zEnd))
+    }
+    const dd = Math.max(1, top - arc - cut)
+    const W = (p.ribbT * dd * dd) / 6
+    const M = (nLoad / 2) * Math.min(t - legL, legR - t)
+    z0.push(arc)
+    z1.push(top)
+    d.push(dd)
+    um.push(M / W / cap.capM)
+  }
+  return { legL, legR, uc, z0, z1, d, um }
+}
+
 export type LastFelt = { at(r: Rib, t: number, z: number): number }
 
 export function lastFelt(g: Grid): LastFelt {
-  const p = g.b.p
-  const cap = capacities(p.material as Material)
-  const nLoad = SEAT_LOAD / (2 * NRIB)
+  const { cap, nLoad } = last(g)
   const felt = new Map<Rib, RibFelt | null>()
-
-  const build = (r: Rib): RibFelt | null => {
-    const foot = runsOnRib(r, 1.2)
-    let legL: number
-    let legR: number
-    let uc: number
-    if (foot.length >= 2) {
-      legL = (foot[0][0] + foot[0][1]) / 2
-      legR = (foot[foot.length - 1][0] + foot[foot.length - 1][1]) / 2
-      const legW = Math.min(
-        foot[0][1] - foot[0][0],
-        foot[foot.length - 1][1] - foot[foot.length - 1][0],
-      )
-      uc = nLoad / 2 / Math.max(1, legW * p.ribbT) / cap.capC
-    } else {
-      // Ribba når ikkje golvet sjølv — bogen har lyfta henne. Ho ber
-      // likevel: lasta går ut i kryssa og ned dei kryssande ribbene, so
-      // overslaget lèt henne spenne mellom dei YTSTE kryssa sine. Utan
-      // bein er trykkleddet null. Før returnerte desse ribbene null, og
-      // då stod halve nettet med eksakt 0 i kartet — som om dei indre
-      // ribbene ikkje fanst for lasta i det heile.
-      if (r.slots.length < 2) return null
-      let lo = Infinity
-      let hi = -Infinity
-      for (const q of r.slots) {
-        if (q.t < lo) lo = q.t
-        if (q.t > hi) hi = q.t
-      }
-      legL = lo
-      legR = hi
-      uc = 0
-    }
-    const span = legR - legL
-    if (span < 1) return null
-
-    const z0: number[] = []
-    const z1: number[] = []
-    const um: number[] = []
-    for (let i = 0; i <= N; i++) {
-      const t = legL + (i / N) * span
-      const w: [number, number] = r.axis === "x" ? [r.pos, t] : [t, r.pos]
-      const top = g.b.seatSurf(w[0], w[1])
-      const arc = g.b.arch(w[0], w[1])
-      let cut = 0
-      for (const q of r.slots) {
-        if (Math.abs(q.t - t) > q.w / 2) continue
-        cut = Math.max(cut, Math.abs(q.zMouth - q.zEnd))
-      }
-      const d = Math.max(1, top - arc - cut)
-      const W = (p.ribbT * d * d) / 6
-      const M = (nLoad / 2) * Math.min(t - legL, legR - t)
-      z0.push(arc)
-      z1.push(top)
-      um.push(M / W / cap.capM)
-    }
-    return { legL, legR, uc, z0, z1, um }
-  }
+  const build = (r: Rib) => byggRibFelt(g, cap, nLoad, r)
 
   return {
     at(r: Rib, t: number, z: number): number {
@@ -129,6 +145,42 @@ export function lastFelt(g: Grid): LastFelt {
       return f.uc + fiber * um
     },
   }
+}
+
+/**
+ * Det verste punktet i heile rutenettet — same modell, same tal. Tavla
+ * les DETTE, og maksimumet i lastkartet er per konstruksjon det same:
+ * kartet og tavla kan ikkje seie kvar sitt, av di dei spør same funksjon.
+ */
+export function lastVerste(g: Grid): {
+  util: number
+  sc: number
+  sm: number
+  /** høgda bogen ligg i der det styrande punktet står, mm */
+  z: number
+  /** det effektive tverrsnittet der, mm² */
+  A: number
+} {
+  const { cap, nLoad } = last(g)
+  const p = g.b.p
+  let best = { util: 0, sc: 0, sm: 0, z: 0, A: 0 }
+  for (const r of g.ribs) {
+    const f = byggRibFelt(g, cap, nLoad, r)
+    if (!f) continue
+    for (let i = 0; i < f.um.length; i++) {
+      const u = f.uc + f.um[i]
+      if (u > best.util) {
+        best = {
+          util: u,
+          sc: f.uc * cap.capC,
+          sm: f.um[i] * cap.capM,
+          z: f.z0[i],
+          A: f.d[i] * p.ribbT,
+        }
+      }
+    }
+  }
+  return best
 }
 
 /**

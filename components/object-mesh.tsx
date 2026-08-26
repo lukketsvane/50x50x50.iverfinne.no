@@ -67,16 +67,18 @@ const LAST_STOPP: readonly [number, number, number, number][] = [
   [1.0, 0x7f / 255, 0x1d / 255, 0x1d / 255],
 ]
 
-function feltFargar(felt: Float32Array): Float32Array {
-  // Strekt til objektet sitt eige maksimum. På absoluttskalaen ligg eit
-  // lovleg møbel under 40 % utnytting og det meste av godset under 10 —
-  // då var HEILE kartet blått, same kva ein skrudde på, og eit kart som
-  // alltid seier det same seier ingenting. Relativt syner kartet det han
-  // finst for: KVAR lasta bur i objektet. Kva maksimumet er i prosent av
-  // kapasiteten står ved skalaen i panelet, so absoluttalet er ikkje
-  // gøymt — det er flytta dit tal høyrer heime.
+function feltFargar(felt: Float32Array, tak?: number): Float32Array {
+  // Strekt til objektet sitt eige verste punkt. På absoluttskalaen ligg
+  // eit lovleg møbel under 40 % utnytting og det meste av godset under
+  // 10 — då var HEILE kartet blått, same kva ein skrudde på, og eit kart
+  // som alltid seier det same seier ingenting. Relativt syner kartet det
+  // han finst for: KVAR lasta bur i objektet. Ankeret er motoren sitt
+  // analytiske maksimum (feltTak) — same talet som «utnytting» i tavla
+  // og ved skalaen i panelet — med hjørnemaksimum som golv, so ingen
+  // verdi går over 1 om ankeret av ein grunn manglar.
   let maks = 0
   for (let i = 0; i < felt.length; i++) if (felt[i] > maks) maks = felt[i]
+  if (tak && tak > maks) maks = tak
   const inv = maks > 1e-6 ? 1 / maks : 0
   const out = new Float32Array(felt.length * 3)
   for (let i = 0; i < felt.length; i++) {
@@ -239,7 +241,7 @@ export function ObjectMesh({
       g.setAttribute("aKant", new THREE.BufferAttribute(kant, 1))
       // lastkartet: utnyttinga per hjørne, ferdig farga etter skalaen
       if (data.view === "last" && data.felt && data.felt.length === nv) {
-        g.setAttribute("color", new THREE.BufferAttribute(feltFargar(data.felt), 3))
+        g.setAttribute("color", new THREE.BufferAttribute(feltFargar(data.felt, data.feltTak), 3))
       }
       // Kula kjem frå min/maks motoren alt har rekna — å skanne kvart
       // hjørne ein gong til her ville kosta ein full gjennomgang av

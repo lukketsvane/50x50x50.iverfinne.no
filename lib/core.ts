@@ -321,6 +321,13 @@ export type BuildOut = {
    * tavla, so kartet og talet aldri kan seie kvar sitt.
    */
   felt?: Float32Array<ArrayBufferLike>
+  /**
+   * Ankeret til lastkartet: det styrande talet frå SAME modellen som
+   * feltet, rekna analytisk og ikkje av hjørna. Hjørna samplar feltet og
+   * glattar smale toppar — utan ankeret ville fargane og tavla lese kvar
+   * sin maksimum, og då laug eitt av dei to.
+   */
+  feltTak?: number
 }
 
 export type ExportOut = {

@@ -27,7 +27,7 @@ import { makeBody } from "./body"
 import { buildGrid } from "./ribs"
 import { DETAIL, contourLines, lagMesh, shellMesh } from "./mesh"
 import { measure } from "./metrics"
-import { feltPaMesh } from "./last"
+import { feltPaMesh, lastVerste } from "./last"
 import { checkRules } from "./rules"
 import { buildParts } from "./parts"
 import { nest } from "./nest"
@@ -94,7 +94,16 @@ export const VAFFEL: EngineDef = {
       // Modellen står i last.ts og er den same som measure brukar — kartet
       // og tavla kan ikkje seie kvar sitt.
       const m = lagMesh(g)
-      return { ...m, felt: feltPaMesh(g, m.positions), lines: EMPTY(), heavy: EMPTY() }
+      // Ankeret er det analytiske maksimumet, ikkje hjørna sitt: hjørna
+      // samplar og glattar smale toppar, og fargane skal strekkjast mot
+      // det talet tavla faktisk viser.
+      return {
+        ...m,
+        felt: feltPaMesh(g, m.positions),
+        feltTak: lastVerste(g).util,
+        lines: EMPTY(),
+        heavy: EMPTY(),
+      }
     }
 
     // Konturteikninga legg ribbene flatt ved sida av kvarandre og fyller
