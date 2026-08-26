@@ -8,6 +8,7 @@
  * ei line i `lib/engines.ts`, og ingen ting i grensesnittet.
  */
 import { getEngine, isEngineId } from "./engines"
+import { avlGen, type AvlPunkt } from "./avl"
 export type { DetailKey } from "./core"
 import type {
   DetailKey,
@@ -35,7 +36,17 @@ export type ExportReq = {
   params: ParamBag
   what: ExportKind
 }
-export type Req = BuildReq | ExportReq
+/** avlen: same objekt, mindre plate — søket startar i punktet som står */
+export type AvlReq = {
+  kind: "avl"
+  id: number
+  engine: EngineId
+  params: ParamBag
+  steg: number
+  frø: string
+  locked: string[]
+}
+export type Req = BuildReq | ExportReq | AvlReq
 
 export type BuildRes = {
   kind: "build"
@@ -75,7 +86,26 @@ export type FeilRes = { kind: "feil"; id: number }
  *  alle flatene, rett i menyen — ingen skal måtte laste ned ein SVG for
  *  å sjå kva delane er. */
 export type SynRes = { kind: "syn"; id: number; engine: EngineId; svg: string }
-export type Res = BuildRes | MaalRes | ExportRes | FeilRes | SynRes
+/** avlen undervegs og ferdig. `avbroten` tyder at eit nyare punkt tok over
+ *  medan søket gjekk — då skal resultatet IKKJE brukast: brukaren har alt
+ *  flytta seg, og eit svar som overskriv handa hans er verre enn ingen. */
+export type AvlRes = {
+  kind: "avl"
+  id: number
+  engine: EngineId
+  ferdig: boolean
+  avbroten: boolean
+  steg: number
+  total: number
+  best: ParamBag
+  matInn: number
+  matInn0: number
+  sheetUtil: number
+  util: number
+  mass: number
+  harde: number
+}
+export type Res = BuildRes | MaalRes | ExportRes | FeilRes | SynRes | AvlRes
 
 function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
   const out = getEngine(req.engine).build(req.params, req.detail, req.view)
@@ -105,6 +135,74 @@ function doExport(req: ExportReq): { res: ExportRes; transfer: Transferable[] } 
 }
 
 /**
+ * Avlen, i bitar. Arbeidaren er éin tråd, og eitt søkjesteg kostar det eit
+ * heilt bygg kostar — so søket tek eitt steg per makrooppgåve og slepper
+ * køen til imellom. Kjem det eit nyare punkt medan søket går (brukaren
+ * drog ein skyvar), vert søket lagt frå seg der det står og svaret merkt
+ * avbrote: handa til brukaren vinn alltid over algoritmen.
+ */
+function doAvl(req: AvlReq) {
+  const eng = getEngine(req.engine)
+  const g = avlGen(eng, req.params, {
+    steg: req.steg,
+    frø: req.frø,
+    locked: new Set(req.locked),
+  })
+  const svar = (
+    ferdig: boolean,
+    avbroten: boolean,
+    steg: number,
+    s: AvlPunkt,
+    matInn0: number,
+  ) => {
+    const res: AvlRes = {
+      kind: "avl",
+      id: req.id,
+      engine: req.engine,
+      ferdig,
+      avbroten,
+      steg,
+      total: req.steg,
+      best: s.p,
+      matInn: s.matInn,
+      matInn0,
+      sheetUtil: s.sheetUtil,
+      util: s.util,
+      mass: s.mass,
+      harde: s.harde,
+    }
+    ;(self as unknown as Worker).postMessage(res)
+  }
+  let matInn0 = 0
+  let sistMeldt = 0
+  const eittSteg = () => {
+    try {
+      const r = g.next()
+      if (r.done) {
+        svar(true, false, req.steg, r.value.beste, matInn0 || r.value.start.matInn)
+        return
+      }
+      if (!matInn0) matInn0 = r.value.beste.matInn
+      if (newest !== req.id) {
+        svar(true, true, r.value.steg, r.value.beste, matInn0)
+        return
+      }
+      // framdrift utan spam: høgst fire meldingar i sekundet
+      if (Date.now() - sistMeldt > 250) {
+        sistMeldt = Date.now()
+        svar(false, false, r.value.steg, r.value.beste, matInn0)
+      }
+      setTimeout(eittSteg, 0)
+    } catch (err) {
+      console.error("sandkasse: avlen slo feil", err)
+      const res: FeilRes = { kind: "feil", id: req.id }
+      ;(self as unknown as Worker).postMessage(res)
+    }
+  }
+  eittSteg()
+}
+
+/**
  * Nettet fyrst, måltala etterpå — og måltala berre for det SISTE punktet.
  *
  * Ein skyvar som vert dregen sender ein straum av punkt, og å måle kvart av
@@ -128,6 +226,12 @@ self.onmessage = (e: MessageEvent<Req>) => {
     if (req.kind === "export") {
       const out = doExport(req)
       ;(self as unknown as Worker).postMessage(out.res, out.transfer)
+      return
+    }
+    if (req.kind === "avl") {
+      // avlen eig `newest` medan han går: eit nyare bygg bryt han av
+      newest = req.id
+      doAvl(req)
       return
     }
     newest = req.id

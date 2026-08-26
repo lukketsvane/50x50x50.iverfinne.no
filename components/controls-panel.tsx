@@ -98,6 +98,13 @@ const IcoShuffle = (
     <path d="m18 14 4 4-4 4" />
   </svg>
 )
+const IcoAvl = (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" {...STROKE}>
+    <path d="M12 21v-8" />
+    <path d="M12 13c0-4.2 3.2-7 8-7 0 4.2-3.2 7-8 7Z" />
+    <path d="M12 16c0-3.2-2.6-5.2-6-5.2 0 3.2 2.6 5.2 6 5.2Z" />
+  </svg>
+)
 const IcoSliders = (
   <svg viewBox="0 0 24 24" className="h-4 w-4" {...STROKE}>
     <path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4" />
@@ -265,6 +272,10 @@ export function ControlsPanel(props: {
   onView: (v: View) => void
   onBeis: (b: string) => void
   onShuffle: () => void
+  /** avlen: same objekt, mindre plate — søket held dei harde reglane */
+  onAvl: () => void
+  /** kvar avlen står, eller null når ingen går */
+  avlGang: { steg: number; total: number } | null
   onReset: () => void
   onToggleLock: (k: string) => void
   onToggleDetail: () => void
@@ -290,6 +301,8 @@ export function ControlsPanel(props: {
     onView,
     onBeis,
     onShuffle,
+    onAvl,
+    avlGang,
     onReset,
     onToggleLock,
     onToggleDetail,
@@ -530,6 +543,21 @@ export function ControlsPanel(props: {
             }}
           />
 
+          <button
+            type="button"
+            onClick={onAvl}
+            disabled={avlGang !== null}
+            aria-label="avl — same objekt, mindre plate: søket held dei harde reglane og minimerer materialet gjennom maskina"
+            title="avl — tåle mest, bruke minst"
+            className={ICON_BTN}
+            style={{ ...HAIR, color: "var(--ink)" }}
+          >
+            {avlGang ? (
+              <span className="text-[9px] tabular-nums">{avlGang.steg}</span>
+            ) : (
+              IcoAvl
+            )}
+          </button>
           <button
             type="button"
             onClick={onShuffle}
