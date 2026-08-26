@@ -1,6 +1,14 @@
 "use client"
 
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type JSX } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type JSX,
+} from "react"
 import {
   MATERIALS,
   applyDrag,
@@ -423,6 +431,13 @@ export function ControlsPanel(props: {
 
   const eng = getEngine(engine)
 
+  // Arket skal alltid opne på toppen — posane er fyrsteinntrykket, ikkje
+  // der ein sist var. Same når motoren byter: nytt rom, ny topp.
+  const sheetScroll = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    sheetScroll.current?.scrollTo({ top: 0 })
+  }, [engine, open])
+
   const broken = useMemo(() => {
     const hard = new Set<string>()
     const soft = new Set<string>()
@@ -664,7 +679,10 @@ export function ControlsPanel(props: {
 
         {/* det utvidbare arket */}
         {open && (
-          <div className="rise max-h-[56vh] overflow-y-auto overscroll-contain px-3 pb-3">
+          <div
+            ref={sheetScroll}
+            className="rise max-h-[56vh] overflow-y-auto overscroll-contain px-3 pb-3"
+          >
             {/* Posane: namngjevne inngangar i parameterrommet — der ein
                 startar, ikkje der ein finstiller. «Standard» er
                 referansepunktet sjølv. Dei same punkta jittrar terningen

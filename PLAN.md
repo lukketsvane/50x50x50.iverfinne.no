@@ -634,6 +634,52 @@ flytta band designaren óg kunne flytta — færre og breiare delar, tettare
 pakking, hardare arbeidande snitt. Bolk 4 gjeld framleis: brotet er
 framleis dyrare enn variasjonen, og avlen går aldri over ei motorgrense.
 
+### 14 · Panelet snudd: posar og hovuddrag fyrst, veggen bak «alt» — GJORD
+
+**Kvifor.** Bolk 4 seier det sjølv: fleire skyvarar er det motsette av
+svaret. Men panelet SYNTE dei som svaret — skyveveggen med 21 til 45 band
+var det fyrste ein møtte bak opnaren, og prosjektet dreier mot ein
+konseptpresentasjon der sandkassen skal brukast av folk som ikkje kjenner
+parameterromma. Ein vegg av band ein ikkje forstår er ikkje ein reiskap;
+han er eit arkiv med ei framside.
+
+**Kva som vart gjort.** Tre nivå, og skyvarveggen er det siste:
+
+1. **Posane vart inngangar.** Dei handdesigna punkta terningen jittrar
+   kring har alltid lege i `params.ts` per motor; no ber dei namna sine
+   sjølve (`poses` i kontrakten) og står som chips øvst i panelet, med
+   «standard» fyrst. Eit trykk er eit hopp til nøyaktig det punktet;
+   materialet ein står i vert med. Namna som før låg i ein parallell
+   tabell i `scripts/posar.ts` kjem no frå motoren — det som vert prøvd
+   er det brukaren ser. Dette er ikkje presetmenyen bolk 4 åtvarar mot:
+   posane var alt i grensesnittet gjennom terningen, dei var berre
+   usynlege og utan namn.
+
+2. **Hovuddraga.** Tre til seks semantiske kontrollar per motor
+   (`hovuddrag` i kontrakten): kvart drag har ein primær som gjev
+   posisjonen og talet, og fylgjarar som går med same normaliserte steg
+   gonger vekta si (`applyDrag` i `core.ts`, klemt inn i kvart band).
+   Ingen nye parametrar — parametertalet er frose, og eit drag er ein
+   peikar inn i rommet som finst, ikkje ei utviding av det.
+
+3. **«Alt».** Måltavla og heile veggen står bak ein knapp som ber ordet.
+   Finstilling, ikkje fyrsteinntrykk.
+
+**Scena reknar arket inn.** Arkmodusen flytte til studioen, og kameraet
+rammar objektet inn i bandet av skjermen arket ikkje dekkjer — same
+perspektivrekning som innramminga elles (`pad` i `FitCamera`), ingen
+heuristikk. Objektet vert aldri gøymt bak panelet, på noko arknivå.
+
+**Gesten fekk namn.** To fingrar på lerretet har alltid skrudd to band;
+no seier ein chip KVA band og kva tal, medan draget går. Ein gest utan
+namn er ein løyndom, og løyndomar er ikkje interaksjon.
+
+**Vurdert og lagt vekk:** direkte 3D-handtak på sjølve objektet. Det krev
+ankerpunkt i geometrien per motor — kvar sit «midja» på ein KARVE? — og
+kontrakten ber ikkje slike punkt. Gesten pluss hovuddraga gjev det meste
+av verdien utan å røre motorane; handtaka kan kome den dagen kontrakten
+har ein grunn til å bera anker.
+
 ---
 
 ## 6 Kva som skal målast
