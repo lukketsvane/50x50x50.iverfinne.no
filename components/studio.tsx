@@ -416,7 +416,6 @@ export function Studio() {
             stripePly={stripe}
             beis={beisHex}
             material={String(params.material ?? "bjork")}
-            hiDetail={hiDetail && isDesktop}
             pad={pad}
             light={light}
             onNudge={nudge}
