@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ENGINES, getEngine } from "@/lib/engines"
-import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
+import type { EngineId, Maskin, Metrics, ParamBag, Rule, View } from "@/lib/core"
 import { applyDrag, seeded } from "@/lib/core"
 import { kortHash, lesHash } from "@/lib/hash"
 import type { BuildRes, DetailKey, MaalRes, Req, Res, SynRes } from "@/lib/worker"
@@ -312,14 +312,19 @@ export function Studio() {
     [engine],
   )
 
+  // Maskina som skal kutte: fres 1:1 or heil plate, eller laser i
+  // modellskala på 600 × 400. Eit produksjonsval, ikkje ein parameter —
+  // det bur her og ikkje i satsen, og terningen ser det aldri.
+  const [maskin, setMaskin] = useState<Maskin>({ id: "fres" })
+
   const doExport = useCallback(
     (what: "stl" | "dxf" | "svg" | "ark") => {
       setBusy(true)
       // utanom porten: eit klikk, ikkje ein straum — og svaret slepp porten fri
-      const msg: Req = { kind: "export", id: ++reqId.current, engine, params, what }
+      const msg: Req = { kind: "export", id: ++reqId.current, engine, params, what, maskin }
       worker.current?.postMessage(msg)
     },
-    [engine, params],
+    [engine, params, maskin],
   )
 
   // Avlen: same objekt, mindre plate. Søket startar i punktet som står,
@@ -494,6 +499,8 @@ export function Studio() {
         onToggleLock={toggleLock}
         onToggleDetail={() => setHiDetail((d) => !d)}
         onExport={doExport}
+        maskin={maskin}
+        onMaskin={setMaskin}
         onShare={share}
       />
     </main>

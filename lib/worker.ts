@@ -14,6 +14,7 @@ import type {
   DetailKey,
   EngineId,
   ExportKind,
+  Maskin,
   Metrics,
   ParamBag,
   Rule,
@@ -35,6 +36,8 @@ export type ExportReq = {
   engine: EngineId
   params: ParamBag
   what: ExportKind
+  /** maskina som skal kutte — laseren gjev modellskala og eiga seng */
+  maskin?: Maskin
 }
 /** form av lasta: motoren løyser eitt formval or lastmodellen sin */
 export type FormReq = {
@@ -144,7 +147,7 @@ function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
 }
 
 function doExport(req: ExportReq): { res: ExportRes; transfer: Transferable[] } {
-  const out = getEngine(req.engine).exportFile(req.params, req.what)
+  const out = getEngine(req.engine).exportFile(req.params, req.what, req.maskin)
   return {
     res: { kind: "export", id: req.id, ...out },
     transfer: out.data ? [out.data] : [],

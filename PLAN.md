@@ -905,6 +905,39 @@ av di 9,5 vipper nestinga til to ark, dokumentobjektet på 9 av di 8,5
 opnar spalta inn i fingerbandet. Alle 30 held alle reglane, og massane
 fall med 0,3–3,2 kg per pose.
 
+### 20 · Produksjonsrunda: rasteret overalt, freda tjukner, laseren — GJORD
+
+**Kvifor.** Reiskapen skal publiserast som open kode og brukast av folk
+med fres OG folk med laserkuttar. Då må tre ting stemme: pakkinga må
+vera tett, materialet og tjukna må vera VAL og ikkje terningkast, og
+kuttfilene må kunne gå til ei laserseng med tynne plater.
+
+**Rasteret overalt.** Pakkaren flytte frå vaffel/nest.ts til
+lib/nestraster.ts og vart parameterisert (arkmål, luft, celle) — og
+STRAUM og RIBBE, som hadde kvar sin enklare pakkar (hyllerader med
+12 mm luft; frie rektangel over omrissa), fekk rasteret. Målt på
+standardobjekta: STRAUM 28 → 40 % plateutnytting (plata inn 22,8 →
+16,0 dm³), RIBBE 38 → 47 % (25,7 → 20,7). RIBBE-fila hadde sjølv sagt
+kva pakkinga hennar kosta; no er lovnaden halden.
+
+**Freda produksjonsval.** Terningen rører aldri meir tjukner og
+innpassing (FREDA per motor: ribbT/plyT/finneT/bladeT med fylgje), og
+avlen byter aldri meir material — plata og maskina er brukaren sine
+val, ikkje aksar søka eig. Prisen er ærleg og målt: vaffel-terningen
+fell frå 100 til 95 % på dei harde (eitt kast deler forma og
+reparasjonen får ikkje lenger tjukna som spak), men «held alle» STIG i
+alle motorane (ribbe 40 → 98 %) av di kasta ikkje lenger landar på
+ville plater.
+
+**Laseren.** MDF og akryl inn i materialregisteret, og eit maskinval i
+panelet: fres (heil plate, 1:1) eller laser (600 × 400-seng, 2 eller
+3 mm ark). Laserfilene er ein MODELL: heile geometrien skalert med
+tjukn/hovudtjukn — den einaste skaleringa som held kvart spor nøyaktig
+lik plata — nesta på lasersenga med 2 mm luft og fint raster, og
+laserens eigen kerf gjev fugeklaringa. STRAUM legg attpåtil sokkel og
+kappe i same tynne arket som finnane: éin materiale, éin modell.
+Standardvaffelen på 3 mm MDF: to laserark, 53 % utnytting.
+
 ---
 
 ## 6 Kva som skal målast

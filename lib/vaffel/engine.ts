@@ -20,8 +20,11 @@ import type {
   ParamBag,
   Vec3,
   View,
+  Maskin,
 } from "../core"
 import type { Material } from "../core"
+import { LASER } from "../core"
+import { skalerDelar } from "../nestraster"
 import { meshToStl } from "../skal/export-stl"
 import { makeBody } from "./body"
 import { buildGrid } from "./ribs"
@@ -144,7 +147,7 @@ export const VAFFEL: EngineDef = {
   measure: (bag) => measure(asP(bag)),
   rules: (bag, m) => checkRules(asP(bag), m),
 
-  exportFile(bag: ParamBag, what: ExportKind): ExportOut {
+  exportFile(bag: ParamBag, what: ExportKind, maskin?: Maskin): ExportOut {
     const p = asP(bag)
     const b = makeBody(p)
     if (what === "stl") {
@@ -159,11 +162,16 @@ export const VAFFEL: EngineDef = {
     if (what === "svg") {
       return { name: "vaffel-profilar.svg", mime: "image/svg+xml", text: profileSvg(g) }
     }
+    // laseren: heile geometrien i modellskala tjukn/ribbT, so spora
+    // framleis passar plata — nesta på lasersenga med laserluft
+    const laser = maskin?.id === "laser" ? maskin : null
+    const s = laser ? laser.tjukn / p.ribbT : 1
     const pl = buildParts(g, p.material as Material)
-    const ns = nest(pl.parts)
+    const ns = nest(skalerDelar(pl.parts, s), laser ? LASER : undefined)
+    const merk = laser ? "-laser" : ""
     if (what === "ark") {
-      return { name: "vaffel-" + ns.sheets.length + "ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
+      return { name: "vaffel-" + ns.sheets.length + "ark" + merk + ".svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
     }
-    return { name: "vaffel.dxf", mime: "application/dxf", text: partsToDxf(ns, p.ribbT) }
+    return { name: "vaffel" + merk + ".dxf", mime: "application/dxf", text: partsToDxf(ns, laser ? laser.tjukn : p.ribbT) }
   },
 }

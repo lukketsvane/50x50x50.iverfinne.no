@@ -266,13 +266,18 @@ export function clampParams(o: unknown, prev: Params): Params {
   return clampBag(o, prev, PARAM_RANGES, PARAM_KEYS)
 }
 
+/** produksjonsval, ikkje form: platetjukna og staven vel ein etter det
+ *  ein faktisk har — terningen rører dei aldri */
+const FREDA = ["plyT", "stavD"] as const
+
 export function randomParams(
   rnd: () => number,
   prev: Params,
   locked: ReadonlySet<string> = new Set(),
 ): Params {
-  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, locked)
-  const q = posed ?? (randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked) as Params)
+  const laastSet = new Set([...locked, ...FREDA])
+  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, laastSet)
+  const q = posed ?? (randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, laastSet) as Params)
   // Terningen får kaste kva han vil, men somme tal er SUMAR av andre og
   // bryt reglane nesten alltid utan hjelp: breidda, høgda og djupna er
   // konvoluttar, massen er eit integral, og somme band er daudsoner der
@@ -280,7 +285,7 @@ export function randomParams(
   // rekkjefylgje — snappar, breidd, masse, luftfall, kube — og rører berre
   // ulåste skyvarar, alltid innanfor banda.
   const fix = (k: keyof Params, v: number) => {
-    if (locked.has(k)) return
+    if (laastSet.has(k)) return
     const r = PARAM_RANGES[k]
     ;(q as Record<string, number | string>)[k] = Math.min(r.max, Math.max(r.min, +v.toFixed(3)))
   }

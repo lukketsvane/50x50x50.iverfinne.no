@@ -21,8 +21,10 @@ import type {
   ExportOut,
   ParamBag,
   View,
+  Maskin,
 } from "../core"
-import { MATERIALS } from "../core"
+import { LASER, MATERIALS } from "../core"
+import { skalerDelar } from "../nestraster"
 import { meshToStl } from "../skal/export-stl"
 import { makeShell } from "./shell"
 import { build, buildAll, DETAIL, lagMesh } from "./mesh"
@@ -74,7 +76,7 @@ export const RIBBE: EngineDef = {
   measure: (bag) => measure(asP(bag)),
   rules: (bag, m) => checkRules(asP(bag), m),
 
-  exportFile(bag: ParamBag, what: ExportKind): ExportOut {
+  exportFile(bag: ParamBag, what: ExportKind, maskin?: Maskin): ExportOut {
     const p = asP(bag)
     const sh = makeShell(p)
     if (what === "stl") {
@@ -89,11 +91,15 @@ export const RIBBE: EngineDef = {
     if (what === "svg") {
       return { name: "ribbe-profilar.svg", mime: "image/svg+xml", text: profileSvg(sh, g) }
     }
+    // laseren: modellskala tjukn/bladeT, nesta på lasersenga
+    const laser = maskin?.id === "laser" ? maskin : null
+    const s = laser ? laser.tjukn / p.bladeT : 1
     const pl = buildParts(sh, g, MATERIALS[p.material].rho)
-    const ns = nest(pl.parts)
+    const ns = nest(skalerDelar(pl.parts, s), laser ? LASER : undefined)
+    const merk = laser ? "-laser" : ""
     if (what === "ark") {
-      return { name: "ribbe-" + ns.sheets.length + "ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
+      return { name: "ribbe-" + ns.sheets.length + "ark" + merk + ".svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
     }
-    return { name: "ribbe.dxf", mime: "application/dxf", text: partsToDxf(ns, p.bladeT) }
+    return { name: "ribbe" + merk + ".dxf", mime: "application/dxf", text: partsToDxf(ns, laser ? laser.tjukn : p.bladeT) }
   },
 }
