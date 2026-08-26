@@ -88,8 +88,6 @@ export type Params = {
   material: Material
 }
 
-export type ParamKey = Exclude<keyof Params, "material">
-
 export const PARAM_RANGES: Record<string, Range> = {
   planN: { min: 2, max: 6.5, step: 0.05, label: "planform" },
   planAsp: { min: -0.5, max: 0.5, step: 0.005, label: "akseforhold" },

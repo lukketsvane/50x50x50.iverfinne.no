@@ -66,8 +66,3 @@ export function contourLines(build: Build): {
   build.plates.forEach((q, i) => draw(q, -14 - i * 1.2, true))
   return { positions: new Float32Array(thin), heavy: new Float32Array(bold), min, max }
 }
-
-/** eit punkt i delen sitt plan, brukt av teikningane */
-export function partPoint(q: Part, p: Pt): Vec3 {
-  return q.place.at(p[0], p[1], 0)
-}

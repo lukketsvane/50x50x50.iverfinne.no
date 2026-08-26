@@ -42,8 +42,6 @@ export const ENGINES: readonly EngineDef[] = [VAFFEL, SKIVE, STRAUM, RIBBE]
 /** alt, ferdig og uferdig — det prøveskripta skal måle */
 export const ALLE_MOTORAR: readonly EngineDef[] = [...ENGINES, ...UNDER_BYGGING]
 
-export const ENGINE_IDS = ENGINES.map((e) => e.id) as readonly EngineId[]
-
 export function getEngine(id: EngineId): EngineDef {
   return ALLE_MOTORAR.find((e) => e.id === id) ?? VAFFEL
 }
