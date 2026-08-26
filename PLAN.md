@@ -458,17 +458,21 @@ opningskantane treng sine eigne.
 **Synleg resultat.** Meshet under 2 500 kB på mid, mindre GC-rykk, og `hog`
 blir brukande på ein berbar.
 
-### 5 · Kort lenkje
+### 5 · Kort lenkje — GJORD
 
-**Kvifor.** 1 034 teikn, 1 186 på det verste. Får ikkje plass i ein QR-kode
-og vert linedelt i e-post.
+**Kva det vart, mot planen.** Som planlagt, med registeret teke på alvor:
+kodinga i `lib/hash.ts` er motoruavhengig — versjonsbokstav, motorbokstav,
+so kvart felt kvantisert til sitt eige steg og pakka i blanda radiks.
+Rekkjefylgjene er FROSNE og dokumenterte i fila: ein ny motor eller beis
+vert lagd til bakarst, og endrar eit band seg, byter versjonsbokstaven og
+den gamle avkodinga står att. `#p=` vert lesen for alltid, all avkoding
+går gjennom motoren sin eigen clamp, og søppel gjev null i staden for å
+felle sida.
 
-**Kva.** `#s=` — fast feltrekkjefylgje frå `PARAM_KEYS`, kvart felt
-kvantisert til sitt eige steg, pakka til 40 byte, base64url. `#p=` vert
-framleis lesen. Avkodinga går gjennom `clampParams` som før.
-
-**Synleg resultat.** URL under 80 teikn. Grensa er 314,5 bit, så det finst
-inga koding som er vesentleg kortare.
+**Målt** (`scripts/hash.ts`, 40 kast per motor): verste lengd 30–44 teikn
+etter motor (mot 1 034 før), ingen verdi flytta over eit halvt steg, og
+andre kvantiseringa flyttar ingenting. Skriptet prøver òg at #p= vert
+lesen felt for felt, og at rusk aldri kastar.
 
 ### 6 · Lenkja er lagringa
 
@@ -507,27 +511,27 @@ kanten av rommet er verd å sjå.
 **Synleg resultat.** Minst 60 % av kasta held dei harde reglane, og panelet
 seier kva skyvar som redda dei.
 
-### 8 · Regelen skal peike
+### 8 · Regelen skal peike — GJORD
 
-**Kvifor.** Ein regel seier nei og seier ikkje kva ein skal gjere. Det er
-halvt arbeid. Skilnaden mellom ein reiskap og ein dommar er om han peikar.
+**Kva det vart, mot planen.** `Rule` fekk det valfrie feltet `peikar` —
+skyvarane som faktisk flytter regelen, viktigast fyrst, lesne ut av
+regelkoden og ikkje av namnet. Kvar broten regel i panelet er trykkbar:
+trykket opnar «alt», rullar til den fyrste skyvaren og let alle regelen
+sine blinke éin gong. Reglar ingen skyvar eig — innpassinga i kuben,
+materialvalet — står som liner utan pil, med vilje: å peike på noko som
+ikkje kan rette dei ville vore løgn.
 
-**Kva.** Kvar regel namngjev dei parametrane han heng av og kva veg dei må.
-Etiketten i panelet vert klikkbar.
+**Synleg resultat.** Trykk på «veltevinkel» i VAFFEL, og panelet rullar
+til `fot`, `planA`, `planB` og `hogd` — dei fire som faktisk flytter
+vippearmen.
 
-**Synleg resultat.** Trykk på «veltevinkel», og panelet rullar til
-`legStretch`, `foot` og `seatZ`.
+### 9 · Alle platene ut — GJORD
 
-### 9 · Alle platene ut
-
-**Kvifor.** Nettsida eksporterer plate éin. Eit objekt som treng to, går
-ut halvt, og ingen ting seier frå.
-
-**Kva.** Eksporter alle platene frå `nest`, og skriv talet på plater i
-panelet ved sida av utnyttinga.
-
-**Synleg resultat.** Eksportnamnet ber platenummeret, og panelet seier
-«2 plater» før ein trykkjer.
+**Kva det vart, mot planen.** `alleArkSvg` stablar alle arka under
+kvarandre i ÉI fil i staden for å eksportere plate éin og teie om resten
+— STRAUM med kvar si arkhøgd, sidan finner, sokkel og kappe har kvar si
+platetjukn. Filnamnet ber platetalet (`skive-2ark.svg`), og panelet sa
+alt talet ved plateutnyttinga (etappe 13).
 
 ### 10 · Éin kommando for mappa
 
@@ -828,24 +832,21 @@ gjeld, og at mappa ikkje kan byggjast av eit ulovleg objekt.
 
 ## 8 Att
 
-Ærleg liste, i den rekkjefylgja eg ville teke dei.
+Ærleg liste, i den rekkjefylgja eg ville teke dei. Det som stod her og er
+gjort (measure-dobbeltarbeidet, delt svar, grov stabel, kort hash, reglar
+som peikar, alle platene, snittet ned til fire) står i etappane over —
+lista ber berre resten.
 
 | | Kva | Kvifor |
 |---|---|---|
-| 1 | Avgjer kva objekt som gjeld | Mappa seier 33 lag og 50 delar, motoren seier 32 og 61. Til det står skrive, skildrar dei to ulike krakkar. |
-| 2 | Send det bygde inn i `measure` | 882 av 1 024 ms er arbeid som alt er gjort. |
-| 3 | Del svaret i tal og mesh | Tabellen ventar på eit mesh han ikkje les. |
-| 4 | Grov stabel under drag | 583 mot 198 ms, og massen skil 1,2 %. |
+| 1 | `npm run mappe` for dei fire, som nektar på hardt brot | Mappa ER innleveringa. Dumpen og render.py kan i dag berre SKAL; dei fire i registeret har ingen veg til papir. Stempla med `#s=`-lenkja som reproduserer objektet. |
+| 2 | Lasta synleg på objektet | Utnyttinga er den andre avfallsaksen, og ho er eitt tal i ei tavle. Måla henne PÅ flata (per høgd, av tverrsnittsrekninga som alt finst) er argumentet gjort synleg — referansebileta med lastkart peikar hit. |
+| 3 | Terning som reparerer, målt om | Reparasjonane per motor finst; kor stor del av kasta som no held dei harde reglane på dei FIRE er ikkje målt sidan registeret var seks. |
+| 4 | Lokalt spor over lenkjer | Punktet ein var innom for tjue minutt sidan er borte. Presetmeny er ikkje svaret; `#s=` gjer kvart spor til 40 teikn. |
 | 5 | Indekser meshet | 8 177 kB per bygging er tre kopiar av kvart hjørne. |
-| 6 | Kort hash | 1 034 teikn mot ei nedre grense på 315 bit. |
-| 7 | Lokalt spor over lenkjer | Punktet ein var innom for tjue minutt sidan er borte. Presetmeny er ikkje svaret. |
-| 8 | Terning som reparerer | 30 % av trekka er møblar; resten er leksjonar i kva som ikkje går. |
-| 9 | Reglar som peikar på ein skyvar | Ein regel som berre seier nei har gjort halve jobben. |
-| 10 | Eksporter alle platene | I dag går berre plate éin ut, og ingen ting seier frå. |
-| 11 | `npm run mappe`, som nektar på hardt brot | Ein PDF av eit ulovleg objekt ser like ferdig ut som ein av eit lovleg. |
-| 12 | Mål bilderata på ein telefon | Alle bilderatetal i dette dokumentet er programvare-GL. |
-| 13 | Variantane som lenkjer i mappa | Dei tolv finst berre som argument eg har skrive sjølv. |
-| 14 | Kopier scena frå parametric ein siste gong | To kopiar utan vedlikehaldsregel driv frå kvarandre utan at nokon oppdagar det. |
+| 6 | Mål bilderata på ein telefon | Alle bilderatetal i dette dokumentet er programvare-GL. |
+| 7 | Variantane som lenkjer i mappa | Med `#s=` er kvar variant 40 teikn og ein QR-kode. |
+| 8 | Kopier scena frå parametric ein siste gong | To kopiar utan vedlikehaldsregel driv frå kvarandre utan at nokon oppdagar det. |
 
 Objektlista — bygg det, prøv NS-EN 1022, dybelplan, fas mot golvet,
 skiveavfallet, fargen — står i SKAL-mappa og høyrer ikkje heime her. Det

@@ -120,10 +120,22 @@ html {
   transition: grid-template-rows 280ms ease;
 }
 
+/* Skyvaren ein regel peika på: eitt roleg blink, so ro att. */
+.peika {
+  animation: peika 2.2s ease;
+}
+@keyframes peika {
+  15%,
+  55% {
+    background: color-mix(in srgb, var(--warn) 9%, transparent);
+  }
+}
+
 /* Den som har bede om ro, får ro: ingen puls, ingen stig, ingen gliding. */
 @media (prefers-reduced-motion: reduce) {
   .pulsar,
-  .rise {
+  .rise,
+  .peika {
     animation: none;
   }
   .glid {
