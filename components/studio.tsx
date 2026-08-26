@@ -360,8 +360,11 @@ export function Studio() {
   const metrics: Metrics | null = liveTal?.metrics ?? null
   const rules: Rule[] = useMemo(() => liveTal?.rules ?? [], [liveTal])
   // det verste punktet i lastkartet, i prosent av kapasiteten — fargane i
-  // kartet er strekte til dette talet, og skalaen i panelet må seie det
+  // kartet er strekte til dette talet, og skalaen i panelet må seie det.
+  // Motoren sender ankeret sjølv (feltTak, same tal som utnyttinga i
+  // tavla); hjørneskanninga er berre reserve for eldre bygg utan det.
   const lastMaks = useMemo(() => {
+    if (live?.feltTak) return live.feltTak
     const f = live?.felt
     if (!f || !f.length) return 0
     let m = 0
