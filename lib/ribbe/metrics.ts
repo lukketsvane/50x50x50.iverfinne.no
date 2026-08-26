@@ -28,7 +28,6 @@ import {
   meshVolume,
   metric,
   nn,
-  SEAT_LOAD,
   CUBE,
   type Metric,
   type Metrics,
@@ -39,14 +38,7 @@ import { makeShell, type Shell } from "./shell"
 import { buildAll, DETAIL, lagMesh, type Built } from "./mesh"
 import { buildParts } from "./parts"
 import { nest, nestArea } from "./nest"
-
-/**
- * Lasta som når éi ribbe. NS-EN 1728 gjev 1600 N konsentrert på setet;
- * står lasta ved kanten, tek ein firedel av ribbene om lag seksti prosent
- * av henne. Talet er eit skjøn og skal lesast som eit skjøn — men det er
- * det same skjønet i alle snitt, så samanlikninga mellom to objekt held.
- */
-const EDGE_SHARE = 0.6
+import { lastVerste } from "./last"
 
 /** veven i eit blad ved ei gjeven høgd, interpolert mellom stasjonane */
 function webAt(bl: Built["blades"][number], z: number): number {
@@ -160,34 +152,12 @@ export function measure(p: Params, pre?: { sh?: Shell; g?: Built }): Metrics {
   // --- det styrande snittet ------------------------------------------------
   // Momentet kjem ikkje frå lasta, men frå at ribba ikkje er rett: midja
   // bular innanfor korda mellom fot og sete, og det er den avstanden som
-  // lagar bøyemomentet. Ei rett, kjegleforma ribbe hadde ikkje hatt det.
+  // lagar bøyemomentet. Sjølve rekninga bur i last.ts og er NØYAKTIG den
+  // lastkartet les — difor kan tavla og kartet ikkje seie kvar sitt:
+  // maksimumet i kartet ER dette talet.
   const nRib = g.blades.length
-  const arcTop = Math.min(p.footArc, sh.zBlade * 0.45)
-  const nCarry = Math.max(3, Math.round(nRib / 4))
-  const N = (SEAT_LOAD * EDGE_SHARE) / nCarry
-  let worst = { z: 0, A: 0, sc: 0, sm: 0, util: 0, tot: 0 }
-  for (const bl of g.blades) {
-    const st = bl.st
-    const sFoot = (st[0].a + st[0].b) / 2
-    const last = st[st.length - 1]
-    const sTop = (last.a + last.b) / 2
-    for (const q of st) {
-      // Under fotbogen er snittet ei kontaktflate og ikkje ei søyle: lasta
-      // spreier seg inn i bladet over nokre få centimeter, og eit snitt
-      // gjennom fotspissen måler kontakttrykket i staden for bereevna.
-      if (q.u < arcTop) continue
-      const web = q.b - q.a
-      if (web <= 1) continue
-      const A = web * p.bladeT
-      const W = (p.bladeT * web * web) / 6
-      const chord = sFoot + ((sTop - sFoot) * q.u) / Math.max(1, sh.zBlade)
-      const e = Math.abs((q.a + q.b) / 2 - chord)
-      const sc = N / A
-      const sm = (N * e) / W
-      const util = sc / cap.capC + sm / cap.capM
-      if (util > worst.util) worst = { z: q.u, A, sc, sm, util, tot: 0 }
-    }
-  }
+  const lv = lastVerste(sh, g, p)
+  const worst = { z: lv.z, A: lv.A, sc: lv.sc, sm: lv.sm, util: lv.util, tot: 0 }
   // Snittarealet er summen over alle blada i den høgda som styrer, og
   // ikkje eitt blad gonga med talet: er planet ovalt, er blada ulike.
   for (const bl of g.blades) worst.tot += webAt(bl, worst.z) * p.bladeT

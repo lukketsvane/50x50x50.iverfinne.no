@@ -24,6 +24,7 @@ import { partsToDxf } from "../vaffel/export-dxf"
 import { alleArkSvg } from "../vaffel/export-svg"
 import { buildSlices, DETAIL } from "./profile"
 import { contourLines, lagMesh, loftMesh } from "./mesh"
+import { feltPaMesh, lastVerste } from "./last"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
 import { buildParts } from "./parts"
@@ -57,6 +58,7 @@ export const SKIVE: EngineDef = {
   poses: POSAR,
   hovuddrag: HOVUDDRAG,
   unitLabel: "skiver",
+  kanLast: true,
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
   random: (rnd, prev, locked) =>
@@ -78,6 +80,19 @@ export const SKIVE: EngineDef = {
     if (view === "lag") {
       const m = lagMesh(p, b)
       return { ...m, lines: EMPTY(), heavy: EMPTY() }
+    }
+
+    if (view === "last") {
+      // Lastkartet: same nett som «lag», med utnyttinga per hjørne attåt.
+      // Ankeret er det analytiske maksimumet — same talet som tavla viser.
+      const m = lagMesh(p, b)
+      return {
+        ...m,
+        felt: feltPaMesh(p, b, m.positions),
+        feltTak: lastVerste(p, b).util,
+        lines: EMPTY(),
+        heavy: EMPTY(),
+      }
     }
 
     // Konturkartet legg silhuettane flatt ved sida av kvarandre og fyller
