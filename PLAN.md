@@ -736,6 +736,50 @@ står der og tala som alltid er synlege — ein reiskap kvitterer med
 verkstykket, ikkje med ein lapp om det. Gestechipen står: han er handa
 sitt spegelbilete medan gesten går, ikkje ein informasjonskanal.
 
+### 16 · VAFFEL-runda: lasta på flata, tett pakking, reiskapen for brukaren — GJORD
+
+**Kvifor.** VAFFEL er svaret prosjektet landar på, og reiskapen fekk eit
+føremål som kan seiast i éi setning: lage ÉIN krakk som passar brukaren
+sin, med minst mogleg materialsvinn. Det kravde tre ting motoren ikkje
+hadde: lasta synleg, arket pakka tett, og terningen heime.
+
+**Lastkartet.** Lesemåten «last» fargar lag-nettet etter utnyttinga under
+NS-EN 1728-lasta — same modell som `measure` (bøying i bandet over
+kvelvinga med djupna lesen av geometrien punkt for punkt, fiberfordelinga
+over høgda, trykk i beinet), evaluert langs kvar ribbe i `lib/vaffel/last.ts`.
+1,0 på kartet ER kapasiteten, og kontraktprøva vaktar samsvaret med tavla.
+Skalaen er husets fargar på kvadratrot — eit lovleg møbel ligg under 40 %,
+og lineær skala gjorde heile kartet marineblått. Det kartet ikkje er, seier
+fila sjølv: elementmetode. Ingen samverknad mellom ribbene — eit overslag.
+
+**Tett pakking.** Giljotin-rektanglane i `vaffel/nest.ts` er bytte med
+rasterpakking: kvar del rastrert etter ytterkonturen (celle 6 mm, dilatert
+éi celle som PROV på minst 8 mm luft — målt minste faktiske luft 10,0 mm),
+fire kvartrotasjonar, botn-venstre, deterministisk. Like delar deler
+masker og søkjepeikar, so kvar (del, rotasjon) skannar arket høgst éin
+gong — verste pakketid 47 ms over 25 terningkast, godt under 80 ms-taket
+målinga og avlen krev. `Placed.rot` voks frå boolean til kvartrotasjonar;
+`placedRings` er einaste tolkaren, og svg/dxf/ark går gjennom han.
+
+**Målt** (`scripts/nesting.ts`, standardobjekt):
+
+| motor | plateutnytting før → etter | tid |
+|---|---|---|
+| vaffel | 34,8 → **48,6 %** | 17 ms |
+| boyg | 41,6 → **60,6 %** | 13 ms |
+| skive | 31,1 → **34,6 %** | 14 ms |
+
+Straum og ribbe har eigne nest-filer og står urørte (27,0 / 32,4 %).
+Over 25 seeda kast på vaffel: 41–61 %, dei fleste på eitt ark. Snudde
+ribber grip inn i naboens boge — det er den pakkinga kommentaren i
+nest.ts har lova sidan fyrste line.
+
+**Reiskapen heim til brukaren.** Terningen startar låst på VAFFEL
+(dobbelttrykk slepper han over motorgrensa), dobbelttrykk på eit
+variabelnamn låser det mot terningen (draget låser heile flokken sin),
+og halvope ark er reinska til det som formar: posar, hovuddrag,
+lesemåtar, eksport. Materialet, beisen og ark-kortet bur i «alt».
+
 ---
 
 ## 6 Kva som skal målast
@@ -842,13 +886,13 @@ lista ber berre resten.
 
 | | Kva | Kvifor |
 |---|---|---|
-| 1 | `npm run mappe` for dei fire, som nektar på hardt brot | Mappa ER innleveringa. Dumpen og render.py kan i dag berre SKAL; dei fire i registeret har ingen veg til papir. Stempla med `#s=`-lenkja som reproduserer objektet. |
-| 2 | Lasta synleg på objektet | Utnyttinga er den andre avfallsaksen, og ho er eitt tal i ei tavle. Måla henne PÅ flata (per høgd, av tverrsnittsrekninga som alt finst) er argumentet gjort synleg — referansebileta med lastkart peikar hit. |
+| 1 | `npm run mappe` for dei fire, som nektar på hardt brot | Mappa ER innleveringa. Dumpen og render.py kan i dag berre SKAL; dei fire i registeret har ingen veg til papir. Stempla med kortlenkja som reproduserer objektet. |
+| 2 | Lastkartet til dei tre andre motorane | VAFFEL har det; skive/straum/ribbe treng kvar si per-snitt-evaluering av modellane sine før `kanLast` kan setjast. |
 | 3 | Terning som reparerer, målt om | Reparasjonane per motor finst; kor stor del av kasta som no held dei harde reglane på dei FIRE er ikkje målt sidan registeret var seks. |
-| 4 | Lokalt spor over lenkjer | Punktet ein var innom for tjue minutt sidan er borte. Presetmeny er ikkje svaret; `#s=` gjer kvart spor til 40 teikn. |
+| 4 | Lokalt spor over lenkjer | Punktet ein var innom for tjue minutt sidan er borte. Presetmeny er ikkje svaret; kortlenkja gjer kvart spor til under 30 teikn. |
 | 5 | Indekser meshet | 8 177 kB per bygging er tre kopiar av kvart hjørne. |
 | 6 | Mål bilderata på ein telefon | Alle bilderatetal i dette dokumentet er programvare-GL. |
-| 7 | Variantane som lenkjer i mappa | Med `#s=` er kvar variant 40 teikn og ein QR-kode. |
+| 7 | Variantane som lenkjer i mappa | Med kortlenkja er kvar variant under 30 teikn og ein QR-kode. |
 | 8 | Kopier scena frå parametric ein siste gong | To kopiar utan vedlikehaldsregel driv frå kvarandre utan at nokon oppdagar det. |
 
 Objektlista — bygg det, prøv NS-EN 1022, dybelplan, fas mot golvet,
