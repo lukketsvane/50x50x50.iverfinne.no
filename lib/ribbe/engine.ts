@@ -59,6 +59,7 @@ export const RIBBE: EngineDef = {
   poses: POSAR,
   hovuddrag: HOVUDDRAG,
   unitLabel: "blad",
+  kanLast: true,
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
   random: (rnd, prev, locked) =>

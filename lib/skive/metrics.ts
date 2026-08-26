@@ -9,7 +9,6 @@
 import {
   CUBE,
   MATERIALS,
-  SEAT_LOAD,
   armToHull,
   capacities,
   hull,
@@ -24,6 +23,7 @@ import {
   type Pt,
 } from "../core"
 import { nest, usedArea } from "../vaffel/nest"
+import { lastVerste } from "./last"
 import { buildSlices, profileAt, type Build } from "./profile"
 import { lagMesh } from "./mesh"
 import { buildParts } from "./parts"
@@ -130,43 +130,18 @@ export function measure(p: Params, pre?: Build): Metrics {
   const tipAngle = (Math.atan2(tipArm, Math.max(1, sitZ)) * 180) / Math.PI
 
   // --- styrken ---------------------------------------------------------------
-  // Lasta fell på skivene under puta: puta er ~300 mm brei, so ho ligg over
-  // ceil(300 / (plyT + luft)) skiver — aldri fleire enn det finst.
-  const under = Math.max(1, Math.min(b.slices.length, Math.ceil(300 / (p.plyT + p.luft))))
-  const nLoad = SEAT_LOAD / under
-
-  // bøying i setebandet: fritt opplagt mellom beina, høgd = godset mellom
-  // bogen og setetoppen der det er tynnast
-  const prof = mid
-  const xN0 = p.djup / 2
-  const xB0 = -p.djup / 2
-  let depth = Infinity
-  for (let i = 1; i < 30; i++) {
-    const x = xB0 + (i / 30) * (xN0 - xB0)
-    const runs = runsAt(prof, Math.min(p.bogeH, p.hogd - p.grop) - 1)
-    // høgda på bandet over bogen ved x: setetopp minus bogekurva. Bogen er
-    // høgst midt i spennet, og der har setevippen alt teke halve arma si —
-    // bandet vert TYNNARE av vippen, so bøyinga må lesa same tal som regelen.
-    const w = Math.abs(2 * ((xN0 - x) / (xN0 - xB0)) - 1)
-    const boge = p.bogeH * Math.pow(Math.max(0, 1 - Math.pow(w, p.bogeN)), 1 / p.bogeN)
-    const top = p.hogd - p.grop - Math.tan((p.setevipp * Math.PI) / 180) * (p.djup / 2)
-    const d = top - boge
-    if (runs.length && d < depth) depth = d
-  }
-  if (!Number.isFinite(depth) || depth < 1) depth = p.hogd - p.bogeH
-
-  const span = p.djup * 0.8
-  const W = (p.plyT * depth * depth) / 6
-  const M = (nLoad * span) / 4
-  const sigmaM = M / Math.max(1, W)
-
-  // trykk i beinet: halve skivelasta ned i det smalaste beinet
-  const legW = Math.min(p.frambein, p.bakbein) * 0.55
-  const sigmaC = nLoad / 2 / Math.max(1, legW * p.plyT)
-  const util = sigmaC / cap.capC + sigmaM / cap.capM
-
-  const minSecArea = depth * p.plyT
-  const minSecZ = p.bogeH
+  // Lasta fell på skivene under puta, bandet ber i bøying og beina i
+  // trykk. Sjølve rekninga bur i last.ts og er NØYAKTIG den lastkartet
+  // les — moment og banddjupn i SAME punkt, lese av den verkelege
+  // konturen, maksimum over alle berande skiver og alle snitt. Difor kan
+  // tavla og kartet ikkje seie kvar sitt: maksimumet i kartet ER dette
+  // talet.
+  const lv = lastVerste(p, b)
+  const sigmaM = lv.sm
+  const sigmaC = lv.sc
+  const util = lv.util
+  const minSecArea = lv.A
+  const minSecZ = lv.z
 
   const mm = (v: number) => nn(v, 0) + " mm"
   const mm1 = (v: number) => nn(v, 1) + " mm"
