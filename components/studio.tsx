@@ -7,7 +7,7 @@ import { seeded } from "@/lib/core"
 import type { BuildRes, DetailKey, MaalRes, Req, Res, SynRes } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
 import { BEIS } from "./object-mesh"
-import { ControlsPanel } from "./controls-panel"
+import { ControlsPanel, type SheetMode } from "./controls-panel"
 import type { NudgeAxis } from "./gesture-params"
 
 /** kor mange piksel to-fingers-rulling må dra for å sveipe eit heilt band */
@@ -64,6 +64,13 @@ export function Studio() {
   const [busy, setBusy] = useState(true)
   // avlen undervegs: kva steg søket står på, eller null når ingen går
   const [avlGang, setAvlGang] = useState<{ steg: number; total: number } | null>(null)
+  // Arket nedst: lukka → halv (posar, hovuddrag, lesemåtar) → full (alt).
+  // Tilstanden bur her og ikkje i panelet, av di scena treng henne: eit ope
+  // ark skal lyfte objektet fri, ikkje gøyme det bak seg.
+  const [mode, setMode] = useState<SheetMode>("lukka")
+  // Gesten på lerretet er usynleg til han får eit namn: chipen syner kva
+  // to-fingers-draget skrur på, og talet det står i, medan draget går.
+  const [hud, setHud] = useState<{ k: string; t: number } | null>(null)
   const [mounted, setMounted] = useState(false)
   // kvitt, alltid — sjå globals.css
   const dark = false
@@ -241,9 +248,19 @@ export function Studio() {
         const v = Math.min(r.max, Math.max(r.min, at + frac * (r.max - r.min)))
         return { ...b, [engine]: { ...cur, [key]: +v.toFixed(4) } }
       })
+      // chipen les sjølve verdien frå params ved teikning — her berre KVA
+      // som vert skrudd, og NÅR, so han kan kvile att etter draget
+      setHud({ k: key, t: Date.now() })
     },
     [engine, eng],
   )
+
+  // HUD-chipen kvilar att når fingrane har vore stille ei lita stund
+  useEffect(() => {
+    if (!hud) return
+    const t = window.setTimeout(() => setHud(null), 1100)
+    return () => window.clearTimeout(t)
+  }, [hud])
 
   const nudgeLight = useCallback((dx: number, dy: number) => {
     setLight((l) => ({
@@ -334,6 +351,17 @@ export function Studio() {
   const metrics: Metrics | null = liveTal?.metrics ?? null
   const rules: Rule[] = useMemo(() => liveTal?.rules ?? [], [liveTal])
 
+  // Kor stor del av skjermhøgda arket dekkjer i kvart steg — kameraet
+  // rammar inn objektet i bandet som står att, i staden for å late arket
+  // gøyme det. Tala er målte, ikkje utleidde: arket er innhaldsstyrt.
+  const pad = isDesktop
+    ? mode === "lukka" ? 0.07 : mode === "halv" ? 0.52 : 0.58
+    : mode === "lukka" ? 0.1 : mode === "halv" ? 0.55 : 0.62
+
+  // gestechipen: namnet på bandet gesten skrur på, og talet det står i no
+  const hudR = hud ? eng.ranges[hud.k] : null
+  const hudVal = hud && typeof params[hud.k] === "number" ? (params[hud.k] as number) : null
+
   return (
     <main className="fixed inset-0 overflow-hidden" style={{ background: "var(--paper)" }}>
       <div className="absolute inset-0">
@@ -345,7 +373,7 @@ export function Studio() {
             stripePly={stripe}
             beis={beisHex}
             hiDetail={hiDetail && isDesktop}
-            mobile={!isDesktop}
+            pad={pad}
             light={light}
             onNudge={nudge}
             onLight={nudgeLight}
@@ -369,6 +397,31 @@ export function Studio() {
         </a>
       </header>
 
+      {/* gesten får eit namn medan han går: kva band, kva tal */}
+      {hud && hudR && hudVal !== null && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+76px)] z-10 flex justify-center"
+        >
+          <div
+            className="flex items-baseline gap-2 rounded-full border px-3.5 py-1.5 text-[11px]"
+            style={{
+              borderColor: "var(--rule)",
+              background: "var(--paper)",
+              color: "var(--ink)",
+            }}
+          >
+            <span className="uppercase tracking-[0.14em] opacity-55">{hudR.label}</span>
+            <span className="tab">
+              {hudVal
+                .toFixed(hudR.step >= 1 ? 0 : hudR.step >= 0.1 ? 1 : 2)
+                .replace(".", ",")}
+              {hudR.unit && <span className="pl-0.5 opacity-45">{hudR.unit}</span>}
+            </span>
+          </div>
+        </div>
+      )}
+
       <ControlsPanel
         engine={engine}
         params={params}
@@ -382,6 +435,8 @@ export function Studio() {
         hiDetail={hiDetail}
         isDesktop={isDesktop}
         busy={busy}
+        mode={mode}
+        onMode={setMode}
         onEngine={setEngine}
         onToggleEngineLock={() => setEngineLock((v) => !v)}
         onChange={setParams}
