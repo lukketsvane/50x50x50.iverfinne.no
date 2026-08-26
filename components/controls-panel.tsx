@@ -146,6 +146,7 @@ const R_VELTE = ["velte", "velting"]
 const R_MASSE = ["masse"]
 const R_DELAR = ["lagtal", "finnetal", "plater", "plate", "platetal", "unike"]
 const R_UTN = ["utnytting", "styrke"]
+const R_PLATE = ["plateutnytting"]
 
 function tableRows(m: Metrics | null): TableRow[] {
   if (!m) {
@@ -161,6 +162,7 @@ function tableRows(m: Metrics | null): TableRow[] {
       tom("veltevinkel", "°"),
       tom("masse", "kg"),
       tom("delar", "stk"),
+      tom("plateutnytting", "%"),
       tom("utnytting", "%"),
     ]
   }
@@ -178,6 +180,8 @@ function tableRows(m: Metrics | null): TableRow[] {
     // ferdig masse, ikkje som kutta: slipemonet ligg att som støv på golvet
     { label: "masse", value: n2(m.mass), unit: "kg", rules: R_MASSE },
     { label: `${m.unitLabel} · delar`, value: `${n0(m.units)} · ${n0(m.parts)}`, unit: "stk", rules: R_DELAR },
+    // avfallet på arket: kor stor del av den medgåtte plata som vert delar
+    { label: `plateutnytting · ${n0(m.sheets)} pl.`, value: n0(m.sheetUtil * 100), unit: "%", rules: R_PLATE },
     { label: "utnytting", value: n0(m.util * 100), unit: "%", rules: R_UTN },
   ]
 }

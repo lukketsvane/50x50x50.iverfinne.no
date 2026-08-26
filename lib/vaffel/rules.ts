@@ -206,6 +206,16 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     why: "Poppelkjerne er lett og billeg, men ei ribbe på 7,5 mm i poppel toler ikkje at nokon dreg krakken etter éi ribbe. Bjørk og bøk gjer det.",
   })
 
+  // --- 17 plateutnytting (mjuk) ----------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.24,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Plata er ein del av objektet, òg den delen som vert til spon. Under fjerdedelen av arket i delar er eit val som skal stå på papiret: færre, breiare ribber pakkar betre enn mange smale med høg boge.",
+  })
+
   return out
 }
 

@@ -32,7 +32,7 @@ import { makeBody } from "./body"
 import { buildGrid, type Rib } from "./ribs"
 import { lagMesh } from "./mesh"
 import { buildParts } from "./parts"
-import { nest } from "./nest"
+import { nest, usedArea } from "./nest"
 import type { Params } from "./params"
 
 /** Der ribba har gods i høgda z, som stykke langs profilen. Krysspunkta
@@ -69,6 +69,7 @@ export function measure(p: Params): Metrics {
   const mesh = lagMesh(g)
   const pl = buildParts(g, mat)
   const ns = nest(pl.parts)
+  const sArea = usedArea(ns)
 
   // --- ytre mål --------------------------------------------------------------
   const envX = mesh.max[0] - mesh.min[0]
@@ -250,6 +251,7 @@ export function measure(p: Params): Metrics {
   const mm1 = (v: number) => nn(v, 1) + " mm"
   const cm2 = (v: number) => nn(v / 100, 0) + " cm²"
   const dm3 = (v: number) => nn(v / 1e6, 2) + " dm³"
+  const m2 = (v: number) => nn(v / 1e6, 2) + " m²"
   const pct = (v: number) => nn(v * 100, 0) + " %"
 
   const raw: [string, string, number, string, string][] = [
@@ -283,6 +285,8 @@ export function measure(p: Params): Metrics {
     ["parts", "delar", pl.parts.length, "stk", nn(pl.parts.length, 0)],
     ["kinds", "unike delar", pl.ids.length, "stk", nn(pl.ids.length, 0)],
     ["sheets", "plater", ns.sheets.length, "stk", nn(ns.sheets.length, 0)],
+    ["sheetArea", "plate medgått", sArea, "mm²", m2(sArea)],
+    ["sheetUtil", "plateutnytting", ns.util, "", pct(ns.util)],
     ["plyArea", "finérareal", pl.area, "mm²", cm2(pl.area)],
     ["volume", "godsvolum", volume, "mm³", dm3(volume)],
     ["massCut", "masse som kutta", pl.mass, "kg", nn(pl.mass, 2)],
@@ -299,6 +303,7 @@ export function measure(p: Params): Metrics {
     sigmaC: worst.sc, sigmaM: worst.sm, capC: cap.capC, capM: cap.capM, util: worst.util,
     volume, mass, massCut: pl.mass,
     parts: pl.parts.length, plyArea: pl.area,
+    sheets: ns.sheets.length, sheetArea: sArea, sheetUtil: ns.util,
     units: g.ribs.length, unitLabel: "ribber",
     list,
   }

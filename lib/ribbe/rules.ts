@@ -238,5 +238,15 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     why: "Skåla er frest ned i setet frå oversida. Står det under åtte millimeter att under botnen av henne, er setet ikkje lenger ei plate med ei skål i, det er eit hol med ein kant rundt.",
   })
 
+  // --- plateutnytting (mjuk) -------------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.28,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Plata er ein del av objektet, òg den delen som vert til spon. Blad og band pakkar godt når planet er rundt og blada liknar kvarandre; under 28 prosent er det silhuetten som kastar arket, og det valet skal stå her.",
+  })
+
   return R
 }

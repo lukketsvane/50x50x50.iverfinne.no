@@ -21,7 +21,15 @@ export const SHEET_H = 1220
 const PAD = 12
 
 export type Placed = { part: Part; x: number; y: number; rot: boolean }
-export type Sheet = { t: number; w: number; h: number; placed: Placed[]; util: number }
+export type Sheet = {
+  t: number
+  w: number
+  h: number
+  placed: Placed[]
+  util: number
+  /** brukt lengd av arket, mm — den stripa som faktisk går gjennom maskina */
+  used: number
+}
 export type Nesting = { sheets: Sheet[]; area: number; used: number }
 
 /** konturen slik han ligg på plata */
@@ -74,7 +82,7 @@ export function nest(parts: Part[]): Nesting {
           x = PAD
           shelf = 0
         } else {
-          sheet = { t, w: SHEET_W, h: SHEET_H, placed: [], util: 0 }
+          sheet = { t, w: SHEET_W, h: SHEET_H, placed: [], util: 0, used: 0 }
           sheets.push(sheet)
           x = PAD
           y = PAD
@@ -83,6 +91,7 @@ export function nest(parts: Part[]): Nesting {
       }
       sheet = sheet as Sheet
       sheet.placed.push({ part: it.part, x, y, rot: it.rot })
+      sheet.used = Math.max(sheet.used, y + it.h + PAD)
       x += it.w + PAD
       if (it.h > shelf) shelf = it.h
     }

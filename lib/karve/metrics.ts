@@ -31,7 +31,7 @@ import {
   type Metric,
   type Metrics,
 } from "../core"
-import { nest } from "../vaffel/nest"
+import { nest, usedArea } from "../vaffel/nest"
 import { DETAIL, karv, plater, snitt, type Karv, type Snitt } from "./form"
 import { flateMesh, koteMaal, type Kote } from "./mesh"
 import { buildParts } from "./parts"
@@ -55,6 +55,8 @@ export type Bunt = {
   bl: ReturnType<typeof plater>
   pl: ReturnType<typeof buildParts>
   sheets: number
+  sheetArea: number
+  sheetUtil: number
   sn: Snitt
   kote: Kote
   emneV: number
@@ -86,11 +88,14 @@ export function bunt(p: Params): Bunt {
         by = Math.max(by, Math.abs(v[1]))
       }
     }
+    const ns = nest(pl.parts)
     return {
       k,
       bl,
       pl,
-      sheets: nest(pl.parts).sheets.length,
+      sheets: ns.sheets.length,
+      sheetArea: usedArea(ns),
+      sheetUtil: ns.util,
       sn: snitt(k),
       kote: koteMaal(k, p.plyT),
       emneV,
@@ -180,6 +185,7 @@ export function measure(p: Params): Metrics {
   const mm1 = (v: number) => nn(v, 1) + " mm"
   const cm2 = (v: number) => nn(v / 100, 0) + " cm²"
   const dm3 = (v: number) => nn(v / 1e6, 2) + " dm³"
+  const m2 = (v: number) => nn(v / 1e6, 2) + " m²"
   const pct = (v: number) => nn(v * 100, 0) + " %"
 
   const raw: [string, string, number, string, string][] = [
@@ -222,6 +228,8 @@ export function measure(p: Params): Metrics {
     ["plyT", "platetjukn", p.plyT, "mm", mm1(p.plyT)],
     ["kinds", "unike plater", pl.ids.length, "stk", nn(pl.ids.length, 0)],
     ["sheets", "plater", b.sheets, "stk", nn(b.sheets, 0)],
+    ["sheetArea", "plate medgått", b.sheetArea, "mm²", m2(b.sheetArea)],
+    ["sheetUtil", "plateutnytting", b.sheetUtil, "", pct(b.sheetUtil)],
     ["plyArea", "finérareal", pl.area, "mm²", cm2(pl.area)],
     ["emne", "emnevolum", b.emneV, "mm³", dm3(b.emneV)],
     ["volume", "godsvolum", volume, "mm³", dm3(volume)],
@@ -242,6 +250,7 @@ export function measure(p: Params): Metrics {
     sigmaC: sn.sigC, sigmaM: sn.sigM, capC: cap.capC, capM: cap.capM, util,
     volume, mass, massCut,
     parts: pl.parts.length, plyArea: pl.area,
+    sheets: b.sheets, sheetArea: b.sheetArea, sheetUtil: b.sheetUtil,
     units: bl.length, unitLabel: "lag",
     list,
   }

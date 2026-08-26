@@ -216,5 +216,15 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     why: "Under tolv lag er blokken ein stabel klossar, og kotene vert til brede band i staden for linjer. Over førtiseks er det for mange fuger til å få jamt trykk i éi pressing — då må blokken limast i bolkar, og kvar bolk er ei ny skøyt å halde rett.",
   })
 
+  // --- plateutnytting (mjuk) -------------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.22,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Emnet er limt av plater før fresen tek til, og arket betaler for kvart lag. Under 22 prosent er det emneforma som kastar — ei rundare blokk tek mindre plate for det same objektet.",
+  })
+
   return out
 }

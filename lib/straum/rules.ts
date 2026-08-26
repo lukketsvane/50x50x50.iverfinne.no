@@ -249,5 +249,15 @@ export function checkRules(p: Params, m: Metrics, pre?: { body?: Body; build?: B
     why: "Tomrommet vert klemt inn mellom sokkelen og kappa: eit tomrom som nådde ut i sporet ville dele finna i to lause delar. Vert det klemt heilt bort, er kroppen massiv — og då veg han halvanna kilo meir enn han treng.",
   })
 
+  // --- plateutnytting (mjuk) -------------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.22,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Finneemne nestar dårleg av natur — kring fjerdedelen av arket er eigenskapen til forma, ikkje til pakkinga. Under det att er det finnetalet og emnestorleiken som kastar, og det valet skal stå på papiret.",
+  })
+
   return rules
 }
