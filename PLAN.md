@@ -561,6 +561,79 @@ grunngjevinga og motargumentet.
 **Synleg resultat.** Ein lesar kan opne A2 og sjå kvifor han vart forkasta,
 i staden for å ta ordet mitt for det.
 
+### 13 · Mot konseptet: FLETT ut, avfallsrekninga inn — GJORD
+
+**Kvifor.** Prosjektet dreier mot konseptpresentasjonen, og ein presentasjon
+ber ikkje åtte typologiar — han ber eit argument. FLETT var den einaste
+motoren der flata ikkje var plate men band, og det svaret høyrde til eit
+anna spørsmål enn det sandkassen stiller. Han er teken heilt ut: motoren,
+posane og id-en, 3 228 liner. Att står seks typologiar i nedtrekket og eitt
+spørsmål — og to tal som ber argumentet vidare enn silhuetten gjer.
+
+**Aksane.** Konseptet er ei avfallsrekning med to aksar:
+
+1. **Avfallet på arket.** Delane vert nesta på standardplater i alle
+   motorane frå før — men talet vart rekna og kasta. No står det i
+   kontrakten: `sheets`, `sheetArea` (breidda gonger den brukte lengda —
+   stripa som går gjennom maskina) og `sheetUtil` (netto delareal delt på
+   medgått plateareal; hòl i ein del er avfall, ikkje del). Same rekning i
+   alle motorane, so talet kan samanliknast på tvers. Ei mjuk regel per
+   motor set golvet (19–38 % etter typologi, målt under standardobjekt og
+   posar), og panelet viser talet med platetalet attåt.
+
+2. **Avfallet i objektet.** Utnyttinga under NS-EN 1728-lasta stod i tavla
+   frå før; ho er den andre aksen. Materiale som ikkje ber, er avfall som
+   står att i møbelet — standardobjekta ligg på 1–38 % utnytting, so det
+   meste av godset gjer ingenting.
+
+Målt på standardobjekta: vaffel 34,8 % av arket, skive 31,1 %, straum
+27,0 %, ribbe 32,4 %, kote 21,9 %, karve 31,9 %, bøyg 41,6 %.
+
+**Avlen.** Dei to aksane er summerte i eitt tal, og eit generativt søk
+minimerer det: *plata gjennom maskina*, `massCut / (rho · sheetUtil)`, i
+kubikkdesimeter. Talet fell når delane vert færre, tynnare eller mindre, OG
+når dei pakkar betre — avfallet i objektet og avfallet på arket i same
+eining. Søket (`lib/avl.ts`) er utglødd fjellklatring med frø bak same
+kontrakt som alt anna: kvart kandidatpunkt går gjennom motoren sin eigen
+clamp, terningsprang brukar motoren sin eigen reparasjon, harde brot kostar
+so mykje at inga lovleg løysing taper mot ei ulovleg, og mjuke brot kostar
+litt — dei er val, ikkje veggar. Spira i panelet køyrer 90 steg i
+arbeidaren, eitt steg per makrooppgåve, so skyvarane aldri frys; dreg
+brukaren i noko medan søket går, vinn handa og søket vert lagt frå seg.
+`scripts/avl.ts` køyrer same søket frå kommandolina og skriv ut rekneskapen
+og den delbare lenkja til det avla punktet.
+
+**Målt** (`scripts/avl.ts`, 140 steg, frø `prosjekt`, denne maskina; alle
+utan harde brot):
+
+| motor | plate inn, standard | plate inn, avla | spart | ark | styrke | søk |
+|---|---|---|---|---|---|---|
+| vaffel | 23,3 dm³ | 18,3 dm³ | 21 % | 35 → 45 % | 18 → 37 % | 37 s |
+| skive | 51,9 dm³ | 22,1 dm³ | **57 %** | 31 → 61 % | 3 → 3 % | 4 s |
+| straum | 39,2 dm³ | 21,8 dm³ | 44 % | 27 → 39 % | 8 → 22 % | 123 s |
+| ribbe | 50,2 dm³ | 38,1 dm³ | 24 % | 32 → 30 % | 15 → **84 %** | 15 s |
+| kote | 56,2 dm³ | 36,2 dm³ | 36 % | 22 → 45 % | 29 → 65 % | 9 s |
+| karve | 86,6 dm³ | 71,1 dm³ | 18 % | 32 → 52 % | 1 → 1 % | 3 s |
+
+**Det som er verdt å lese ut av tabellen.** Sparinga kjem to vegar, og
+motorane vel kvar sin: skive og karve pakkar arket betre (31 → 61 og
+32 → 52 prosent) utan at materialet arbeider hardare, medan ribbe går
+motsett veg — arket står i ro, men atten tynnare blad i staden for
+tjueto tjukke lyfter utnyttinga frå 15 til 84 prosent. Og to av motorane
+avslører seg: skive og karve står att på éin til tre prosent styrke same
+kor mykje avlen tek, av di det styrande snittet deira er sett av heilt
+andre omsyn enn lasta. Det er ikkje ein feil i avlen — det er eit
+måltal på kor overdimensjonert typologien er i utgangspunktet, og det
+høyrer heime i mappa. Straum sitt eine mjuke brot er materialvalet:
+avlen fann poppel, og poppel-regelen seier frå — som han skal.
+
+**Kva avlen ikkje er.** Han er ikkje ein fasit og ikkje ein knapp som
+teiknar møbelet ferdig. Han er ein reiskap som syner kva materialrekninga
+kostar i form: kvar gong han tek 30–40 prosent av plata, er det fordi han
+flytta band designaren óg kunne flytta — færre og breiare delar, tettare
+pakking, hardare arbeidande snitt. Bolk 4 gjeld framleis: brotet er
+framleis dyrare enn variasjonen, og avlen går aldri over ei motorgrense.
+
 ---
 
 ## 6 Kva som skal målast
