@@ -133,9 +133,13 @@ function probe(e: EngineDef) {
   ok(r.length > 0, `${r.length} reglar, ${r.filter((x) => x.hard).length} harde`)
   ok(broken.length === 0, "standarden held alle reglane",
     broken.map((x) => x.id).join(","))
-  // reglane som peikar, peikar berre på skyvarar som finst
+  // reglane som peikar, peikar berre på skyvarar som finst — og nesten
+  // alle skal peike: berre innpassinga og materialvalet får stå utan
   const peikMiss = r.flatMap((x) => (x.peikar ?? []).filter((k) => !e.ranges[k]))
   ok(peikMiss.length === 0, "kvar peikar treffer eit band", peikMiss.join(","))
+  const utanPeikar = r.filter((x) => !x.peikar?.length)
+  ok(utanPeikar.length <= 3, `${r.length - utanPeikar.length} av ${r.length} reglar peikar`,
+    utanPeikar.map((x) => x.id).join(","))
 
   // --- nettet ---------------------------------------------------------------
   for (const view of VIEWS) {
