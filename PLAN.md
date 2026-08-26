@@ -951,6 +951,18 @@ Eksportpakkinga treffer no 96–110 % av delane sin eigen bokstettleik
 — straum 43 → 56 % — og DER ligg taket: skal talet høgare, må FORMA
 endrast (færre tomrom, éi tjukn), ikkje pakkaren.
 
+**VAFFEL, dekomponert.** Kravet «nesten ingen svinn» vart prøvd mot
+tal: eit sveip over lufta (gap 8 → 1 mm, celle 4 → 0,5) gjev 52,8 →
+59,4 % — lufta mellom delane kostar altså seks–sju poeng, og resten av
+avstanden opp til hundre er BOGEN sjølv: hòlet som gjer ribba til bein
+og sparer dei kiloa som gjer vaffelen lettast i registeret. Prosenten
+og massen dreg kvar sin veg — ein vaffel med små bogar pakkar «betre»
+og kjøper MEIR plate — so talet som skal jagast er plata inn (dm³),
+der vaffelen alt leier med 8,4. To ting vart likevel henta: laserlufta
+ned frå 2 til 1,2 mm (målt: +3 poeng, 54 → 57 %; under 1,2 kom
+ingenting att), og lærdomen står her. Avkappet frå bogane er dessutan
+store, reine stykke — plate ein har, ikkje flis.
+
 ---
 
 ## 6 Kva som skal målast
