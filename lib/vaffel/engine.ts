@@ -31,7 +31,7 @@ import { checkRules } from "./rules"
 import { buildParts } from "./parts"
 import { nest } from "./nest"
 import { partsToDxf } from "./export-dxf"
-import { profileSvg, sheetSvg } from "./export-svg"
+import { alleArkSvg, profileSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
   GROUPS,
@@ -137,7 +137,7 @@ export const VAFFEL: EngineDef = {
     const pl = buildParts(g, p.material as Material)
     const ns = nest(pl.parts)
     if (what === "ark") {
-      return { name: "vaffel-ark1.svg", mime: "image/svg+xml", text: sheetSvg(ns, 0) }
+      return { name: "vaffel-" + ns.sheets.length + "ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
     }
     return { name: "vaffel.dxf", mime: "application/dxf", text: partsToDxf(ns, p.ribbT) }
   },
