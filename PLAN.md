@@ -696,6 +696,39 @@ kontrakten ber ikkje slike punkt. Gesten pluss hovuddraga gjev det meste
 av verdien utan å røre motorane; handtaka kan kome den dagen kontrakten
 har ein grunn til å bera anker.
 
+### 15 · Snittet: KOTE og KARVE ut, fire svar står — GJORD
+
+**Kvifor.** Eit steg tilbake og eit hyperkritisk blikk på kva prosjektet
+faktisk er: eitt møbel i ein 500-kube og ein presentasjon som ber EITT
+argument — korleis byggjer ein ei krum sitjeflate av flate plater, og kva
+kostar kvart svar i materiale. Målt mot det spørsmålet fall to av seks:
+
+- **KARVE svara på eit anna spørsmål.** Ei limt blokk frest ned er
+  subtraktiv skulptur — flata vert ikkje BYGD av plater, ho vert GRAVEN
+  ut av dei. Same grunnen som felte FLETT (band er ikkje plate). Og
+  avlstabellen i etappe 13 hadde alt dømt han: 1 % styrke same kva søket
+  tok, 86,6 dm³ plate inn — verst i heile registeret.
+- **KOTE svara svakt.** Vassrette koter på stavar er ein stabel som aldri
+  når flata: setet er riller, silhuetten trappesteg. Det er SKAL-vegen
+  utan konklusjonen hans (slipinga) — og SKAL står alt i mappa som
+  vitnemål om det steget.
+
+Etappe A sa det sjølv: éin motor er ein demonstrasjon, fire er eit
+argument. Seks var ikkje eit sterkare argument enn fire — dei var to
+svar på andre spørsmål, stilte ved sida av det eine.
+
+**Kva som vart gjort.** Som FLETT: heilt ut — mappene, registeret og
+id-ane. Gamle lenkjer med `engine: "kote"` eller `"karve"` fell tilbake
+til standardobjektet, som lenkjer med `"flett"` alt gjer. Etappe 13 og 14
+står som dei vart skrivne; tala deira om kote og karve er historie, ikkje
+notid.
+
+**Og informasjonsdritten ut.** Avl-kvitteringa («avla · plate inn …»)
+som kom i etappe 14-runda er fjerna. Resultatet av avlen er objektet som
+står der og tala som alltid er synlege — ein reiskap kvitterer med
+verkstykket, ikkje med ein lapp om det. Gestechipen står: han er handa
+sitt spegelbilete medan gesten går, ikkje ein informasjonskanal.
+
 ---
 
 ## 6 Kva som skal målast

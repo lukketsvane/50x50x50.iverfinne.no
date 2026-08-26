@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ENGINES, getEngine, isEngineId } from "@/lib/engines"
 import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
-import { applyDrag, nn, seeded } from "@/lib/core"
+import { applyDrag, seeded } from "@/lib/core"
 import type { BuildRes, DetailKey, MaalRes, Req, Res, SynRes } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
 import { BEIS } from "./object-mesh"
@@ -71,9 +71,6 @@ export function Studio() {
   // Gesten på lerretet er usynleg til han får eit namn: chipen syner kva
   // to-fingers-draget skrur på, og talet det står i, medan draget går.
   const [hud, setHud] = useState<{ k: string; t: number } | null>(null)
-  // Avlen bur bak eit dobbelttrykk, so resultatet må melde seg sjølv:
-  // kvitteringa seier kva plata gjennom maskina gjekk frå og til.
-  const [avlSvar, setAvlSvar] = useState<{ fra: number; til: number; t: number } | null>(null)
   const [mounted, setMounted] = useState(false)
   // kvitt, alltid — sjå globals.css
   const dark = false
@@ -160,9 +157,10 @@ export function Studio() {
         setAvlGang(null)
         // eit avbrote søk vert kasta: brukaren har alt flytta seg, og eit
         // svar som overskriv handa hans er verre enn ingen svar
+        // Ingen kvittering, ingen chip: resultatet av avlen er objektet
+        // som står der og tala som alltid er synlege. Alt anna er støy.
         if (!r.avbroten) {
           setBags((b) => ({ ...b, [r.engine]: r.best }))
-          setAvlSvar({ fra: r.matInn0, til: r.matInn, t: Date.now() })
         }
         return
       }
@@ -274,13 +272,6 @@ export function Studio() {
     const t = window.setTimeout(() => setHud(null), 1100)
     return () => window.clearTimeout(t)
   }, [hud])
-
-  // kvitteringa frå avlen står lenge nok til å lesast, og ikkje lenger
-  useEffect(() => {
-    if (!avlSvar) return
-    const t = window.setTimeout(() => setAvlSvar(null), 5000)
-    return () => window.clearTimeout(t)
-  }, [avlSvar])
 
   const nudgeLight = useCallback((dx: number, dy: number) => {
     setLight((l) => ({
@@ -420,11 +411,10 @@ export function Studio() {
         </a>
       </header>
 
-      {/* Chipen over arkkanten ber to røyster: gesten som får namn medan
-          han går (kva band, kva tal), og kvitteringa frå avlen — søket bur
-          bak eit dobbelttrykk, so resultatet må melde seg sjølv. Handa
-          vinn: eit aktivt drag skuvar kvitteringa til side. */}
-      {((hud && hudR && hudVal !== null) || avlSvar) && (
+      {/* Gesten får eit namn medan han går — kva band, kva tal — og chipen
+          forsvinn med fingrane. Det er alt han seier: han er handa sitt
+          spegelbilete, ikkje ein informasjonskanal. */}
+      {hud && hudR && hudVal !== null && (
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 z-10 flex justify-center"
@@ -438,31 +428,15 @@ export function Studio() {
               color: "var(--ink)",
             }}
           >
-            {hud && hudR && hudVal !== null ? (
-              <>
-                <span className="uppercase tracking-[0.14em] opacity-55">
-                  {hudDrag?.label ?? hudR.label}
-                </span>
-                <span className="tab">
-                  {hudVal
-                    .toFixed(hudR.step >= 1 ? 0 : hudR.step >= 0.1 ? 1 : 2)
-                    .replace(".", ",")}
-                  {hudR.unit && <span className="pl-0.5 opacity-45">{hudR.unit}</span>}
-                </span>
-              </>
-            ) : avlSvar && avlSvar.fra - avlSvar.til > 0.05 ? (
-              <>
-                <span className="uppercase tracking-[0.14em] opacity-55">avla · plate inn</span>
-                <span className="tab">
-                  {nn(avlSvar.fra, 1)} → {nn(avlSvar.til, 1)}
-                  <span className="pl-0.5 opacity-45">dm³</span>
-                </span>
-              </>
-            ) : (
-              <span className="uppercase tracking-[0.14em] opacity-55">
-                avla — fann ikkje mindre plate
-              </span>
-            )}
+            <span className="uppercase tracking-[0.14em] opacity-55">
+              {hudDrag?.label ?? hudR.label}
+            </span>
+            <span className="tab">
+              {hudVal
+                .toFixed(hudR.step >= 1 ? 0 : hudR.step >= 0.1 ? 1 : 2)
+                .replace(".", ",")}
+              {hudR.unit && <span className="pl-0.5 opacity-45">{hudR.unit}</span>}
+            </span>
           </div>
         </div>
       )}

@@ -4,10 +4,10 @@
  * Fire typologiar står i denne sandkassen, og dei er ikkje fire former.
  * Dei er fire måtar å byggje ei krum flate av flate plater:
  *
- *   RIBBE   radiale blad og vassrette band, kryssholdte i kvarandre
- *   VAFFEL  dei same ribbene lagde i to rette retningar i staden for radialt
- *   SKAL    vassrette lamellar stabla og slipte ned til éi flate
+ *   VAFFEL  kryssholdte ribber i to retningar, utan lim og utan skruar
+ *   SKIVE   parallelle skiver med luft imellom, tredde på stavar
  *   STRAUM  éin kropp skoren i skrå skiveplan, finnar sette i spor
+ *   RIBBE   radiale blad og vassrette band, kryssholdte i kvarandre
  *
  * Kvar av dei har si eiga likning, sitt eige parameterrom og sine eigne
  * ledd. Det dei deler er denne fila: kva eit måltal er, kva ein regel er,
@@ -384,8 +384,6 @@ export type EngineId =
   | "ribbe"
   | "vaffel"
   | "skive"
-  | "kote"
-  | "karve"
   | "boyg"
 
 export type EngineDef = {

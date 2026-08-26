@@ -16,8 +16,6 @@ import { SKIVE } from "./skive/engine"
 import { STRAUM } from "./straum/engine"
 import { RIBBE } from "./ribbe/engine"
 import { VAFFEL } from "./vaffel/engine"
-import { KOTE } from "./kote/engine"
-import { KARVE } from "./karve/engine"
 import { BOYG } from "./boyg/engine"
 
 /**
@@ -33,8 +31,13 @@ const UNDER_BYGGING: readonly EngineDef[] = [BOYG]
 
 // VAFFEL fyrst: han er standardobjektet og øvst i nedtrekket. SKAL er
 // teken ut — kjelda hans står att for dokumentpipelinen, men han er ikkje
-// lenger ein modul i sandkassen.
-export const ENGINES: readonly EngineDef[] = [VAFFEL, SKIVE, STRAUM, RIBBE, KOTE, KARVE]
+// lenger ein modul i sandkassen. KOTE og KARVE er tekne HEILT ut, som
+// FLETT før dei, og av same grunn: dei svara på andre spørsmål. KARVE
+// var subtraktiv skulptur — flata vart graven ut av ei limt blokk, ikkje
+// bygd av plater — og stod på éin prosent styrke same kva avlen tok.
+// KOTE var stabelen som aldri nådde flata: setet var riller, ikkje ei
+// krum flate. Fire svar på EITT spørsmål er argumentet; seks var støy.
+export const ENGINES: readonly EngineDef[] = [VAFFEL, SKIVE, STRAUM, RIBBE]
 
 /** alt, ferdig og uferdig — det prøveskripta skal måle */
 export const ALLE_MOTORAR: readonly EngineDef[] = [...ENGINES, ...UNDER_BYGGING]
