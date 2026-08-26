@@ -266,6 +266,13 @@ export type Rule = {
   hard: boolean
   value: string
   why: string
+  /**
+   * Skyvarane som faktisk flytter regelen, viktigast fyrst. Ein regel som
+   * berre seier nei har gjort halve jobben; panelet gjer etiketten
+   * trykkbar og rullar til den fyrste skyvaren. Tom/utelaten tyder at
+   * ingen skyvar eig regelen (innpassinga, materialvalet).
+   */
+  peikar?: readonly string[]
 }
 
 // =============================================================================

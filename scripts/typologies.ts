@@ -133,6 +133,9 @@ function probe(e: EngineDef) {
   ok(r.length > 0, `${r.length} reglar, ${r.filter((x) => x.hard).length} harde`)
   ok(broken.length === 0, "standarden held alle reglane",
     broken.map((x) => x.id).join(","))
+  // reglane som peikar, peikar berre på skyvarar som finst
+  const peikMiss = r.flatMap((x) => (x.peikar ?? []).filter((k) => !e.ranges[k]))
+  ok(peikMiss.length === 0, "kvar peikar treffer eit band", peikMiss.join(","))
 
   // --- nettet ---------------------------------------------------------------
   for (const view of VIEWS) {

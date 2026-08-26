@@ -241,12 +241,14 @@ function DragRow({
   )
 }
 
-/** Éin skyvar: etiketten er låsen, prikken seier om han er teken. */
+/** Éin skyvar: etiketten er låsen, prikken seier om han er teken.
+ *  `peika` er blinket frå ein regel som peika hit — sjå peik(). */
 function SliderRow({
   k,
   r,
   value,
   locked,
+  peika,
   onChange,
   onToggleLock,
 }: {
@@ -254,12 +256,14 @@ function SliderRow({
   r: Range
   value: number
   locked: boolean
+  peika: boolean
   onChange: (k: string, raw: string) => void
   onToggleLock: (k: string) => void
 }) {
   return (
     <div
-      className="flex items-center gap-3 py-1.5 transition-opacity"
+      data-skyvar={k}
+      className={"flex items-center gap-3 rounded-lg py-1.5 transition-opacity" + (peika ? " peika" : "")}
       style={{ opacity: locked ? 0.35 : 1 }}
     >
       <button
@@ -449,6 +453,27 @@ export function ControlsPanel(props: {
   useEffect(() => {
     sheetScroll.current?.scrollTo({ top: 0 })
   }, [engine, open])
+
+  // Regelen peikar: eit trykk på ein broten regel opnar «alt», rullar til
+  // den fyrste skyvaren regelen heng av, og let alle sine blinke éin gong.
+  // Skilnaden på ein reiskap og ein dommar er om han peikar.
+  const [peika, setPeika] = useState<ReadonlySet<string>>(new Set())
+  const peik = useCallback(
+    (r: Rule) => {
+      const keys = (r.peikar ?? []).filter((k) => eng.ranges[k])
+      if (!keys.length) return
+      onMode("full")
+      setPeika(new Set(keys))
+      // vent til «alt»-glidinga (280 ms) har gjeve skyvaren ein stad å vere
+      window.setTimeout(() => {
+        sheetScroll.current
+          ?.querySelector(`[data-skyvar="${keys[0]}"]`)
+          ?.scrollIntoView({ block: "center", behavior: "smooth" })
+      }, 320)
+      window.setTimeout(() => setPeika(new Set()), 2400)
+    },
+    [eng, onMode],
+  )
 
   const broken = useMemo(() => {
     const hard = new Set<string>()
@@ -820,22 +845,33 @@ export function ControlsPanel(props: {
                 seier KVA som er gale; KVIFOR ligg eit fingertrykk unna. */}
             {failed.length > 0 && (
               <ul className="space-y-1 py-1">
-                {failed.map((r) => (
-                  <li
-                    key={r.id}
-                    title={r.why}
-                    className="flex items-baseline justify-between gap-3 text-[11px] leading-4"
-                    style={{
-                      color: r.hard ? "var(--warn)" : undefined,
-                      opacity: r.hard ? 1 : 0.65,
-                    }}
-                  >
-                    <span className="tracking-[0.06em]">
-                      {r.hard ? "bryt" : "merk"} · {r.label}
-                    </span>
-                    <span className="tab shrink-0">{r.value}</span>
-                  </li>
-                ))}
+                {failed.map((r) => {
+                  const kanPeike = (r.peikar ?? []).some((k) => eng.ranges[k])
+                  return (
+                    <li key={r.id}>
+                      {/* Regelen peikar: trykket opnar «alt» og rullar til
+                          skyvaren som kan rette han. Ein regel utan skyvar
+                          (innpassinga, materialvalet) står som line. */}
+                      <button
+                        type="button"
+                        disabled={!kanPeike}
+                        onClick={() => peik(r)}
+                        title={r.why}
+                        className="flex w-full items-baseline justify-between gap-3 text-left text-[11px] leading-4 disabled:pointer-events-none"
+                        style={{
+                          color: r.hard ? "var(--warn)" : undefined,
+                          opacity: r.hard ? 1 : 0.65,
+                        }}
+                      >
+                        <span className="tracking-[0.06em]">
+                          {r.hard ? "bryt" : "merk"} · {r.label}
+                          {kanPeike && <span className="pl-1 opacity-45">→</span>}
+                        </span>
+                        <span className="tab shrink-0">{r.value}</span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             )}
 
@@ -978,6 +1014,7 @@ export function ControlsPanel(props: {
                       r={eng.ranges[k]}
                       value={num(params, k, eng.ranges[k].min)}
                       locked={locked.has(k)}
+                      peika={peika.has(k)}
                       onChange={setParam}
                       onToggleLock={onToggleLock}
                     />
