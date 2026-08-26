@@ -1,12 +1,14 @@
 /**
- * DEN KORTE LENKJA — #s=
+ * DEN KORTE LENKJA.
  *
  * Hashen kodar objektet, og berre objektet: parametrane, materialet,
  * lesemåten og beisen. Den gamle #p=-forma var JSON og over tusen teikn —
  * for langt til ein QR-kode, linedelt i e-post. Denne forma kvantiserer
- * kvart band til sitt eige steg og pakkar indeksane i blanda radiks:
- * kring 30–60 teikn etter motor. Under informasjonsgrensa (PLAN 3.3)
- * kjem ein ikkje; dette ligg tett på henne.
+ * kvart band til sitt eige steg og pakkar indeksane i blanda radiks, og
+ * ho er så kort som ho KAN vere: éin bokstav som ber både motor og
+ * versjon, so nyttelasta — som ligg på informasjonsgrensa (summen av
+ * log2 av trinna i banda, PLAN 3.3). For VAFFEL er heile hashen kring
+ * 28 teikn. Under det kjem ingen utan å kaste trinn.
  *
  * REGLANE:
  *  - #p= vert lese for alltid. Ei lenkje som sluttar å verke er ei
@@ -16,20 +18,20 @@
  *    utanfor bandet sitt.
  *  - Rekkjefylgjene her er FROSNE. Ein ny motor, beis eller eit nytt
  *    materiale VERT LAGT TIL bakarst; å flytte eller fjerne eit ledd er
- *    å brekkje kvar delte lenkje. Endrar eit band min/max/step, må
- *    versjonsbokstaven bytast og den gamle avkodinga stå att.
+ *    å brekkje kvar delte lenkje. Endrar eit band min/max/step, får
+ *    motoren ein NY bokstav og den gamle avkodinga står att.
  */
 import type { EngineId, ParamBag, View } from "./core"
 import { getEngine, isEngineId } from "./engines"
 
-/** Versjonen av kodinga — byt bokstav om banda endrar seg. «a» levde eit
- *  par timar på ei førehandsvising og las view med radiks 3; «b» gjev dei
- *  tre små felta fast radiks med rom å vekse i, so eit nytt ledd aldri
- *  meir krev ein ny bokstav. */
-const VERSJON = "b"
-
-/** motor → bokstav, fryst. Fjerna motorar (flett, kote, karve) fekk
- *  aldri ein bokstav; lenkjene deira var #p= og fell til standard. */
+/**
+ * Motor → bokstav, fryst. Bokstaven ber òg versjonen: endrar banda i ein
+ * motor seg, får han ein ny bokstav (t.d. store V for vaffel v2) og den
+ * gamle står att i tabellen og les gamle lenkjer. Bokstaven «p» er
+ * verna (#p= er JSON-forma), og base64url-teikna i nyttelasta kan aldri
+ * innehalde «=», so formene kan ikkje forvekslast. Fjerna motorar
+ * (flett, kote, karve) fekk aldri ein bokstav.
+ */
 const MOTOR_BOKSTAV: Record<string, string> = {
   vaffel: "v",
   skive: "k",
@@ -102,7 +104,7 @@ export function kortHash(
     const v = typeof params[k] === "number" ? (params[k] as number) : r.min
     legg(Math.round((Math.min(r.max, Math.max(r.min, v)) - r.min) / r.step), n + 1)
   }
-  return "s=" + VERSJON + bokstav + tilBase64url(acc)
+  return bokstav + tilBase64url(acc)
 }
 
 /**
@@ -123,12 +125,13 @@ export function lesHash(
       return null
     }
   }
-  if (!raw.startsWith("s=")) return null
-  const versjon = raw[2]
-  if (versjon !== VERSJON) return null
-  const engine = BOKSTAV_MOTOR[raw[3]]
+  // Overgangsforma «s=b<bokstav>…» levde nokre timar på førehandsvisinga;
+  // ho vert lesen ved å skrelle av prefikset. Ho kan ikkje forvekslast med
+  // ein berr straum-hash («s…»), for base64url har ingen «=».
+  const bare = raw.startsWith("s=b") ? raw.slice(3) : raw
+  const engine = BOKSTAV_MOTOR[bare[0]]
   if (!engine || !isEngineId(engine)) return null
-  let acc = fraBase64url(raw.slice(4))
+  let acc = fraBase64url(bare.slice(1))
   if (acc === null) return null
   const eng = getEngine(engine)
   // same felt, motsett veg: siste felt ut fyrst

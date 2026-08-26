@@ -65,6 +65,9 @@ for (const eng of ENGINES) {
       eng.keys.every((k) => eng.clamp(leseGamal.obj, eng.defaults)[k] === eng.defaults[k]),
     "gammal: #p= vert lesen felt for felt",
   )
+  // overgangsforma «s=b…» frå førehandsvisinga vert framleis lesen
+  const over = lesHash("s=b" + kortHash(eng.id, eng.defaults, "lag", "aho"))
+  ok(over !== null && over.engine === eng.id, "overgang: s=b-forma vert lesen")
 }
 
 // søppel skal gje null, aldri kaste
