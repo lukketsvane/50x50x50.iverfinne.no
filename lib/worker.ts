@@ -36,6 +36,13 @@ export type ExportReq = {
   params: ParamBag
   what: ExportKind
 }
+/** form av lasta: motoren løyser eitt formval or lastmodellen sin */
+export type FormReq = {
+  kind: "form"
+  id: number
+  engine: EngineId
+  params: ParamBag
+}
 /** avlen: same objekt, mindre plate — søket startar i punktet som står */
 export type AvlReq = {
   kind: "avl"
@@ -46,7 +53,7 @@ export type AvlReq = {
   frø: string
   locked: string[]
 }
-export type Req = BuildReq | ExportReq | AvlReq
+export type Req = BuildReq | ExportReq | AvlReq | FormReq
 
 export type BuildRes = {
   kind: "build"
@@ -108,7 +115,14 @@ export type AvlRes = {
   mass: number
   harde: number
 }
-export type Res = BuildRes | MaalRes | ExportRes | FeilRes | SynRes | AvlRes
+/** svaret på form av lasta: det løyste punktet, klart til å setjast inn */
+export type FormRes = {
+  kind: "form"
+  id: number
+  engine: EngineId
+  params: ParamBag
+}
+export type Res = BuildRes | MaalRes | ExportRes | FeilRes | SynRes | AvlRes | FormRes
 
 function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
   const out = getEngine(req.engine).build(req.params, req.detail, req.view)
@@ -229,6 +243,16 @@ self.onmessage = (e: MessageEvent<Req>) => {
     if (req.kind === "export") {
       const out = doExport(req)
       ;(self as unknown as Worker).postMessage(out.res, out.transfer)
+      return
+    }
+    if (req.kind === "form") {
+      // eitt spørsmål, eitt svar — utanom porten, som eksporten. Motoren
+      // utan lastForm svarar med punktet urørt; knappen skal ikkje synast
+      // der, men eit svar MÅ alltid ut, elles heng busy-lyset for alltid.
+      const eng = getEngine(req.engine)
+      const ut = eng.lastForm ? eng.lastForm(req.params) : req.params
+      const res: FormRes = { kind: "form", id: req.id, engine: req.engine, params: ut }
+      ;(self as unknown as Worker).postMessage(res)
       return
     }
     if (req.kind === "avl") {
