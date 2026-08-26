@@ -864,6 +864,47 @@ banda difor ikkje er hans å ta; VAFFEL rører ikkje bogen, for han er
 spaken «form av lasta» skal få dra i. Posane i alle motorane fekk dei
 gamle tjuknene sine eksplisitt — ingen pose endra seg ein millimeter.
 
+### 19 · Skrubben, det stille vindauget, og posane grunnlagde på nytt — GJORD
+
+**Kvifor.** Tre krav i klartekst frå brukaren: ingenting i vindauget
+skal variere medan ein dreg i ein skyvar, skyvaren skal vera ein skrubb
+i slekt med ein dreiegjevar utan meir tekst i grensesnittet, og posane
+skal verta mykje betre.
+
+**Skrubben.** Gira er ute. Den gamle skyvaren bytte utveksling etter
+kor langt fingeren stod frå spora, voks prikken og synte FIN/FINAST
+midt i draget. No er skrubben ein dreieskive lagd flat: relativ,
+konstant utveksling (eitt strok over spora flytter 65 prosent av
+bandet, alltid), strok legg seg oppå kvarandre som omdreiingar, og
+hakka i spora — ein still linjal — er dei einaste orda han treng. På
+vegen fall ein ekte feil: peikarfangsten kom fyrst ved
+intensjonsterskelen, so eit strok som vandra ut av den 44 px høge rada
+mista hendingane sine (målt: 1 mm mot 21). Fangsten sit no på fyrste
+trykk, og delta er identisk med og utan loddrett avdrift.
+
+**Det stille vindauget.** Panelet er botnfest, so kvar varselline som
+kom inne i arket lyfte heile panelet — skyvaren flytte seg under
+fingeren nett i det draget som skapte brotet. Reglane som ryk ligg no
+utanfor dokumentflyten: piller over panelet, veksande oppover over
+lerretet, med same innhald og peiking som før. Målt: 0,0 px flytt av
+panel-toppen gjennom eit drag der brotet lækjest undervegs.
+
+**Posane.** Fire agentar — ein per motor — målte kvar pose gjennom den
+verkelege kjeda (clamp → measure → rules) og leverte nye sett;
+framlegga vart etterprøvde uavhengig og dømde mot skjermbilete av alle
+29 gamle og 30 nye posar. Resultatet: SKIVE frå tolv til åtte (fem
+nesten like bogekrakkar ute, «stylta» inn; alle åtte på EITT ark der
+fem av tolv før tok to), VAFFEL frå sju til åtte (to karakterlause ute,
+amfora/tuva/hallen inn — hallen med lastkartet glødande på 80 %),
+STRAUM frå fem til sju (vridd søyle omdesigna til eit verkeleg vridd
+prisme, timeglas til det reine dobbeltkjegle-glaset, «heilarket» — alt
+av eitt ark i éi tjukn med friksjonsfuge — og «tua» inn), RIBBE frå fem
+til sju (amfora og søyla inn, to kandidatar vraka på måling). Kvar
+tjukn i kvar pose er ein målt botn med grunn i fila: sopp stoggar på 10
+av di 9,5 vipper nestinga til to ark, dokumentobjektet på 9 av di 8,5
+opnar spalta inn i fingerbandet. Alle 30 held alle reglane, og massane
+fall med 0,3–3,2 kg per pose.
+
 ---
 
 ## 6 Kva som skal målast

@@ -221,40 +221,41 @@ export const DEFAULT_PARAMS: Params = {
   material: "bjork",
 }
 
-/** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring. */
+/** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring.
+ *  Tjuknene er målte botnar, ikkje arv: sopp stoggar på 10 (9,5 vipper
+ *  nestinga til to ark), krysset på 20 (under det fell plateutnyttinga
+ *  under den mjuke grensa), resten står på 9 — eit medvite mon over
+ *  bandbotnen på 8, av di modellane ikkje reknar knekking. Slankinga
+ *  åleine tek 0,8–2,5 kg per pose. */
 export const POSES: readonly Partial<Params>[] = [
-  // tjukner som manglar under er arva før frå gamle standarden (bladeT 15,
-  // bandT 15) — no eksplisitte, so posane står som dei var
-  // vridd
-  { twist: 28, blades: 19, bladeT: 11, bandT: 15, hubGap: 10, inner: 0.2 },
-  // timeglas
-  { waist: 0.32, waistZ: 0.5, waistW: 0.5, footR: 0.9, taper: 1.4, bladeT: 15, bandT: 15 },
-  // sopp
-  { footR: 0.55, swell: 0.14, planR: 250, taper: 0.75, moon: 0.3, bladeT: 15, bandT: 15 },
+  // vridd: trettifire graders vriding med opna nav — meridianane skrur
+  // seg forbi kvarandre med målt 1,1 mm fritt
+  { twist: 34, blades: 19, bladeT: 9, bandT: 9, hubGap: 15, inner: 0.18 },
+  // timeglas: djup midje midt i høgda, klokkefot
+  { waist: 0.35, waistZ: 0.5, waistW: 0.5, footR: 0.9, taper: 1.4, bladeT: 9, bandT: 9 },
+  // amfora: svulmen sit HØGT og halsen over — swell-aksen som elles står
+  // ubrukt, og den best pakka posen i settet (40 prosent)
+  { waist: 0.3, waistZ: 0.78, waistW: 0.22, swell: 0.22, footR: 0.62, taper: 0.85, bladeT: 9, bandT: 9 },
+  // sopp: smal fot under vid hatt — foten på 0,57 for mon på veltevinkelen
+  { footR: 0.57, swell: 0.14, planR: 250, taper: 0.75, moon: 0.3, bladeT: 10, bandT: 10 },
+  // søyla: lite plan i full høgd — proporsjonsaksen, lettast i settet
+  { planR: 160, planAsp: 0, footR: 1.05, taper: 1.3, waist: 0.12, blades: 18, seatZ: 480, bladeT: 9, bandT: 9 },
+  // blomen: fem flikar i planet — kronblad i staden for oval
+  { flikar: 5, flik: 0.18, planN: 2.4, planAsp: 0, blades: 20, waist: 0.18, bladeT: 9, bandT: 9 },
   // krysset: sju tjukke blad og store opningar — beinkryss-enden av
   // typologien, der objektet sluttar å vera skal
   {
-    blades: 7,
-    bladeT: 22,
-    bandT: 15,
-    inner: 0.12,
-    waist: 0.12,
-    footR: 0.8,
-    hubGap: 5,
-    bandW: 34.5,
-    bandOut: 16,
-    twist: 0,
-    dish: 12,
-    seatT: 22,
+    blades: 7, bladeT: 20, bandT: 10, inner: 0.12, waist: 0.12,
+    footR: 0.8, hubGap: 5, bandW: 34.5,
   },
-  // blomen: fem flikar i planet — kronblad i staden for oval
-  { flikar: 5, flik: 0.14, planN: 2.4, planAsp: 0, blades: 20, waist: 0.18, bladeT: 15, bandT: 15 },
 ]
 
 /** Posane med namna sine — same liste, synlege som inngangar i panelet.
  *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
  *  lista uendra. Rekkjefylgja er lista over. */
-const POSE_NAMN: readonly string[] = ["vridd", "timeglas", "sopp", "krysset", "blomen"]
+const POSE_NAMN: readonly string[] = [
+  "vridd", "timeglas", "amfora", "sopp", "søyla", "blomen", "krysset",
+]
 export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
   namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
   bag,
