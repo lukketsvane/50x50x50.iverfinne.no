@@ -117,13 +117,6 @@ const IcoShuffle = (
     <path d="m18 14 4 4-4 4" />
   </svg>
 )
-const IcoAvl = (
-  <svg viewBox="0 0 24 24" className="h-4 w-4" {...STROKE}>
-    <path d="M12 21v-8" />
-    <path d="M12 13c0-4.2 3.2-7 8-7 0 4.2-3.2 7-8 7Z" />
-    <path d="M12 16c0-3.2-2.6-5.2-6-5.2 0 3.2 2.6 5.2 6 5.2Z" />
-  </svg>
-)
 const IcoSliders = (
   <svg viewBox="0 0 24 24" className="h-4 w-4" {...STROKE}>
     <path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4" />
@@ -223,7 +216,7 @@ function DragRow({
   const r = ranges[pk]
   const value = num(params, pk, r.min)
   return (
-    <div className="flex items-center gap-3 py-2">
+    <div className="flex items-center gap-3 py-1.5">
       <span
         className="w-24 shrink-0 text-[10px] uppercase leading-[1.2] tracking-[0.14em]"
         style={{ color: "var(--ink)" }}
@@ -391,6 +384,25 @@ export function ControlsPanel(props: {
     }, 260)
   }, [onToggleEngineLock])
 
+  // Terningen ber avlen. Eitt trykk VENTAR det same vesle vindauga som
+  // modulveljaren (260 ms) på tvillingen sin: kjem han, er det avl og
+  // ikkje kast. Rekkjefylgja er ikkje pedanteri — eit kast som fyrte
+  // fyrst ville flytte punktet avlen skulle starte i.
+  const shuffleWait = useRef<number | null>(null)
+  const onShuffleTap = useCallback(() => {
+    if (avlGang) return
+    if (shuffleWait.current !== null) {
+      window.clearTimeout(shuffleWait.current)
+      shuffleWait.current = null
+      onAvl()
+      return
+    }
+    shuffleWait.current = window.setTimeout(() => {
+      shuffleWait.current = null
+      onShuffle()
+    }, 260)
+  }, [avlGang, onAvl, onShuffle])
+
   // Arket er eit iOS-ark: dra i grepet eller hovudlina, opp for meir og
   // ned for mindre. Fingeren får eit lite gummiband som svar medan han
   // dreg, og slepp han forbi terskelen, byter arket steg.
@@ -524,16 +536,16 @@ export function ControlsPanel(props: {
           }}
           style={{ touchAction: "none" }}
         >
-          {open && (
-            <div className="flex justify-center pt-1.5" aria-hidden="true">
-              <div
-                className="h-1 w-9 rounded-full"
-                style={{ background: "color-mix(in srgb, var(--ink) 22%, transparent)" }}
-              />
-            </div>
-          )}
+          {/* Grepet står der òg når arket er lukka: det er lovnaden om at
+              lina KAN dragast opp, ikkje berre pynt på eit ope ark. */}
+          <div className="flex justify-center pt-1.5" aria-hidden="true">
+            <div
+              className="h-1 w-9 rounded-full"
+              style={{ background: "color-mix(in srgb, var(--ink) 22%, transparent)" }}
+            />
+          </div>
           {/* hovudlina — motoren, rekninga, terningen og opnaren */}
-          <div className="flex items-center gap-1.5 p-2.5">
+          <div className="flex items-center gap-1.5 p-2.5 pt-1">
           {/* Modulveljaren: eitt trykk opnar menyen (etter eit lite
               vindauga), DOBBELTTRYKK låser terningen til den valde
               modulen. Låst står pilla svart med prikk — same språket som
@@ -578,7 +590,7 @@ export function ControlsPanel(props: {
                   // so taket er høgda MINUS det arket — kring 385 px målt,
                   // med litt mon. Rullinga held seg i menyen so ho ikkje
                   // dreg arket med seg.
-                  className="absolute bottom-full left-0 z-20 mb-2 max-h-[max(132px,calc(100dvh-400px))] min-w-32 overflow-y-auto overscroll-contain rounded-2xl border p-1"
+                  className="rise absolute bottom-full left-0 z-20 mb-2 max-h-[max(132px,calc(100dvh-400px))] min-w-32 overflow-y-auto overscroll-contain rounded-2xl border p-1"
                   style={{ ...HAIR, background: "var(--paper)" }}
                 >
                   {ENGINES.map((e) => (
@@ -606,7 +618,20 @@ export function ControlsPanel(props: {
             )}
           </div>
 
-          <span className="tab min-w-0 flex-1 truncate pl-1.5 text-[11px] tracking-[0.06em]">
+          {/* Tala er òg opnaren: heile lina mellom pilla og knappane er
+              trykkflate for arket. Medan motoren reknar pulserer tala i
+              staden for at ein eigen prikk skal ta plass i lina. */}
+          {/* namnet til knappen ER tala — ein skjermlesar skal høyre
+              rekninga, ikkje ein etikett om henne */}
+          <button
+            type="button"
+            onClick={() => onMode(open ? "lukka" : "halv")}
+            aria-expanded={open}
+            className={
+              "tab min-w-0 flex-1 truncate pl-1.5 text-left text-[11px] tracking-[0.06em]" +
+              (busy ? " pulsar" : "")
+            }
+          >
             {headline.length === 0 ? (
               <span className="opacity-40">reknar …</span>
             ) : (
@@ -626,43 +651,25 @@ export function ControlsPanel(props: {
                 </span>
               ))
             )}
-          </span>
+          </button>
 
-          {/* prikken har fast plass, så lina står i ro medan motoren reknar */}
-          <span
-            aria-hidden="true"
-            className="block h-[5px] w-[5px] shrink-0 rounded-full"
-            style={{
-              background: "var(--ink)",
-              opacity: busy ? 0.8 : 0.12,
-              transition: "opacity 200ms ease",
-            }}
-          />
-
+          {/* Terningen ber avlen: eitt trykk kastar, dobbelttrykk avlar —
+              same tolmodige vindauga som låsen på modulveljaren, so eit
+              kast aldri fyrer FØR avlen og flytter punktet søket skulle
+              starte i. Under søket syner knappen steget. */}
           <button
             type="button"
-            onClick={onAvl}
-            disabled={avlGang !== null}
-            aria-label="avl — same objekt, mindre plate: søket held dei harde reglane og minimerer materialet gjennom maskina"
-            title="avl — tåle mest, bruke minst"
-            className={ICON_BTN}
-            style={{ ...HAIR, color: "var(--ink)" }}
+            onClick={onShuffleTap}
+            aria-label="terning — nye tal innanfor grensene, låste skruar står; dobbelttrykk avlar: same objekt, mindre plate"
+            title="terning — dobbelttrykk avlar"
+            className={ICON_BTN_SOLID}
+            style={{ background: "var(--ink)", color: "var(--paper)" }}
           >
             {avlGang ? (
               <span className="text-[9px] tabular-nums">{avlGang.steg}</span>
             ) : (
-              IcoAvl
+              IcoShuffle
             )}
-          </button>
-          <button
-            type="button"
-            onClick={onShuffle}
-            aria-label="terning — nye tal innanfor grensene, låste skruar står"
-            title="terning"
-            className={ICON_BTN_SOLID}
-            style={{ background: "var(--ink)", color: "var(--paper)" }}
-          >
-            {IcoShuffle}
           </button>
           <button
             type="button"
@@ -677,11 +684,21 @@ export function ControlsPanel(props: {
           </div>
         </div>
 
-        {/* det utvidbare arket */}
-        {open && (
+        {/* Det utvidbare arket. Alltid montert: høgda glid mellom 0fr og
+            1fr i staden for at innhaldet sprett inn og ut, og eit lukka
+            ark er `inert` so ingen knapp bak kanten kan få fokus. */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateRows: open ? "1fr" : "0fr",
+            transition: "grid-template-rows 280ms ease",
+          }}
+        >
+          <div className="min-h-0 overflow-hidden">
           <div
             ref={sheetScroll}
-            className="rise max-h-[56vh] overflow-y-auto overscroll-contain px-3 pb-3"
+            inert={!open}
+            className="max-h-[56vh] overflow-y-auto overscroll-contain px-3 pb-3"
           >
             {/* Posane: namngjevne inngangar i parameterrommet — der ein
                 startar, ikkje der ein finstiller. «Standard» er
@@ -909,8 +926,16 @@ export function ControlsPanel(props: {
               {mode === "full" ? IcoUp : IcoDown}
             </button>
 
-            {mode === "full" && (
-              <>
+            {/* «alt»-nivået glid òg: alltid montert, høgda mellom 0fr og
+                1fr, inert når det er samanfalde */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateRows: mode === "full" ? "1fr" : "0fr",
+                transition: "grid-template-rows 280ms ease",
+              }}
+            >
+              <div className="min-h-0 overflow-hidden" inert={mode !== "full"}>
             <h3 className="mt-3 pb-0.5 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
               måltavla
             </h3>
@@ -946,11 +971,8 @@ export function ControlsPanel(props: {
                 )
               })}
             </dl>
-              </>
-            )}
 
-            {mode === "full" &&
-              eng.groups.map((g) => (
+            {eng.groups.map((g) => (
                 <div key={g.id} className="pt-3">
                   <h3 className="pb-0.5 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
                     {g.label}
@@ -968,8 +990,11 @@ export function ControlsPanel(props: {
                   ))}
                 </div>
               ))}
+              </div>
+            </div>
           </div>
-        )}
+          </div>
+        </div>
       </section>
     </div>
   )
