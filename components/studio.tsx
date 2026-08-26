@@ -52,9 +52,9 @@ export function Studio() {
   // slepper han over motorgrensa.
   const [engineLock, setEngineLock] = useState(true)
   // beis er ferdig handsaming, som lakk: han bur i visinga og hashen, aldri
-  // i parameterrommet — masse og styrke bryr seg ikkje om farge
-  // AHO-oransjen er standard — «natur» er eit val, ikkje utgangspunktet
-  const [beis, setBeis] = useState("aho")
+  // i parameterrommet — masse og styrke bryr seg ikkje om farge.
+  // NATUR er standard: materialet er sanninga, beisen er valet.
+  const [beis, setBeis] = useState("natur")
   const [hiDetail, setHiDetail] = useState(false)
   const [light, setLight] = useState<LightDir>({ az: 0.62, el: 0.92 })
   const [data, setData] = useState<BuildRes | null>(null)
@@ -415,6 +415,7 @@ export function Studio() {
             dark={dark}
             stripePly={stripe}
             beis={beisHex}
+            material={String(params.material ?? "bjork")}
             hiDetail={hiDetail && isDesktop}
             pad={pad}
             light={light}
