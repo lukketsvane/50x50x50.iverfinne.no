@@ -74,6 +74,12 @@ function vurder(eng: EngineDef, p: ParamBag): AvlPunkt {
     : "bjork") as Material
   const { rho } = capacities(mat)
   const matInn = (m.massCut / rho / Math.max(m.sheetUtil, 0.02)) * 1000
+  // SVINNET TEL DOBBELT. Plata inn er delane pluss avfallet kring dei;
+  // i målet kostar avfallet to gonger: score = delar + 2·svinn, på slutta
+  // form matInn·(2 − plateutnytting). Grunnen er ikkje aritmetikk men
+  // prioritet — to punkt med same plate inn er ikkje like gode: det som
+  // pakkar betre har meir av materialet i MØBELET, og det er dit avlen
+  // skal. matInn i rapporten er framleis det fysiske talet.
   return {
     p,
     matInn,
@@ -85,7 +91,7 @@ function vurder(eng: EngineDef, p: ParamBag): AvlPunkt {
     sheets: m.sheets,
     harde,
     mjuke,
-    score: matInn + harde * HARD_STRAFF + mjuke * MJUK_STRAFF,
+    score: matInn * (2 - Math.min(1, m.sheetUtil)) + harde * HARD_STRAFF + mjuke * MJUK_STRAFF,
   }
 }
 

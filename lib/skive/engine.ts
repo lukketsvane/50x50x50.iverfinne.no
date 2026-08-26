@@ -28,6 +28,7 @@ import { feltPaMesh, lastVerste } from "./last"
 import { finmaskNett } from "../lastnett"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
+import { lastForm } from "./lastform"
 import { buildParts } from "./parts"
 import { profileSvg } from "./export-svg"
 import {
@@ -60,6 +61,7 @@ export const SKIVE: EngineDef = {
   hovuddrag: HOVUDDRAG,
   unitLabel: "skiver",
   kanLast: true,
+  lastForm: (bag) => lastForm(asP(bag)) as unknown as ParamBag,
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
   random: (rnd, prev, locked) =>

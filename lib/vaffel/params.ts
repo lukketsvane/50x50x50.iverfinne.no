@@ -143,9 +143,14 @@ export const DEFAULT_PARAMS: Params = {
   rygg: 0,
   kantR: 14,
 
-  ribbX: 9,
-  ribbY: 9,
-  ribbT: 7.5,
+  // Åtte gonger åtte ribber på 6,5 held kvar einaste regel like godt som
+  // ni på 7,5 gjorde, og sparer godt over kiloen — plata inn fell med
+  // fjerdedelen, arkutnyttinga stig til 52 prosent. Bogen står urørd med
+  // vilje: han er spaken «form av lasta» dreg i, og standarden skal ha
+  // den monnen å gje.
+  ribbX: 8,
+  ribbY: 8,
+  ribbT: 6.5,
   pressfit: 0.15,
   lapp: 0.5,
 
@@ -164,10 +169,11 @@ export const POSES: readonly Partial<Params>[] = [
   { ribbX: 9, ribbY: 9, ribbT: 8, bogeH: 0.7, bogeBX: 0.72, bogeBY: 0.72 },
   // mjuk sylinder
   { planN: 2.1, planA: 192, planB: 192, midje: 0.04, fot: 1.0, bogeH: 0.5, bogeBX: 0.5, bogeBY: 0.5, ribbX: 8, ribbY: 8, ribbT: 9 },
-  // nesten kube
-  { planN: 5.8, planA: 200, planB: 200, midje: 0.11, midjeZ: 0.5, midjeW: 0.3, fot: 1.0, bogeH: 0.75, bogeBX: 0.8, bogeBY: 0.8, bogeN: 3.6 },
-  // timeglas
-  { midje: 0.2, midjeW: 0.45, midjeZ: 0.45, fot: 1.18, skulder: 1.1, bogeH: 0.55 },
+  // nesten kube — ribbene arva før frå gamle standarden (9 × 9 på 7,5):
+  // no eksplisitte, so posen står som han var
+  { planN: 5.8, planA: 200, planB: 200, midje: 0.11, midjeZ: 0.5, midjeW: 0.3, fot: 1.0, bogeH: 0.75, bogeBX: 0.8, bogeBY: 0.8, bogeN: 3.6, ribbX: 9, ribbY: 9, ribbT: 7.5 },
+  // timeglas — same arva ribber, no eksplisitte
+  { midje: 0.2, midjeW: 0.45, midjeZ: 0.45, fot: 1.18, skulder: 1.1, bogeH: 0.55, ribbX: 9, ribbY: 9, ribbT: 7.5 },
   // portalbenken: kvelvinga er BREI på tvers og smal i djupna — sett frå
   // sida ein krakk, sett framanfrå ei bru. Det er den fyrste posen som
   // ikkje har same boge i begge leier, og han finst berre av di breidda

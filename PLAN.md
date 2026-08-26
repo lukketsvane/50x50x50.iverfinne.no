@@ -780,6 +780,90 @@ variabelnamn låser det mot terningen (draget låser heile flokken sin),
 og halvope ark er reinska til det som formar: posar, hovuddrag,
 lesemåtar, eksport. Materialet, beisen og ark-kortet bur i «alt».
 
+### 17 · Lasta vart lesemåte, og skyvaren vart tommelens — GJORD
+
+**Kvifor.** Etappe 16 gav VAFFEL lastkartet; dei tre andre stod att med
+`kanLast` usett, og kartet var ikkje til å stole på: tavla kunne seie
+65 % medan kartet stod blått. Ein reiskap der to visingar av same modell
+seier kvar sitt tal, er verre enn ein reiskap utan kart.
+
+**Delt modell som invariant.** Kvar motor fekk si `lib/<motor>/last.ts`
+med éin funksjon båe les: `lastVerste` (det analytiske verste punktet —
+talet i tavla) og `feltPaMesh` (utnyttinga per hjørne — fargane i
+kartet). `BuildOut` ber `felt` og `feltTak`, og fargeskalaen ankrar i
+`feltTak` — same talet som tavla. Kontraktprøva vaktar samsvaret per
+motor: kartmaks = tavla, 0,0 prosentpoeng slark. STRAUM sist ut: heile
+snittmaskineriet (kva høgder kvart skiveplan lever i, stykka i snittet,
+spenninga) flytt frå `metrics.ts` til `last.ts` og PROVA mot ein fasit
+på seks desimalar før og etter — tavla, volumintegralet og kartet les no
+bokstaveleg same funksjon.
+
+**Finmaska nett.** Lag-netta er bygde for å SJÅAST — store flate
+trekantar. Med éin verdi per hjørne vart kvar stor trekant ein lineær
+fargeovergang, og kartet fekk diagonale blomar som ikkje finst i
+fysikken. `lib/lastnett.ts` deler kvar trekant i eit jamt rutenett til
+ingen kant er over 24 mm (tak på 400 000 trekantar, jamt nedskalert),
+so hjørna SAMPLAR feltet i staden for å diktere det.
+
+**Skyvaren for tommelen.** Sida vert brukt på telefon; skyvarane var
+skrivne for mus. Ny `Skyvar`: relativ drag (ingen hopp til
+trykkpunktet), og vertikal avstand girar presisjonen ned — over 45 px
+frå spora gjev kvartfart, over 90 gjev tjuedelsfart, med FIN/FINAST som
+kvittering. Målt på 100 px drag: 59 mm grovt, 3,0 mm finaste gir.
+
+**Form av lasta.** Motorar med lastmodell fekk `lastForm`: eitt trykk
+formar objektet til lasta med modellen sjølv som dommar — VAFFEL og
+SKIVE hevar bogen til verste punktet står på 60 % av kapasiteten
+(halvering på bogehøgda, ærleg retrett om ein hard regel ryk), RIBBE
+tynnar bladet steg for steg med heile regelkjeda som vakt (utnyttinga er
+ikkje monoton i tjukna der, so halvering ville navigert etter to galne
+fyrtårn). Éin knapp under lastskalaen, rekna i arbeidaren.
+
+### 18 · Sparsemdrunda: svinnet inn i funksjonane — GJORD
+
+**Kvifor.** Brukaren bad om ti store betringar i eitt jafs, med to krav
+i klartekst: SKIVE skulle sjå mykje betre ut, og materialsparinga skulle
+INNVERKE på funksjonane — ikkje stå i ei tavle og sjå på.
+
+**Svinnet tel dobbelt i avlen.** Målet i `lib/avl.ts` var plata inn
+(`massCut / (rho · plateutnytting)`) — eit fysisk tal som alt straffar
+avfall éin gong. No vert det gonga med `(2 − plateutnytting)`: eit ark
+halvfullt av delar kostar halvannan gong seg sjølv. Sparsemda på arket
+er ikkje lenger ein bieffekt av sparsemda i objektet; ho er sitt eige
+ledd i målet.
+
+**% ark i hovudlina.** Fjerde talet i hovudlina er plateutnyttinga, ved
+sida av kilo, veltevinkel og utnytting. Kvart drag i kvar skyvar viser
+kva han gjer med arket, utan at panelet må opnast.
+
+**SKIVE grunnlagd på nytt.** Det gamle standardobjektet bar 11,1 kg og
+kravde to ark der det andre stod 97 % tomt. Det nye (9 skiver på 9 mm,
+djupare luft, lågare rygg med grep, høgare boge) veg 6,7 kg, går på
+EITT ark med 49 % utnytting — og terningen held 100 av 100 kast innanfor
+dei harde reglane. Alle tolv posane fekk dei gamle tala sine eksplisitt,
+so dei står som dei var. Og skivene fekk FAS: kvar skive ber eit 2,5 mm
+kantpass frå fresen i lag-nettet, plateflatene trekte inn og ei fasa
+rand imellom — stabelen les som bygde delar, ikkje som ekstrudering.
+
+**Alle standardobjekta på slankekur, med forma låst.** Avlen med forma
+låst (berre tjukner og tal frie) fann same dommen i kvar motor: dei bar
+fleirfaldig lasta utan at nokon hadde spurt. Grid-målingar valde punkta,
+og alle held kvar einaste regel:
+
+| motor | masse | plata inn | plateutnytting |
+|---|---|---|---|
+| vaffel | 5,5 → **4,3 kg** | 11,3 → **8,4 dm³** | 49 → **52 %** |
+| skive | 11,1 → **6,7 kg** | 32 → **13,6 dm³** | 35 → **49 %** |
+| straum | 5,1 → **4,2 kg** | 26,6 → **22,8 dm³** | 27 → **28 %** |
+| ribbe | 10,4 → **9,1 kg** | 34,1 → **25,7 dm³** | 32 → **38 %** |
+
+Kvar grense er grunngjeven i params-fila der ho står: RIBBE stoggar på
+11 mm av di tynnare vipper nestinga til to ark (målt, ikkje meint);
+STRAUM stoggar på 8/10 av di modellen ikkje reknar knekking og botnen av
+banda difor ikkje er hans å ta; VAFFEL rører ikkje bogen, for han er
+spaken «form av lasta» skal få dra i. Posane i alle motorane fekk dei
+gamle tjuknene sine eksplisitt — ingen pose endra seg ein millimeter.
+
 ---
 
 ## 6 Kva som skal målast
@@ -887,13 +971,12 @@ lista ber berre resten.
 | | Kva | Kvifor |
 |---|---|---|
 | 1 | `npm run mappe` for dei fire, som nektar på hardt brot | Mappa ER innleveringa. Dumpen og render.py kan i dag berre SKAL; dei fire i registeret har ingen veg til papir. Stempla med kortlenkja som reproduserer objektet. |
-| 2 | Lastkartet til dei tre andre motorane | VAFFEL har det; skive/straum/ribbe treng kvar si per-snitt-evaluering av modellane sine før `kanLast` kan setjast. |
-| 3 | Terning som reparerer, målt om | Reparasjonane per motor finst; kor stor del av kasta som no held dei harde reglane på dei FIRE er ikkje målt sidan registeret var seks. |
-| 4 | Lokalt spor over lenkjer | Punktet ein var innom for tjue minutt sidan er borte. Presetmeny er ikkje svaret; kortlenkja gjer kvart spor til under 30 teikn. |
-| 5 | Indekser meshet | 8 177 kB per bygging er tre kopiar av kvart hjørne. |
-| 6 | Mål bilderata på ein telefon | Alle bilderatetal i dette dokumentet er programvare-GL. |
-| 7 | Variantane som lenkjer i mappa | Med kortlenkja er kvar variant under 30 teikn og ein QR-kode. |
-| 8 | Kopier scena frå parametric ein siste gong | To kopiar utan vedlikehaldsregel driv frå kvarandre utan at nokon oppdagar det. |
+| 2 | Terning som reparerer, målt om | Reparasjonane per motor finst; kor stor del av kasta som no held dei harde reglane på dei FIRE er ikkje målt sidan registeret var seks. |
+| 3 | Lokalt spor over lenkjer | Punktet ein var innom for tjue minutt sidan er borte. Presetmeny er ikkje svaret; kortlenkja gjer kvart spor til under 30 teikn. |
+| 4 | Indekser meshet | 8 177 kB per bygging er tre kopiar av kvart hjørne. |
+| 5 | Mål bilderata på ein telefon | Alle bilderatetal i dette dokumentet er programvare-GL. |
+| 6 | Variantane som lenkjer i mappa | Med kortlenkja er kvar variant under 30 teikn og ein QR-kode. |
+| 7 | Kopier scena frå parametric ein siste gong | To kopiar utan vedlikehaldsregel driv frå kvarandre utan at nokon oppdagar det. |
 
 Objektlista — bygg det, prøv NS-EN 1022, dybelplan, fas mot golvet,
 skiveavfallet, fargen — står i SKAL-mappa og høyrer ikkje heime her. Det

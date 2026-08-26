@@ -185,9 +185,14 @@ export const DEFAULT_PARAMS: Params = {
   framkant: 6,
   kantR: 12,
 
-  finneT: 9,
-  sokkelT: 12,
-  kappeT: 12,
+  // Ni og tolv millimeter bar tolv gonger lasta utan at nokon hadde
+  // spurt: åtte og ti held kvar einaste regel og sparer nesten kiloen —
+  // plata inn fell frå 27 til 23 kubikkdesimeter. Modellen reknar ikkje
+  // knekking, so botnen av banda (6 og 8) får stå urørd: dette er
+  // sparsemd med tryggingsmon, ikkje eit kappløp mot minimum.
+  finneT: 8,
+  sokkelT: 10,
+  kappeT: 10,
   pressfit: 0.15,
   fresD: 6,
   material: "bjork",
@@ -230,24 +235,29 @@ export const PARAM_KEYS: readonly string[] = GROUPS.flatMap((g) => [...g.keys])
 
 /** Kuraterte posar: tre handdesigna utgangspunkt terningen jittrar kring. */
 export const POSES: readonly Partial<Params>[] = [
+  // tjuknene i kvar pose er arva før frå gamle standarden (finneT 9,
+  // sokkelT/kappeT 12) — no eksplisitte, so posane står som dei var
   // vridd søyle
-  { vridFot: -60, vridSete: 60, finnar: 11, skraa: 18 },
+  { vridFot: -60, vridSete: 60, finnar: 11, skraa: 18, finneT: 9, sokkelT: 12, kappeT: 12 },
   // timeglas
-  { midjeB: 110, midjeD: 80, seteB: 430, seteD: 400, fotB: 400, fotD: 380, morfNed: 6, morfOpp: 3 },
+  {
+    midjeB: 110, midjeD: 80, seteB: 430, seteD: 400, fotB: 400, fotD: 380,
+    morfNed: 6, morfOpp: 3, finneT: 9, sokkelT: 12, kappeT: 12,
+  },
   // dokumentobjektet: tett og mjukt — delinga pressa UNDER fingermålet
   // med ein finare fres, og ei fyldigare midje so plana ikkje deler seg
   // i fleire lause stykke enn verkstaden orkar setje i
   {
     finnar: 29, veggT: 28, skraa: 8, vridFot: -10, vridSete: 25,
     seteB: 400, seteD: 350, fotB: 360, fotD: 330, midjeB: 240, midjeD: 200,
-    fresD: 3,
+    fresD: 3, finneT: 9, sokkelT: 12, kappeT: 12,
   },
   // amfora: buken sit over midja og er breiare enn både munning og fot —
   // ni plan so lufta mellom finnane står klar av fingerbandet, og midja
   // akkurat vid nok til at tre finnar går heilt gjennom
   {
     mage: 76, mageH: 0.7, midjeB: 140, midjeD: 110, seteB: 360, seteD: 345,
-    fotB: 310, fotD: 300, finnar: 9, morfOpp: 3,
+    fotB: 310, fotD: 300, finnar: 9, morfOpp: 3, finneT: 9, sokkelT: 12, kappeT: 12,
   },
   // diagonaltrauet: salen vridd 50 grader ut av verdsaksane, so trauet går
   // frå hjørne til hjørne og ikkje på tvers. Setet er kvadratisk nettopp
@@ -260,6 +270,7 @@ export const POSES: readonly Partial<Params>[] = [
     seteB: 430, seteD: 430, fotB: 345, fotD: 345, midjeB: 205, midjeD: 205,
     veggT: 40, finnar: 13, skraa: 6, vridFot: 0, vridSete: 22,
     morfNed: 4, morfOpp: 2.6, tomskyv: 12, tomretning: 50,
+    finneT: 9, sokkelT: 12, kappeT: 12,
   },
 ]
 
