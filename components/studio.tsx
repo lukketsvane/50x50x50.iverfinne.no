@@ -1,9 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ENGINES, getEngine, isEngineId } from "@/lib/engines"
+import { ENGINES, getEngine } from "@/lib/engines"
 import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
-import { applyDrag, nn, seeded } from "@/lib/core"
+import { applyDrag, seeded } from "@/lib/core"
+import { kortHash, lesHash } from "@/lib/hash"
 import type { BuildRes, DetailKey, MaalRes, Req, Res, SynRes } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
 import { BEIS } from "./object-mesh"
@@ -45,9 +46,11 @@ export function Studio() {
   // objektet, og det er dei som skil typologiane frå kvarandre. Den slipte
   // flata er eit klikk unna.
   const [view, setView] = useState<View>("lag")
-  // Dobbelttrykk på nedtrekket låser terningen til den valde modulen.
-  // Ulåst får terningen kaste over ALLE modulane — motor og form i eitt.
-  const [engineLock, setEngineLock] = useState(false)
+  // Dobbelttrykk på nedtrekket låser terningen til den valde modulen —
+  // og han STARTAR låst: VAFFEL er svaret prosjektet landar på, so
+  // terningen kastar form innanfor han til nokon medvite låser opp og
+  // slepper han over motorgrensa.
+  const [engineLock, setEngineLock] = useState(true)
   // beis er ferdig handsaming, som lakk: han bur i visinga og hashen, aldri
   // i parameterrommet — masse og styrke bryr seg ikkje om farge
   // AHO-oransjen er standard — «natur» er eit val, ikkje utgangspunktet
@@ -71,9 +74,6 @@ export function Studio() {
   // Gesten på lerretet er usynleg til han får eit namn: chipen syner kva
   // to-fingers-draget skrur på, og talet det står i, medan draget går.
   const [hud, setHud] = useState<{ k: string; t: number } | null>(null)
-  // Avlen bur bak eit dobbelttrykk, so resultatet må melde seg sjølv:
-  // kvitteringa seier kva plata gjennom maskina gjekk frå og til.
-  const [avlSvar, setAvlSvar] = useState<{ fra: number; til: number; t: number } | null>(null)
   const [mounted, setMounted] = useState(false)
   // kvitt, alltid — sjå globals.css
   const dark = false
@@ -82,6 +82,12 @@ export function Studio() {
   const eng = getEngine(engine)
   const params = bags[engine] ?? eng.defaults
   const locked = locks[engine] ?? new Set<string>()
+
+  // «last» finst berre der motoren kan svare på han: byter ein til ein
+  // motor utan lastkart, fell lesemåten attende til delane
+  useEffect(() => {
+    if (view === "last" && !eng.kanLast) setView("lag")
+  }, [engine, view, eng])
 
   const worker = useRef<Worker | null>(null)
   const reqId = useRef(0)
@@ -103,24 +109,22 @@ export function Studio() {
 
   // Hashen er ikkje til å stole på: kvart felt vert lese for seg og klemt inn
   // i sitt eige band av motoren sin eigen clamp, så inga laga lenkje kan
-  // skyve NaN eller framande verdiar inn i geometrien.
+  // skyve NaN eller framande verdiar inn i geometrien. Begge formene vert
+  // lesne — #p= (JSON, for alltid) og den korte #s= — og går same vegen.
   useEffect(() => {
     setMounted(true)
-    try {
-      const h = window.location.hash.slice(1)
-      if (!h.startsWith("p=")) return
-      const obj = JSON.parse(decodeURIComponent(h.slice(2))) as Record<string, unknown>
-      const id = isEngineId(obj.engine) ? obj.engine : "vaffel"
-      const e = getEngine(id)
-      setEngine(id)
-      setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
-      const v = obj.view
-      if (v === "lag" || v === "kontur" || v === "flate") setView(v)
-      if (typeof obj.beis === "string" && BEIS.some((b) => b.id === obj.beis)) {
-        setBeis(obj.beis)
-      }
-    } catch {
-      // øydelagd hash — lat standardobjektet stå
+    const lese = lesHash(window.location.hash.slice(1))
+    if (!lese) return
+    const { engine: id, obj } = lese
+    const e = getEngine(id)
+    setEngine(id)
+    setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
+    const v = obj.view
+    if (v === "lag" || v === "kontur" || v === "flate" || (v === "last" && e.kanLast)) {
+      setView(v)
+    }
+    if (typeof obj.beis === "string" && BEIS.some((b) => b.id === obj.beis)) {
+      setBeis(obj.beis)
     }
   }, [])
 
@@ -160,9 +164,10 @@ export function Studio() {
         setAvlGang(null)
         // eit avbrote søk vert kasta: brukaren har alt flytta seg, og eit
         // svar som overskriv handa hans er verre enn ingen svar
+        // Ingen kvittering, ingen chip: resultatet av avlen er objektet
+        // som står der og tala som alltid er synlege. Alt anna er støy.
         if (!r.avbroten) {
           setBags((b) => ({ ...b, [r.engine]: r.best }))
-          setAvlSvar({ fra: r.matInn0, til: r.matInn, t: Date.now() })
         }
         return
       }
@@ -215,22 +220,13 @@ export function Studio() {
     }
   }, [engine, params, detail, view, mounted, pump])
 
-  // URL-en kodar alltid det objektet som står på skjermen
+  // URL-en kodar alltid det objektet som står på skjermen — kort form:
+  // kvantisert til banda sine eigne steg, kring 30–60 teikn. QR-bar, og
+  // kort nok til at mappa kan bera henne som stempel.
   useEffect(() => {
     if (!mounted) return
     const t = window.setTimeout(() => {
-      window.history.replaceState(
-        null,
-        "",
-        "#p=" +
-          encodeURIComponent(
-            JSON.stringify(
-              beis === "natur"
-                ? { engine, ...params, view }
-                : { engine, ...params, view, beis },
-            ),
-          ),
-      )
+      window.history.replaceState(null, "", "#" + kortHash(engine, params, view, beis))
     }, 500)
     return () => window.clearTimeout(t)
   }, [engine, params, view, beis, mounted])
@@ -274,13 +270,6 @@ export function Studio() {
     const t = window.setTimeout(() => setHud(null), 1100)
     return () => window.clearTimeout(t)
   }, [hud])
-
-  // kvitteringa frå avlen står lenge nok til å lesast, og ikkje lenger
-  useEffect(() => {
-    if (!avlSvar) return
-    const t = window.setTimeout(() => setAvlSvar(null), 5000)
-    return () => window.clearTimeout(t)
-  }, [avlSvar])
 
   const nudgeLight = useCallback((dx: number, dy: number) => {
     setLight((l) => ({
@@ -420,11 +409,10 @@ export function Studio() {
         </a>
       </header>
 
-      {/* Chipen over arkkanten ber to røyster: gesten som får namn medan
-          han går (kva band, kva tal), og kvitteringa frå avlen — søket bur
-          bak eit dobbelttrykk, so resultatet må melde seg sjølv. Handa
-          vinn: eit aktivt drag skuvar kvitteringa til side. */}
-      {((hud && hudR && hudVal !== null) || avlSvar) && (
+      {/* Gesten får eit namn medan han går — kva band, kva tal — og chipen
+          forsvinn med fingrane. Det er alt han seier: han er handa sitt
+          spegelbilete, ikkje ein informasjonskanal. */}
+      {hud && hudR && hudVal !== null && (
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 z-10 flex justify-center"
@@ -438,31 +426,15 @@ export function Studio() {
               color: "var(--ink)",
             }}
           >
-            {hud && hudR && hudVal !== null ? (
-              <>
-                <span className="uppercase tracking-[0.14em] opacity-55">
-                  {hudDrag?.label ?? hudR.label}
-                </span>
-                <span className="tab">
-                  {hudVal
-                    .toFixed(hudR.step >= 1 ? 0 : hudR.step >= 0.1 ? 1 : 2)
-                    .replace(".", ",")}
-                  {hudR.unit && <span className="pl-0.5 opacity-45">{hudR.unit}</span>}
-                </span>
-              </>
-            ) : avlSvar && avlSvar.fra - avlSvar.til > 0.05 ? (
-              <>
-                <span className="uppercase tracking-[0.14em] opacity-55">avla · plate inn</span>
-                <span className="tab">
-                  {nn(avlSvar.fra, 1)} → {nn(avlSvar.til, 1)}
-                  <span className="pl-0.5 opacity-45">dm³</span>
-                </span>
-              </>
-            ) : (
-              <span className="uppercase tracking-[0.14em] opacity-55">
-                avla — fann ikkje mindre plate
-              </span>
-            )}
+            <span className="uppercase tracking-[0.14em] opacity-55">
+              {hudDrag?.label ?? hudR.label}
+            </span>
+            <span className="tab">
+              {hudVal
+                .toFixed(hudR.step >= 1 ? 0 : hudR.step >= 0.1 ? 1 : 2)
+                .replace(".", ",")}
+              {hudR.unit && <span className="pl-0.5 opacity-45">{hudR.unit}</span>}
+            </span>
           </div>
         </div>
       )}

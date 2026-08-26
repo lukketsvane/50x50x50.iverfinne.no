@@ -29,7 +29,7 @@ import { measure } from "./metrics"
 import { checkRules } from "./rules"
 import { nest } from "./nest"
 import { partsToDxf } from "./export-dxf"
-import { contourMapSvg, sheetSvg } from "./export-svg"
+import { alleArkSvg, contourMapSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
   GROUPS,
@@ -139,10 +139,11 @@ export const STRAUM: EngineDef = {
       }
     }
     if (what === "ark") {
+      const ns = nest(parts().parts)
       return {
-        name: "straum-ark1.svg",
+        name: "straum-" + ns.sheets.length + "ark.svg",
         mime: "image/svg+xml",
-        text: sheetSvg(nest(parts().parts), 0),
+        text: alleArkSvg(ns),
       }
     }
     return {

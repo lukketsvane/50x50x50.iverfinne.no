@@ -59,6 +59,8 @@ export type BuildRes = {
   min: Vec3
   max: Vec3
   kant: Float32Array<ArrayBufferLike>
+  /** lastkartet, berre i lesemåten «last»: utnytting per hjørne, 1,0 = kapasitet */
+  felt?: Float32Array<ArrayBufferLike>
   lines: Float32Array<ArrayBufferLike>
   heavy: Float32Array<ArrayBufferLike>
 }
@@ -120,8 +122,8 @@ function build(req: BuildReq): { res: BuildRes; transfer: Transferable[] } {
   // same buffer to gonger i lista er ein DataCloneError, og han tek heile
   // meldinga med seg.
   const transfer: Transferable[] = []
-  for (const a of [out.positions, out.normals, out.kant, out.lines, out.heavy]) {
-    if (a.byteLength && !transfer.includes(a.buffer)) transfer.push(a.buffer)
+  for (const a of [out.positions, out.normals, out.kant, out.felt, out.lines, out.heavy]) {
+    if (a && a.byteLength && !transfer.includes(a.buffer)) transfer.push(a.buffer)
   }
   return { res, transfer }
 }

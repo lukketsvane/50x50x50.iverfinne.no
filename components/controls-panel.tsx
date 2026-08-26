@@ -54,6 +54,8 @@ const VIEWS: readonly { id: View; label: string; hint: string }[] = [
   { id: "flate", label: "flate", hint: "flata objektet nærmar seg, ferdig" },
   { id: "lag", label: "lag", hint: "delane slik dei faktisk er, montert" },
   { id: "kontur", label: "kontur", hint: "dei flate kuttprofilane" },
+  // berre motorar med kanLast får denne chipen — sjå filtreringa i rada
+  { id: "last", label: "last", hint: "lastkartet: utnyttinga under 1600 N (NS-EN 1728), måla på flata" },
 ]
 
 const EXPORTS: readonly { id: "stl" | "dxf" | "svg" | "ark"; label: string; hint: string }[] = [
@@ -199,30 +201,70 @@ function tableRows(m: Metrics | null): TableRow[] {
   ]
 }
 
+/** Dobbelttrykket er låse-språket i heile panelet: modulveljaren,
+ *  hovuddraga og skyvarveggen låser alle på to raske trykk. */
+function useDobbelttrykk(fn: () => void) {
+  const sist = useRef(0)
+  return () => {
+    const no = performance.now()
+    if (no - sist.current < 350) {
+      sist.current = 0
+      fn()
+    } else {
+      sist.current = no
+    }
+  }
+}
+
 /** Eitt hovuddrag: primæren gjev posisjonen og talet, fylgjarane går med.
- *  Ingen lås — draget styrer fleire band, og låsane høyrer banda til. */
+ *  Dobbelttrykk på namnet låser ALLE banda draget styrer mot terningen —
+ *  låsen bur framleis på banda, draget er berre handtaket. */
 function DragRow({
   drag,
   ranges,
   params,
+  locked,
+  onToggleLock,
   onChange,
 }: {
   drag: Hovuddrag
   ranges: Record<string, Range>
   params: ParamBag
+  locked: boolean
+  onToggleLock: () => void
   onChange: (p: ParamBag) => void
 }) {
   const [pk] = drag.keys[0]
   const r = ranges[pk]
   const value = num(params, pk, r.min)
+  const trykk = useDobbelttrykk(onToggleLock)
   return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span
-        className="w-24 shrink-0 text-[10px] uppercase leading-[1.2] tracking-[0.14em]"
+    <div
+      className="flex items-center gap-3 py-1.5 transition-opacity"
+      style={{ opacity: locked ? 0.35 : 1 }}
+    >
+      <button
+        type="button"
+        aria-pressed={locked}
+        title={
+          locked
+            ? "låst mot terningen — dobbelttrykk låser opp"
+            : "dobbelttrykk låser mot terningen (alle banda draget styrer)"
+        }
+        onClick={trykk}
+        className="flex w-24 shrink-0 items-center gap-1.5 text-left text-[10px] uppercase leading-[1.2] tracking-[0.14em]"
         style={{ color: "var(--ink)" }}
       >
-        {drag.label}
-      </span>
+        <span
+          aria-hidden="true"
+          className="block h-[5px] w-[5px] shrink-0 rounded-full"
+          style={{
+            background: locked ? "var(--ink)" : "transparent",
+            border: locked ? "none" : "1px solid color-mix(in srgb, var(--ink) 30%, transparent)",
+          }}
+        />
+        <span className="min-w-0 flex-1">{drag.label}</span>
+      </button>
       <input
         type="range"
         className="pslider flex-1"
@@ -241,12 +283,14 @@ function DragRow({
   )
 }
 
-/** Éin skyvar: etiketten er låsen, prikken seier om han er teken. */
+/** Éin skyvar: etiketten er låsen, prikken seier om han er teken.
+ *  `peika` er blinket frå ein regel som peika hit — sjå peik(). */
 function SliderRow({
   k,
   r,
   value,
   locked,
+  peika,
   onChange,
   onToggleLock,
 }: {
@@ -254,19 +298,26 @@ function SliderRow({
   r: Range
   value: number
   locked: boolean
+  peika: boolean
   onChange: (k: string, raw: string) => void
   onToggleLock: (k: string) => void
 }) {
+  const trykkLaas = useDobbelttrykk(() => onToggleLock(k))
   return (
     <div
-      className="flex items-center gap-3 py-1.5 transition-opacity"
+      data-skyvar={k}
+      className={"flex items-center gap-3 rounded-lg py-1.5 transition-opacity" + (peika ? " peika" : "")}
       style={{ opacity: locked ? 0.35 : 1 }}
     >
       <button
         type="button"
         aria-pressed={locked}
-        title={locked ? "låst mot terningen — trykk for å låse opp" : "trykk for å låse mot terningen"}
-        onClick={() => onToggleLock(k)}
+        title={
+          locked
+            ? "låst mot terningen — dobbelttrykk låser opp"
+            : "dobbelttrykk låser mot terningen"
+        }
+        onClick={trykkLaas}
         className="flex w-24 shrink-0 items-center gap-1.5 text-left text-[10px] uppercase leading-[1.2] tracking-[0.14em]"
         style={{ color: "var(--ink)" }}
       >
@@ -449,6 +500,27 @@ export function ControlsPanel(props: {
   useEffect(() => {
     sheetScroll.current?.scrollTo({ top: 0 })
   }, [engine, open])
+
+  // Regelen peikar: eit trykk på ein broten regel opnar «alt», rullar til
+  // den fyrste skyvaren regelen heng av, og let alle sine blinke éin gong.
+  // Skilnaden på ein reiskap og ein dommar er om han peikar.
+  const [peika, setPeika] = useState<ReadonlySet<string>>(new Set())
+  const peik = useCallback(
+    (r: Rule) => {
+      const keys = (r.peikar ?? []).filter((k) => eng.ranges[k])
+      if (!keys.length) return
+      onMode("full")
+      setPeika(new Set(keys))
+      // vent til «alt»-glidinga (280 ms) har gjeve skyvaren ein stad å vere
+      window.setTimeout(() => {
+        sheetScroll.current
+          ?.querySelector(`[data-skyvar="${keys[0]}"]`)
+          ?.scrollIntoView({ block: "center", behavior: "smooth" })
+      }, 320)
+      window.setTimeout(() => setPeika(new Set()), 2400)
+    },
+    [eng, onMode],
+  )
 
   const broken = useMemo(() => {
     const hard = new Set<string>()
@@ -735,21 +807,33 @@ export function ControlsPanel(props: {
                 banda står bak «alt». */}
             {eng.hovuddrag.length > 0 && (
               <div className="pb-1">
-                {eng.hovuddrag.map((d) => (
-                  <DragRow
-                    key={d.id}
-                    drag={d}
-                    ranges={eng.ranges}
-                    params={params}
-                    onChange={onChange}
-                  />
-                ))}
+                {eng.hovuddrag.map((d) => {
+                  // draget er låst når ALLE banda hans er det; dobbelttrykket
+                  // set eller slepper heile flokken under eitt
+                  const dragLaast = d.keys.every(([k]) => locked.has(k))
+                  return (
+                    <DragRow
+                      key={d.id}
+                      drag={d}
+                      ranges={eng.ranges}
+                      params={params}
+                      locked={dragLaast}
+                      onToggleLock={() => {
+                        const paa = !dragLaast
+                        for (const [k] of d.keys) {
+                          if (locked.has(k) !== paa) onToggleLock(k)
+                        }
+                      }}
+                      onChange={onChange}
+                    />
+                  )
+                })}
               </div>
             )}
 
-            {/* lesemåtane — tre ord held; kva dei tyder ligg i title */}
+            {/* lesemåtane — fire ord held; kva dei tyder ligg i title */}
             <div className="flex flex-wrap items-center gap-1.5 py-1">
-              {VIEWS.map((v) => (
+              {VIEWS.filter((v) => v.id !== "last" || eng.kanLast).map((v) => (
                 <button
                   key={v.id}
                   type="button"
@@ -777,106 +861,61 @@ export function ControlsPanel(props: {
               )}
             </div>
 
-            {/* materialet og beisen i EI rad: fargen ER etiketten, namna
-                ligg i title. Beisen sit på plateflatene; kutta står som rå
-                finér — kvar motor merkjer sjølv kva som er kva. */}
-            <div className="flex flex-wrap items-center gap-1.5 py-1.5">
-              {(Object.keys(MATERIALS) as Material[]).map((mk) => (
-                <button
-                  key={mk}
-                  type="button"
-                  aria-pressed={params.material === mk}
-                  aria-label={`materiale: ${MATERIALS[mk].label}`}
-                  title={MATERIALS[mk].label}
-                  onClick={() => onChange({ ...params, material: mk })}
-                  className="h-6 w-6 rounded-full border transition active:scale-90"
+            {/* Skalaen til lastkartet, berre når det står på: null til
+                kapasiteten, med lasta i midten som namn. Kartet og tavla
+                les same tal — 100 % HER er 100 % DER. */}
+            {view === "last" && (
+              <div className="flex items-center gap-2 py-1 text-[10px]">
+                <span className="tab opacity-55">0</span>
+                {/* same kvadratrotskala som kartet: stoppa ligg på √u */}
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 min-w-0 flex-1 rounded-full"
                   style={{
-                    backgroundColor: WOOD[mk],
-                    borderColor: params.material === mk ? "var(--ink)" : "var(--rule)",
-                    boxShadow: params.material === mk ? "0 0 0 1px var(--ink)" : undefined,
+                    background:
+                      "linear-gradient(90deg, #2b4a68, #3f7d8c 55%, #e9e2d2 74%, #ed520f 89%, #7f1d1d)",
                   }}
                 />
-              ))}
-              <span aria-hidden="true" className="mx-1 h-4 w-px" style={{ background: "var(--rule)" }} />
-              {BEIS.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  aria-pressed={beis === b.id}
-                  aria-label={`beis: ${b.label}`}
-                  title={b.label}
-                  onClick={() => onBeis(b.id)}
-                  className="h-6 w-6 rounded-full border transition active:scale-90"
-                  style={{
-                    backgroundColor: b.hex || "#cfc7bb",
-                    borderColor: beis === b.id ? "var(--ink)" : "var(--rule)",
-                    boxShadow: beis === b.id ? "0 0 0 1px var(--ink)" : undefined,
-                  }}
-                />
-              ))}
-            </div>
+                <span className="tab opacity-55">kapasitet</span>
+                <span className="uppercase tracking-[0.14em] opacity-40">1600 N</span>
+              </div>
+            )}
+
 
             {/* reglane som ryk: éi line kvar, grunngjevinga i title. Panelet
                 seier KVA som er gale; KVIFOR ligg eit fingertrykk unna. */}
             {failed.length > 0 && (
               <ul className="space-y-1 py-1">
-                {failed.map((r) => (
-                  <li
-                    key={r.id}
-                    title={r.why}
-                    className="flex items-baseline justify-between gap-3 text-[11px] leading-4"
-                    style={{
-                      color: r.hard ? "var(--warn)" : undefined,
-                      opacity: r.hard ? 1 : 0.65,
-                    }}
-                  >
-                    <span className="tracking-[0.06em]">
-                      {r.hard ? "bryt" : "merk"} · {r.label}
-                    </span>
-                    <span className="tab shrink-0">{r.value}</span>
-                  </li>
-                ))}
+                {failed.map((r) => {
+                  const kanPeike = (r.peikar ?? []).some((k) => eng.ranges[k])
+                  return (
+                    <li key={r.id}>
+                      {/* Regelen peikar: trykket opnar «alt» og rullar til
+                          skyvaren som kan rette han. Ein regel utan skyvar
+                          (innpassinga, materialvalet) står som line. */}
+                      <button
+                        type="button"
+                        disabled={!kanPeike}
+                        onClick={() => peik(r)}
+                        title={r.why}
+                        className="flex w-full items-baseline justify-between gap-3 text-left text-[11px] leading-4 disabled:pointer-events-none"
+                        style={{
+                          color: r.hard ? "var(--warn)" : undefined,
+                          opacity: r.hard ? 1 : 0.65,
+                        }}
+                      >
+                        <span className="tracking-[0.06em]">
+                          {r.hard ? "bryt" : "merk"} · {r.label}
+                          {kanPeike && <span className="pl-1 opacity-45">→</span>}
+                        </span>
+                        <span className="tab shrink-0">{r.value}</span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             )}
 
-            {/* flatene, automatisk: kvar del slik han ligg på plata. Det
-                ein før måtte laste ned ein SVG for å sjå, står i menyen og
-                fylgjer kvar einaste parameterendring. */}
-            {syn && (
-              <div
-                className="my-1.5 overflow-hidden rounded-2xl border p-2"
-                style={{ ...HAIR, background: "#ffffff" }}
-              >
-                {/* Arket ber talet sitt sjølv: kor stor del av den medgåtte
-                    plata som vert delar, og kor mange plater det tek. Det
-                    er den eine aksen i avfallsrekninga, rett på biletet av
-                    henne. */}
-                <div className="flex items-baseline justify-between px-1 pb-1 text-[10px]">
-                  <span className="uppercase tracking-[0.24em] opacity-35">arket</span>
-                  {metrics && (
-                    <span
-                      className="tab"
-                      style={{
-                        color: isHard(R_PLATE) ? "var(--warn)" : "var(--ink)",
-                        opacity: isHard(R_PLATE) ? 1 : 0.6,
-                        textDecoration: isSoft(R_PLATE) ? "underline dotted" : undefined,
-                        textUnderlineOffset: 3,
-                      }}
-                    >
-                      {n0(metrics.sheetUtil * 100)} % · {n0(metrics.sheets)}{" "}
-                      {metrics.sheets === 1 ? "plate" : "plater"}
-                    </span>
-                  )}
-                </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
-                  alt="alle flatene, slik dei ligg på plata"
-                  className="max-h-40 w-full object-contain"
-                  style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
-                />
-              </div>
-            )}
 
             {/* eksporten og verktøya i EI rad: fire filformat, attende til
                 standard, del lenkja */}
@@ -930,6 +969,84 @@ export function ControlsPanel(props: {
               style={{ display: "grid", gridTemplateRows: mode === "full" ? "1fr" : "0fr" }}
             >
               <div className="min-h-0 overflow-hidden" inert={mode !== "full"}>
+            {/* Materialet, beisen og arket høyrer finstillinga til:
+                halvope ark er posane, draga og lesemåtane — resten bur her. */}
+            {/* materialet og beisen i EI rad: fargen ER etiketten, namna
+                ligg i title. Beisen sit på plateflatene; kutta står som rå
+                finér — kvar motor merkjer sjølv kva som er kva. */}
+            <div className="flex flex-wrap items-center gap-1.5 py-1.5">
+              {(Object.keys(MATERIALS) as Material[]).map((mk) => (
+                <button
+                  key={mk}
+                  type="button"
+                  aria-pressed={params.material === mk}
+                  aria-label={`materiale: ${MATERIALS[mk].label}`}
+                  title={MATERIALS[mk].label}
+                  onClick={() => onChange({ ...params, material: mk })}
+                  className="h-6 w-6 rounded-full border transition active:scale-90"
+                  style={{
+                    backgroundColor: WOOD[mk],
+                    borderColor: params.material === mk ? "var(--ink)" : "var(--rule)",
+                    boxShadow: params.material === mk ? "0 0 0 1px var(--ink)" : undefined,
+                  }}
+                />
+              ))}
+              <span aria-hidden="true" className="mx-1 h-4 w-px" style={{ background: "var(--rule)" }} />
+              {BEIS.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  aria-pressed={beis === b.id}
+                  aria-label={`beis: ${b.label}`}
+                  title={b.label}
+                  onClick={() => onBeis(b.id)}
+                  className="h-6 w-6 rounded-full border transition active:scale-90"
+                  style={{
+                    backgroundColor: b.hex || "#cfc7bb",
+                    borderColor: beis === b.id ? "var(--ink)" : "var(--rule)",
+                    boxShadow: beis === b.id ? "0 0 0 1px var(--ink)" : undefined,
+                  }}
+                />
+              ))}
+            </div>
+            {/* flatene, automatisk: kvar del slik han ligg på plata. Det
+                ein før måtte laste ned ein SVG for å sjå, står i menyen og
+                fylgjer kvar einaste parameterendring. */}
+            {syn && (
+              <div
+                className="my-1.5 overflow-hidden rounded-2xl border p-2"
+                style={{ ...HAIR, background: "#ffffff" }}
+              >
+                {/* Arket ber talet sitt sjølv: kor stor del av den medgåtte
+                    plata som vert delar, og kor mange plater det tek. Det
+                    er den eine aksen i avfallsrekninga, rett på biletet av
+                    henne. */}
+                <div className="flex items-baseline justify-between px-1 pb-1 text-[10px]">
+                  <span className="uppercase tracking-[0.24em] opacity-35">arket</span>
+                  {metrics && (
+                    <span
+                      className="tab"
+                      style={{
+                        color: isHard(R_PLATE) ? "var(--warn)" : "var(--ink)",
+                        opacity: isHard(R_PLATE) ? 1 : 0.6,
+                        textDecoration: isSoft(R_PLATE) ? "underline dotted" : undefined,
+                        textUnderlineOffset: 3,
+                      }}
+                    >
+                      {n0(metrics.sheetUtil * 100)} % · {n0(metrics.sheets)}{" "}
+                      {metrics.sheets === 1 ? "plate" : "plater"}
+                    </span>
+                  )}
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
+                  alt="alle flatene, slik dei ligg på plata"
+                  className="max-h-40 w-full object-contain"
+                  style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
+                />
+              </div>
+            )}
             <h3 className="mt-3 pb-0.5 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
               måltavla
             </h3>
@@ -978,6 +1095,7 @@ export function ControlsPanel(props: {
                       r={eng.ranges[k]}
                       value={num(params, k, eng.ranges[k].min)}
                       locked={locked.has(k)}
+                      peika={peika.has(k)}
                       onChange={setParam}
                       onToggleLock={onToggleLock}
                     />

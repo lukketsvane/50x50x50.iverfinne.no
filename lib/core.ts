@@ -4,10 +4,10 @@
  * Fire typologiar står i denne sandkassen, og dei er ikkje fire former.
  * Dei er fire måtar å byggje ei krum flate av flate plater:
  *
- *   RIBBE   radiale blad og vassrette band, kryssholdte i kvarandre
- *   VAFFEL  dei same ribbene lagde i to rette retningar i staden for radialt
- *   SKAL    vassrette lamellar stabla og slipte ned til éi flate
+ *   VAFFEL  kryssholdte ribber i to retningar, utan lim og utan skruar
+ *   SKIVE   parallelle skiver med luft imellom, tredde på stavar
  *   STRAUM  éin kropp skoren i skrå skiveplan, finnar sette i spor
+ *   RIBBE   radiale blad og vassrette band, kryssholdte i kvarandre
  *
  * Kvar av dei har si eiga likning, sitt eige parameterrom og sine eigne
  * ledd. Det dei deler er denne fila: kva eit måltal er, kva ein regel er,
@@ -266,6 +266,13 @@ export type Rule = {
   hard: boolean
   value: string
   why: string
+  /**
+   * Skyvarane som faktisk flytter regelen, viktigast fyrst. Ein regel som
+   * berre seier nei har gjort halve jobben; panelet gjer etiketten
+   * trykkbar og rullar til den fyrste skyvaren. Tom/utelaten tyder at
+   * ingen skyvar eig regelen (innpassinga, materialvalet).
+   */
+  peikar?: readonly string[]
 }
 
 // =============================================================================
@@ -283,10 +290,12 @@ export type MeshData = {
 
 export type DetailKey = "lav" | "mid" | "hog"
 
-/** Dei tre lesemåtane av eit og same objekt. Kva dei tyder er opp til
- *  motoren: for SKAL er «lag» stabelen som kutta, for STRAUM er det dei 24
- *  finnane, for RIBBE blada og banda kvar for seg. */
-export type View = "flate" | "lag" | "kontur"
+/** Lesemåtane av eit og same objekt. Kva dei tyder er opp til motoren:
+ *  «lag» er delane montert, «flate» forma dei nærmar seg, «kontur» dei
+ *  flate kuttprofilane — og «last» er lastkartet: utnyttinga under
+ *  NS-EN 1728-lasta måla PÅ flata. Berre motorar med `kanLast` svarar
+ *  på den siste. */
+export type View = "flate" | "lag" | "kontur" | "last"
 
 export type ExportKind = "stl" | "dxf" | "svg" | "ark"
 
@@ -306,6 +315,12 @@ export type BuildOut = {
    * «byggjaren sa ingenting», og då gjettar visaren av normalen.
    */
   kant: Float32Array<ArrayBufferLike>
+  /**
+   * Lastkartet, berre i lesemåten «last»: utnyttinga per hjørne under
+   * NS-EN 1728-lasta, der 1,0 ER kapasiteten — same skala som `util` i
+   * tavla, so kartet og talet aldri kan seie kvar sitt.
+   */
+  felt?: Float32Array<ArrayBufferLike>
 }
 
 export type ExportOut = {
@@ -384,8 +399,6 @@ export type EngineId =
   | "ribbe"
   | "vaffel"
   | "skive"
-  | "kote"
-  | "karve"
   | "boyg"
 
 export type EngineDef = {
@@ -408,6 +421,8 @@ export type EngineDef = {
   nudge: { vertical: string; horizontal: string; pinch: string }
   /** namnet på det motoren tel: «lag», «blad», «finnar» */
   unitLabel: string
+  /** om motoren kan svare på lesemåten «last» (lastkartet på flata) */
+  kanLast?: boolean
   /** namngjevne posar — synlege inngangar i panelet; terningen jittrar kring dei */
   poses: readonly Pose[]
   /** hovuddraga: 3–6 semantiske kontrollar som styrer fleire band saman */

@@ -133,6 +133,35 @@ function probe(e: EngineDef) {
   ok(r.length > 0, `${r.length} reglar, ${r.filter((x) => x.hard).length} harde`)
   ok(broken.length === 0, "standarden held alle reglane",
     broken.map((x) => x.id).join(","))
+  // reglane som peikar, peikar berre på skyvarar som finst — og nesten
+  // alle skal peike: berre innpassinga og materialvalet får stå utan
+  const peikMiss = r.flatMap((x) => (x.peikar ?? []).filter((k) => !e.ranges[k]))
+  ok(peikMiss.length === 0, "kvar peikar treffer eit band", peikMiss.join(","))
+  const utanPeikar = r.filter((x) => !x.peikar?.length)
+  ok(utanPeikar.length <= 3, `${r.length - utanPeikar.length} av ${r.length} reglar peikar`,
+    utanPeikar.map((x) => x.id).join(","))
+
+  // --- lastkartet, der motoren ber det -------------------------------------
+  if (e.kanLast) {
+    const lb = e.build(e.defaults, "mid", "last")
+    const nv = lb.positions.length / 3
+    const felt = lb.felt
+    ok(!!felt && felt.length === nv, "lastkartet dekkjer kvart hjørne",
+      felt ? `${felt.length} mot ${nv}` : "manglar")
+    if (felt) {
+      let fMax = 0
+      let bad = 0
+      for (let i = 0; i < felt.length; i++) {
+        if (!Number.isFinite(felt[i]) || felt[i] < 0) bad++
+        else if (felt[i] > fMax) fMax = felt[i]
+      }
+      ok(bad === 0, "ingen NaN eller negative i lastkartet", `${bad}`)
+      // kartet og tavla les same modell: toppen av feltet skal liggje ved
+      // utnyttinga i tavla (fiberen gjer at kartet aldri går OVER)
+      ok(fMax <= m.util * 1.05 + 0.02 && fMax >= m.util * 0.5,
+        `kartmaks ${Math.round(fMax * 100)} % mot tavla ${Math.round(m.util * 100)} %`)
+    }
+  }
 
   // --- nettet ---------------------------------------------------------------
   for (const view of VIEWS) {
