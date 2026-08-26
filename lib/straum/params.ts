@@ -233,31 +233,42 @@ export const GROUPS: readonly Group[] = [
 
 export const PARAM_KEYS: readonly string[] = GROUPS.flatMap((g) => [...g.keys])
 
-/** Kuraterte posar: tre handdesigna utgangspunkt terningen jittrar kring. */
+/** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring.
+ *  Tjuknene i kvar pose er målte, ikkje arva: kvar pose stoggar eitt steg
+ *  før den regelen som faktisk bit (spor mot plate for dei fleste,
+ *  klemfare for dokumentobjektet), med golv på finneT 7 og plater 8,5 —
+ *  modellen reknar ikkje knekking, so botnen av banda står urørd. */
 export const POSES: readonly Partial<Params>[] = [
-  // tjuknene i kvar pose er arva før frå gamle standarden (finneT 9,
-  // sokkelT/kappeT 12) — no eksplisitte, so posane står som dei var
-  // vridd søyle
-  { vridFot: -60, vridSete: 60, finnar: 11, skraa: 18, finneT: 9, sokkelT: 12, kappeT: 12 },
-  // timeglas
+  // vridd søyle: eit kvadratisk prisme (morf 7/7) der vridinga les i
+  // kantane — før var ho berre standardsilhuetten med større vriding
   {
-    midjeB: 110, midjeD: 80, seteB: 430, seteD: 400, fotB: 400, fotD: 380,
-    morfNed: 6, morfOpp: 3, finneT: 9, sokkelT: 12, kappeT: 12,
+    vridFot: -70, vridSete: 70, morfNed: 7, morfOpp: 7,
+    seteB: 380, seteD: 380, fotB: 370, fotD: 370, midjeB: 250, midjeD: 250,
+    finnar: 11, skraa: 16, veggT: 30, tomFra: 0.05, tomTil: 0.89,
+    finneT: 7.5, sokkelT: 8.5, kappeT: 8.5,
+  },
+  // timeglas: vridinga null med vilje — det reine, symmetriske
+  // dobbeltkjegle-glaset, ikkje standarden med anna midje
+  {
+    vridFot: 0, vridSete: 0, midjeB: 110, midjeD: 80, seteB: 430, seteD: 400,
+    fotB: 400, fotD: 380, morfNed: 6, morfOpp: 3, sokkelT: 9, kappeT: 9,
   },
   // dokumentobjektet: tett og mjukt — delinga pressa UNDER fingermålet
   // med ein finare fres, og ei fyldigare midje so plana ikkje deler seg
-  // i fleire lause stykke enn verkstaden orkar setje i
+  // i fleire lause stykke enn verkstaden orkar setje i. finneT 9 er
+  // golvet her: 8,5 opnar spalta til 5,4 mm og inn i fingerbandet.
   {
     finnar: 29, veggT: 28, skraa: 8, vridFot: -10, vridSete: 25,
     seteB: 400, seteD: 350, fotB: 360, fotD: 330, midjeB: 240, midjeD: 200,
-    fresD: 3, finneT: 9, sokkelT: 12, kappeT: 12,
+    fresD: 3, finneT: 9,
   },
   // amfora: buken sit over midja og er breiare enn både munning og fot —
   // ni plan so lufta mellom finnane står klar av fingerbandet, og midja
   // akkurat vid nok til at tre finnar går heilt gjennom
   {
     mage: 76, mageH: 0.7, midjeB: 140, midjeD: 110, seteB: 360, seteD: 345,
-    fotB: 310, fotD: 300, finnar: 9, morfOpp: 3, finneT: 9, sokkelT: 12, kappeT: 12,
+    fotB: 310, fotD: 300, finnar: 9, morfOpp: 3,
+    finneT: 7, sokkelT: 8.5, kappeT: 8.5,
   },
   // diagonaltrauet: salen vridd 50 grader ut av verdsaksane, so trauet går
   // frå hjørne til hjørne og ikkje på tvers. Setet er kvadratisk nettopp
@@ -270,7 +281,23 @@ export const POSES: readonly Partial<Params>[] = [
     seteB: 430, seteD: 430, fotB: 345, fotD: 345, midjeB: 205, midjeD: 205,
     veggT: 40, finnar: 13, skraa: 6, vridFot: 0, vridSete: 22,
     morfNed: 4, morfOpp: 2.6, tomskyv: 12, tomretning: 50,
-    finneT: 9, sokkelT: 12, kappeT: 12,
+    finneT: 7.5, sokkelT: 8.5, kappeT: 8.5,
+  },
+  // heilarket: skrå null, pressfit null, éi tjukn — kvar del av SAME
+  // åtte millimeter plate, og heile møbelet av EITT ark. Det eksakte
+  // sporet er friksjonsfuga: fresen sitt kutt gjev klaringa.
+  {
+    skraa: 0, pressfit: 0, finneT: 8, sokkelT: 8, kappeT: 8,
+    vridFot: 0, vridSete: 0, finnar: 10, seteB: 400, seteD: 380,
+    fotB: 360, fotD: 340, midjeB: 220, midjeD: 190, morfNed: 2.6, morfOpp: 2.2,
+  },
+  // tua: låg og brei — 470-kanalar mot kubeveggen, sitjehøgd kring 400 og
+  // veltevinkel 28,5° — det trygge, jordnære hjørnet av rommet
+  {
+    hogd: 410, salsokk: 20, sidesokk: 8, kantR: 22,
+    seteB: 470, seteD: 470, fotB: 470, fotD: 470, midjeB: 330, midjeD: 300,
+    morfNed: 3.4, morfOpp: 2.2, finnar: 12, skraa: 10, veggT: 26,
+    tomFra: 0.045, tomTil: 0.92, finneT: 7.5, sokkelT: 8.5, kappeT: 8.5,
   },
 ]
 
@@ -278,7 +305,8 @@ export const POSES: readonly Partial<Params>[] = [
  *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
  *  lista uendra. Rekkjefylgja er lista over. */
 const POSE_NAMN: readonly string[] = [
-  "vridd søyle", "timeglas", "dokumentobjektet", "amfora", "diagonaltrauet",
+  "vridd søyle", "timeglas", "dokumentobjektet", "amfora",
+  "diagonaltrauet", "heilarket", "tua",
 ]
 export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
   namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
