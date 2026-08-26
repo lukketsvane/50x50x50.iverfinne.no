@@ -3,7 +3,7 @@
 Ein parametrisk sandkasse for sitjemøbel, bygd til AHO-oppgåva
 **50 × 50 × 50**: eit møbel som skal stå inne i ein kube på 500 millimeter.
 
-Sandkassen har seks typologiar, og dei er ikkje seks former. Dei er seks
+Sandkassen har fire typologiar, og dei er ikkje fire former. Dei er fire
 svar på det same spørsmålet: **korleis byggjer ein ei krum sitjeflate av
 flate plater?**
 
@@ -13,12 +13,14 @@ flate plater?**
 | **SKIVE** | parallelle skiver med luft imellom, tredde på stavar | stav og skive |
 | **STRAUM** | éin kropp skoren i skrå skiveplan, finnar sette i spor | gjennomspor |
 | **RIBBE** | radiale blad og vassrette band | kryssholdt |
-| **KOTE** | vassrette kotesnitt tredde på stavar med hylser | stav, hylse og kile |
-| **KARVE** | limt blokk, frest og sliten glatt | limfuga sjølv |
 
-BØYG (pressbøygde skal) står på stillaset og er ikkje i nedtrekket enno;
-SKAL (dei stabla lamellane) er teken ut av registeret, men kjelda står att
-for dokumentpipelinen.
+Fire er talet av di kvart svar må svare på SPØRSMÅLET. FLETT (vevne band)
+og KARVE (limt blokk, frest ned) svara på andre spørsmål — band er ikkje
+plate, og subtraksjon byggjer ikkje ei flate, han grev henne fram. KOTE
+(vassrette koter på stavar) nådde aldri flata: setet var riller. Alle tre
+er tekne heilt ut. BØYG (pressbøygde skal) står på stillaset og er ikkje i
+nedtrekket enno; SKAL (dei stabla lamellane) er teken ut av registeret,
+men kjelda står att for dokumentpipelinen.
 
 Nedtrekket i panelet byter typologi og ikkje form. Kvar av dei har sitt
 eige parameterrom, sine eigne ledd og si eiga grense — og det er grensene
@@ -121,8 +123,6 @@ godt — det gjer det berre mogleg.
 | `lib/skive/` | parallelle skiver på stavar |
 | `lib/straum/` | skrå skiveplan og finnar i spor |
 | `lib/ribbe/` | radiale blad og band, kryssholdte |
-| `lib/kote/` | vassrette kotesnitt på stavar |
-| `lib/karve/` | limt blokk, frest — kotelinjene er signaturen |
 | `lib/boyg/` | pressbøygde skal, under bygging |
 | `lib/skal/` | vassrette lamellar; ute av registeret, står for dokumentpipelinen |
 | `components/` | scena, gestane, panelet — alle engangsfrie: dei kjenner berre kontrakten |
@@ -154,6 +154,6 @@ same tre-fingers lysstyring, same nedtrekk for motor, og same prinsipp om
 at eit design er eit punkt i eit parameterrom og at hashen kodar punktet
 nøyaktig. Geometrien deler dei ingenting av.
 
-Skilnaden på dei fem motorane der og dei seks her er at desse skal kunne
+Skilnaden på dei fem motorane der og dei fire her er at desse skal kunne
 byggjast. Keramikk og totem treng ikkje det; eit møbel gjer. Grunnen til at
 dette er eit eige domene og ikkje ein sjette motor der, står i `PLAN.md`.
