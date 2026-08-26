@@ -216,6 +216,150 @@ function useDobbelttrykk(fn: () => void) {
   }
 }
 
+/**
+ * Skyvaren, bygd for tommelen. Sida vert brukt på telefon, og den
+ * naturlege <input type="range"> er feil reiskap der: treffflata er
+ * prikken på tretten pikslar, verdien HOPPAR dit fingeren landar, og
+ * finjustering finst ikkje. Denne gjer tre ting annleis:
+ *
+ *   RELATIV  å ta i skyvaren endrar ingenting — verdien fylgjer RØRSLA,
+ *            ikkje fingeren sin posisjon. Full sporbreidd svarar framleis
+ *            til heile bandet, so grove drag går like fort som før.
+ *   FIN      dreg du fingeren VEKK frå sporet medan du held, vekslar
+ *            draget gir: over ~45 px gjev kvart piksel fjerdedelen,
+ *            over ~90 tjuandedelen. Same mønsteret som ruslelina i
+ *            iOS-videospelaren, og det einaste som gjer 0,005-steg
+ *            skrubare med tommel.
+ *   SKROLL   touch-action: pan-y — startar fingeren loddrett, rullar
+ *            panelet som før; startar han vassrett, er draget vårt og
+ *            nettlesaren blandar seg ikkje. Ingen kapring anna vegen.
+ *
+ * Treffflata er heile radhøgda (44 px), streken og prikken er dei same
+ * hårstrekane som før. Piltastane står for tilgjenget: eitt steg, ti med
+ * skift.
+ */
+function Skyvar({
+  r,
+  value,
+  ariaLabel,
+  onInput,
+}: {
+  r: Range
+  value: number
+  ariaLabel: string
+  onInput: (v: number) => void
+}) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const drag = useRef<{
+    id: number
+    x0: number
+    y0: number
+    xPrev: number
+    v: number
+    w: number
+    aktiv: boolean
+  } | null>(null)
+  // 0 i ro · 1 grovt drag · 2 fint · 3 finast — styrer prikken og merket
+  const [gir, setGir] = useState<0 | 1 | 2 | 3>(0)
+
+  const snap = useCallback(
+    (v: number) => {
+      const c = Math.min(r.max, Math.max(r.min, v))
+      const s = r.min + Math.round((c - r.min) / r.step) * r.step
+      const ut = Math.min(r.max, Math.max(r.min, s))
+      return r.int ? Math.round(ut) : +ut.toFixed(4)
+    },
+    [r],
+  )
+
+  const frac = (Math.min(r.max, Math.max(r.min, value)) - r.min) / (r.max - r.min || 1)
+
+  return (
+    <div
+      ref={ref}
+      role="slider"
+      tabIndex={0}
+      aria-label={ariaLabel}
+      aria-valuemin={r.min}
+      aria-valuemax={r.max}
+      aria-valuenow={value}
+      className="relative h-11 min-w-0 flex-1 cursor-ew-resize select-none outline-none"
+      style={{ touchAction: "pan-y" }}
+      onKeyDown={(e) => {
+        const retn = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0
+        if (!retn) return
+        e.preventDefault()
+        onInput(snap(value + retn * r.step * (e.shiftKey ? 10 : 1)))
+      }}
+      onPointerDown={(e) => {
+        drag.current = {
+          id: e.pointerId,
+          x0: e.clientX,
+          y0: e.clientY,
+          xPrev: e.clientX,
+          v: value,
+          w: ref.current?.getBoundingClientRect().width || 200,
+          aktiv: false,
+        }
+      }}
+      onPointerMove={(e) => {
+        const d = drag.current
+        if (!d || e.pointerId !== d.id) return
+        if (!d.aktiv) {
+          // vent på vassrett intensjon: seks pikslar sidelengs tek draget,
+          // loddrett fyrst let nettlesaren rulle (då kjem pointercancel)
+          if (Math.abs(e.clientX - d.x0) < 6) return
+          d.aktiv = true
+          d.xPrev = e.clientX
+          ref.current?.setPointerCapture(d.id)
+        }
+        const dy = Math.abs(e.clientY - d.y0)
+        const gain = dy > 90 ? 0.05 : dy > 45 ? 0.25 : 1
+        setGir(gain === 1 ? 1 : gain === 0.25 ? 2 : 3)
+        // integrert steg for steg: giret kan skifte midt i draget, og då
+        // skal berre RESTEN av rørsla gå i det nye giret
+        d.v += ((e.clientX - d.xPrev) / d.w) * (r.max - r.min) * gain
+        d.xPrev = e.clientX
+        onInput(snap(d.v))
+      }}
+      onPointerUp={(e) => {
+        if (drag.current?.id === e.pointerId) drag.current = null
+        setGir(0)
+      }}
+      onPointerCancel={(e) => {
+        if (drag.current?.id === e.pointerId) drag.current = null
+        setGir(0)
+      }}
+    >
+      <span
+        aria-hidden="true"
+        className="absolute left-0 right-0 top-1/2 h-px"
+        style={{ background: "color-mix(in srgb, var(--ink) 34%, transparent)" }}
+      />
+      <span
+        aria-hidden="true"
+        className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-[height,width] duration-100"
+        style={{
+          left: `${frac * 100}%`,
+          height: gir ? 17 : 13,
+          width: gir ? 17 : 13,
+          background: "var(--ink)",
+          border: "3px solid var(--paper)",
+        }}
+      />
+      {gir >= 2 && (
+        <span
+          aria-hidden="true"
+          className="tab absolute -top-0.5 -translate-x-1/2 text-[9px] tracking-[0.14em]"
+          style={{ left: `${frac * 100}%`, color: "var(--ink)", opacity: 0.6 }}
+        >
+          {gir === 2 ? "FIN" : "FINAST"}
+        </span>
+      )}
+    </div>
+  )
+}
+
 /** Eitt hovuddrag: primæren gjev posisjonen og talet, fylgjarane går med.
  *  Dobbelttrykk på namnet låser ALLE banda draget styrer mot terningen —
  *  låsen bur framleis på banda, draget er berre handtaket. */
@@ -265,15 +409,11 @@ function DragRow({
         />
         <span className="min-w-0 flex-1">{drag.label}</span>
       </button>
-      <input
-        type="range"
-        className="pslider flex-1"
-        min={r.min}
-        max={r.max}
-        step={r.step}
+      <Skyvar
+        r={r}
         value={value}
-        aria-label={drag.label}
-        onChange={(e) => onChange(applyDrag(drag, Number(e.target.value), params, ranges))}
+        ariaLabel={drag.label}
+        onInput={(v) => onChange(applyDrag(drag, v, params, ranges))}
       />
       <span className="tab w-14 shrink-0 text-right text-[11px]" style={{ color: "var(--ink)" }}>
         {value.toFixed(decimals(r.step)).replace(".", ",")}
@@ -331,15 +471,11 @@ function SliderRow({
         />
         <span className="min-w-0 flex-1">{r.label}</span>
       </button>
-      <input
-        type="range"
-        className="pslider flex-1"
-        min={r.min}
-        max={r.max}
-        step={r.step}
+      <Skyvar
+        r={r}
         value={value}
-        aria-label={locked ? `${r.label}, låst` : r.label}
-        onChange={(e) => onChange(k, e.target.value)}
+        ariaLabel={locked ? `${r.label}, låst` : r.label}
+        onInput={(v) => onChange(k, String(v))}
       />
       <span className="tab w-14 shrink-0 text-right text-[11px]" style={{ color: "var(--ink)" }}>
         {value.toFixed(decimals(r.step)).replace(".", ",")}
@@ -378,6 +514,8 @@ export function ControlsPanel(props: {
   onShuffle: () => void
   /** avlen: same objekt, mindre plate — søket held dei harde reglane */
   onAvl: () => void
+  /** form av lasta — synleg berre når motoren har eit ærleg svar */
+  onLastForm: () => void
   /** kvar avlen står, eller null når ingen går */
   avlGang: { steg: number; total: number } | null
   onReset: () => void
@@ -409,6 +547,7 @@ export function ControlsPanel(props: {
     onBeis,
     onShuffle,
     onAvl,
+    onLastForm,
     avlGang,
     onReset,
     onToggleLock,
@@ -944,6 +1083,25 @@ export function ControlsPanel(props: {
                   {lastMaks > 0 ? `${n0(lastMaks * 100)} %` : DASH}
                 </span>
                 <span className="uppercase tracking-[0.14em] opacity-40">av 1600 N-kapasiteten</span>
+              </div>
+            )}
+
+            {/* Form av lasta: same funksjonen som måler og fargar får
+                forme. Berre motorar med eit ærleg svar har knappen. */}
+            {view === "last" && !!eng.lastForm && (
+              <div className="flex items-center gap-2 py-1">
+                <button
+                  type="button"
+                  onClick={onLastForm}
+                  className={CHIP}
+                  style={chipStyle(false)}
+                  title="løys bogen or lastmodellen: høgda vert sett so det verste punktet landar på 60 % av kapasiteten — same funksjonen som måler og fargar, no formar ho"
+                >
+                  form av lasta
+                </button>
+                <span className="text-[10px]" style={{ color: "var(--ink)", opacity: 0.45 }}>
+                  bogen or momentet · mål 60 %
+                </span>
               </div>
             )}
 

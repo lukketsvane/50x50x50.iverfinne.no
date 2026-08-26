@@ -171,6 +171,11 @@ export function Studio() {
         }
         return
       }
+      if (r.kind === "form") {
+        // det løyste punktet inn i posen — den vanlege bygginga tek over
+        setBags((b) => ({ ...b, [r.engine]: r.params }))
+        return
+      }
       if (r.kind === "feil") {
         // bygget kasta: slepp porten fri og lat det førre objektet stå
         inFlight.current = false
@@ -336,6 +341,15 @@ export function Studio() {
     worker.current?.postMessage(msg)
   }, [avlGang, engine, params, locked])
 
+  // Form av lasta: motoren løyser bogen or lastmodellen sin — same
+  // funksjon som måler og fargar. Utanom porten, som eksporten; svaret
+  // set punktet og den vanlege bygginga tek over.
+  const startLastForm = useCallback(() => {
+    setBusy(true)
+    const msg: Req = { kind: "form", id: ++reqId.current, engine, params }
+    worker.current?.postMessage(msg)
+  }, [engine, params])
+
   const share = useCallback(() => {
     const url = window.location.href
     if (navigator.share) void navigator.share({ url })
@@ -475,6 +489,7 @@ export function Studio() {
         onShuffle={shuffle}
         onAvl={startAvl}
         avlGang={avlGang}
+        onLastForm={startLastForm}
         onReset={() => setParams({ ...eng.defaults })}
         onToggleLock={toggleLock}
         onToggleDetail={() => setHiDetail((d) => !d)}

@@ -44,45 +44,6 @@ html {
 /* Skyvaren. Ei line og ein prikk — ingenting anna, fordi alt anna ville
    konkurrere med objektet om merksemda. Sjølve elementet er 24 px høgt
    (fingeren treng meir enn hårstreken), men lina som teiknast er 1 px. */
-.pslider {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 24px;
-  width: 100%;
-  background: transparent;
-  outline: none;
-  cursor: ew-resize;
-  touch-action: pan-y;
-}
-.pslider::-webkit-slider-runnable-track {
-  height: 1px;
-  background: color-mix(in srgb, var(--ink) 34%, transparent);
-}
-.pslider::-moz-range-track {
-  height: 1px;
-  background: color-mix(in srgb, var(--ink) 34%, transparent);
-}
-.pslider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 13px;
-  width: 13px;
-  margin-top: -6px;
-  border-radius: 9999px;
-  background: var(--ink);
-  border: 3px solid var(--paper);
-}
-.pslider::-moz-range-thumb {
-  height: 13px;
-  width: 13px;
-  border-radius: 9999px;
-  background: var(--ink);
-  border: 3px solid var(--paper);
-}
-.pslider:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 2px var(--ink);
-}
-
 /* Poserada rullar sidelengs; rullefeltet ville vore den einaste
    maskinlina i eit panel av hårstrekar. */
 .noscroll {

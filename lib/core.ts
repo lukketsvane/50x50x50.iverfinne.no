@@ -430,6 +430,13 @@ export type EngineDef = {
   unitLabel: string
   /** om motoren kan svare på lesemåten «last» (lastkartet på flata) */
   kanLast?: boolean
+  /**
+   * Form av lasta: løys eitt formval analytisk or SAME modellen som
+   * tavla les og kartet fargar — funksjonen som måler og syner får
+   * forme. Valfri: berre motorar der svaret er ærleg skal ha henne.
+   * Kan ta eit par sekund; arbeidaren køyrer henne, aldri hovudtråden.
+   */
+  lastForm?(p: ParamBag): ParamBag
   /** namngjevne posar — synlege inngangar i panelet; terningen jittrar kring dei */
   poses: readonly Pose[]
   /** hovuddraga: 3–6 semantiske kontrollar som styrer fleire band saman */
