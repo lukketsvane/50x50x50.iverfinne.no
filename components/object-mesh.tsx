@@ -38,9 +38,9 @@ export const MM = 1 / 250
  * støypt plast utan ved i det heile.
  */
 const TONAR: Record<string, { lys: string; slag: "ved" | "mdf" | "akryl" }> = {
-  bjork: { lys: "#dfcda6", slag: "ved" },
+  bjork: { lys: "#e8dabb", slag: "ved" },
   bok: { lys: "#d2a97c", slag: "ved" },
-  poppel: { lys: "#eadfc2", slag: "ved" },
+  poppel: { lys: "#f0e6cc", slag: "ved" },
   mdf: { lys: "#c8aa80", slag: "mdf" },
   akryl: { lys: "#cfe0e0", slag: "akryl" },
 }

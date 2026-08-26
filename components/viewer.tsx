@@ -4,7 +4,6 @@ import { Canvas, useThree } from "@react-three/fiber"
 import { OrbitControls } from "@react-three/drei"
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import * as THREE from "three"
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js"
 import type { BuildRes } from "@/lib/worker"
 import type { View } from "@/lib/core"
 import { MM, ObjectMesh } from "./object-mesh"
@@ -18,29 +17,6 @@ const GROUND_Y = -0.9
  *  siktepunktet stig i takt med kameraavstanden, så vinkelen ned mot
  *  golvet er fast. */
 const FLOOR_TAN = 0.1637
-
-/**
- * Romrefleksane: eit innebygd studiorom rendra éin gong til eit
- * refleksjonskart. Det er ikkje eit ambientlys — flatene får IKKJE flat
- * grunnbelysning av det (envMapIntensity på treet er låg); det er det som
- * gjev oljestrøket og akrylen noko VERKELEG å spegle, og utan det er
- * clearcoat berre eit ord. Ingen nedlasting, ingen HDR-fil.
- */
-function Rom() {
-  const gl = useThree((s) => s.gl)
-  const scene = useThree((s) => s.scene)
-  useEffect(() => {
-    const pm = new THREE.PMREMGenerator(gl)
-    const env = pm.fromScene(new RoomEnvironment(), 0.04).texture
-    scene.environment = env
-    return () => {
-      scene.environment = null
-      env.dispose()
-      pm.dispose()
-    }
-  }, [gl, scene])
-  return null
-}
 
 function FitCamera({
   fit,
@@ -180,13 +156,14 @@ export function Viewer({
       <color attach="background" args={[bg]} />
       <fog attach="fog" args={[bg, 15, 36]} />
 
-      {/* SOLA: éi hard, varm hovudlyskjelde med skarpkanta skugge — slik
-          eit møbel står i eit verkstadvindauga, ikkje i ein lysboks. */}
+      {/* SOLA — og berre ho. Inga ambient, inga environment, ingen fyll:
+          éi hard, varm lyskjelde med skarpkanta skugge, og det som vender
+          bort frå henne ligg i mørker, slik det gjer i sollys. */}
       <directionalLight
         key={shadow}
         position={lightPos}
-        color="#fff2e2"
-        intensity={2.4}
+        color="#fff9f0"
+        intensity={3.4}
         castShadow
         shadow-mapSize={[shadow, shadow]}
         shadow-radius={1.4}
@@ -199,12 +176,7 @@ export function Viewer({
         shadow-camera-near={0.5}
         shadow-camera-far={24}
       />
-      {/* Ikkje noko ambient og ikkje noko flatt fyll: berre dei to sprett
-          verkelegheita har — kald himmel bakfrå ovanfrå, varmt golv
-          nedanfrå. Dei er svake med vilje; kontrasten er poenget. */}
-      <directionalLight position={[-5, 4, -3]} color="#dbe4ee" intensity={0.45} />
-      <directionalLight position={[0.5, -3, 2]} color="#e8dcc6" intensity={0.28} />
-      <Rom />
+
 
       <Suspense fallback={null}>
         <group position={[0, GROUND_Y, 0]}>
