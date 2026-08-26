@@ -314,8 +314,10 @@ export type ExportKind = "stl" | "dxf" | "svg" | "ark"
 export type Maskin = { id: "fres" } | { id: "laser"; tjukn: number }
 
 /** laserseng og luft — 600 × 400 er den vanlege verkstadlaseren, og to
- *  millimeter mellom delane er rikeleg for ein strålebreidd under 0,2 */
-export const LASER = { sheetW: 600, sheetH: 400, gap: 2, cell: 2 }
+ *  millimeter mellom delane er rikeleg for ein strålebreidd under 0,2.
+ *  Cella på éin millimeter er eksportluksus: senga er lita, so det finaste
+ *  rasteret kostar ingenting der. */
+export const LASER = { sheetW: 600, sheetH: 400, gap: 2, cell: 1 }
 
 export type BuildOut = {
   positions: Float32Array<ArrayBufferLike>

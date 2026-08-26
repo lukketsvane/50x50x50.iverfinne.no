@@ -12,7 +12,9 @@
  * seg oppå boksen hans. Kvar del vert prøvd i dei fire kvartrotasjonane
  * og lagd på den lågaste (og so venstraste) ledige plassen som gjev
  * lågast topp; det er lengda pakkinga når opp på plata som avgjer kor
- * mange plater ein må kjøpa. Hòl i ein del er framleis del av delen.
+ * mange plater ein må kjøpa. Store hòl i ein del er LEDIG plate: skrotet
+ * i ringen sitt senter fell ut når hòlet vert kutta same kva, so neste
+ * del kan liggje der — med full luft mot hòlranda.
  *
  * Maska er dilatert med éi celle på kvar side, og det er ikkje pynt: to
  * masker som ikkje deler celle er då garanterte å liggje minst `gap`
@@ -67,6 +69,20 @@ export type NestVal = {
   gap: number
   /** rastercella, mm. Må vera ≥ gap/2 for at dilateringa skal halde ord. */
   cell: number
+  /** kva rekkjefylgje delane vert lagde i — store fyrst, på tre vis */
+  sortering?: "areal" | "side" | "smal"
+  /** eksportkvalitet: prøv alle sorteringane og ta den beste pakkinga.
+   *  Kostar tre pakkingar; den levande målinga lèt det vera. */
+  tett?: boolean
+}
+
+const SORTERINGAR: Record<
+  NonNullable<NestVal["sortering"]>,
+  (a: { d: { w: number; h: number } }, b: { d: { w: number; h: number } }) => number
+> = {
+  areal: (a, b) => b.d.w * b.d.h - a.d.w * a.d.h,
+  side: (a, b) => Math.max(b.d.w, b.d.h) - Math.max(a.d.w, a.d.h),
+  smal: (a, b) => Math.min(b.d.w, b.d.h) - Math.min(a.d.w, a.d.h),
 }
 
 const dims = (p: NestDel) => {
@@ -90,6 +106,24 @@ type Mask = {
 }
 
 export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting<P> {
+  // eksportkvalitet: same pakkaren tre gonger med kvar si sortering, og
+  // den som gjev færrast ark — sekundært stuttast brukt stripe — vinn
+  if (val.tett) {
+    let beste: Nesting<P> | null = null
+    for (const s of Object.keys(SORTERINGAR) as (keyof typeof SORTERINGAR)[]) {
+      const ns = nestRaster(parts, { ...val, tett: false, sortering: s })
+      const lengd = ns.sheets.reduce((q, a) => q + a.used, 0)
+      const bLengd = beste ? beste.sheets.reduce((q, a) => q + a.used, 0) : Infinity
+      if (
+        !beste ||
+        ns.sheets.length < beste.sheets.length ||
+        (ns.sheets.length === beste.sheets.length && lengd < bLengd)
+      ) {
+        beste = ns
+      }
+    }
+    return beste as Nesting<P>
+  }
   const { sheetW, sheetH, gap, cell } = val
   /** dilatering, celler på kvar side av maska */
   const DIL = 1
@@ -121,28 +155,36 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
     const gjMax = Math.min(Math.floor((sheetH - gap - rh) / cell), GH - my)
     if (giMax < giMin || gjMax < gjMin) return null
 
-    // ytterkonturen inn i rotasjonsramma — same avbilding som placedRings
-    const P = part.outline
-    const n = P.length
-    const tx = new Float64Array(n)
-    const ty = new Float64Array(n)
-    for (let i = 0; i < n; i++) {
-      const u = P[i][0] - d.x0
-      const v = P[i][1] - d.y0
-      if (rot === 1) {
-        tx[i] = d.h - v
-        ty[i] = u
-      } else if (rot === 2) {
-        tx[i] = d.w - u
-        ty[i] = d.h - v
-      } else if (rot === 3) {
-        tx[i] = v
-        ty[i] = d.w - u
-      } else {
-        tx[i] = u
-        ty[i] = v
+    // ringane inn i rotasjonsramma — same avbilding som placedRings.
+    // HÒLA ER MED: eit stort hòl i ein del (ringen sitt senter, tomrommet
+    // i ei finne) er ledig plate for NESTE del — skrotet der fell ut når
+    // hòlet vert kutta same kva. Jamn/odde-fyllinga over alle ringane
+    // gjev gods minus hòl; kantcellene til kvar ring vert merkte, so
+    // dilateringa held luftkravet mot hòlranda òg.
+    const ringar = [part.outline, ...part.holes]
+    const tR: { tx: Float64Array; ty: Float64Array }[] = ringar.map((ring) => {
+      const n = ring.length
+      const tx = new Float64Array(n)
+      const ty = new Float64Array(n)
+      for (let i = 0; i < n; i++) {
+        const u = ring[i][0] - d.x0
+        const v = ring[i][1] - d.y0
+        if (rot === 1) {
+          tx[i] = d.h - v
+          ty[i] = u
+        } else if (rot === 2) {
+          tx[i] = d.w - u
+          ty[i] = d.h - v
+        } else if (rot === 3) {
+          tx[i] = v
+          ty[i] = d.w - u
+        } else {
+          tx[i] = u
+          ty[i] = v
+        }
       }
-    }
+      return { tx, ty }
+    })
 
     const cellArr = new Uint8Array(mx * my)
     const mark = (x: number, y: number) => {
@@ -155,32 +197,20 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
       cellArr[(j + DIL) * mx + (i + DIL)] = 1
     }
 
-    // kantane: kvar celle streken går gjennom
-    const step = cell / 2
-    for (let i = 0; i < n; i++) {
-      const k = (i + 1) % n
-      const ax = tx[i]
-      const ay = ty[i]
-      const bx = tx[k]
-      const by = ty[k]
-      const m = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / step))
-      for (let s = 0; s <= m; s++) {
-        const t = s / m
-        mark(ax + (bx - ax) * t, ay + (by - ay) * t)
-      }
-    }
-
-    // flata: jamn/odde-fylling langs midtlina i kvar rad
+    // flata fyrst: jamn/odde-fylling over ALLE ringane — hòl vert fri
     const xs: number[] = []
     for (let j = 0; j < ny; j++) {
       const y = (j + 0.5) * cell
       xs.length = 0
-      for (let i = 0; i < n; i++) {
-        const k = (i + 1) % n
-        const ay = ty[i]
-        const by = ty[k]
-        if (ay > y === by > y) continue
-        xs.push(tx[i] + ((y - ay) / (by - ay)) * (tx[k] - tx[i]))
+      for (const { tx, ty } of tR) {
+        const n = tx.length
+        for (let i = 0; i < n; i++) {
+          const k = (i + 1) % n
+          const ay = ty[i]
+          const by = ty[k]
+          if (ay > y === by > y) continue
+          xs.push(tx[i] + ((y - ay) / (by - ay)) * (tx[k] - tx[i]))
+        }
       }
       xs.sort((a, b) => a - b)
       const row = (j + DIL) * mx + DIL
@@ -190,6 +220,25 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
         if (i0 < 0) i0 = 0
         if (i1 >= nx) i1 = nx - 1
         for (let i = i0; i <= i1; i++) cellArr[row + i] = 1
+      }
+    }
+
+    // so kantane, over fyllinga: kvar celle nokon strek går gjennom er
+    // gods — det gjeld hòlranda òg, so ingen legg seg PÅ kuttlina
+    const step = cell / 2
+    for (const { tx, ty } of tR) {
+      const n = tx.length
+      for (let i = 0; i < n; i++) {
+        const k = (i + 1) % n
+        const ax = tx[i]
+        const ay = ty[i]
+        const bx = tx[k]
+        const by = ty[k]
+        const m = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / step))
+        for (let s = 0; s <= m; s++) {
+          const t = s / m
+          mark(ax + (bx - ax) * t, ay + (by - ay) * t)
+        }
       }
     }
 
@@ -347,7 +396,7 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
 
   const items = parts
     .map((p) => ({ p, d: dims(p) }))
-    .sort((a, b) => b.d.w * b.d.h - a.d.w * a.d.h)
+    .sort(SORTERINGAR[val.sortering ?? "areal"])
 
   // like delar deler masker: `part.id` er same form, per bygg
   const memo = new Map<string, (Mask | null)[]>()

@@ -45,16 +45,26 @@ export function nest(parts: Part[], val?: Partial<NestVal>): Nesting {
       area += (b.x1 - b.x0) * (b.y1 - b.y0)
     }
     const ns = nestRaster(list, {
-      sheetW: val?.sheetW ?? SHEET_W,
-      sheetH: val?.sheetH ?? SHEET_H,
-      gap: val?.gap ?? 8,
-      cell: val?.cell ?? 6,
+      sheetW: SHEET_W,
+      sheetH: SHEET_H,
+      gap: 8,
+      cell: 6,
+      ...val,
     })
     for (const s of ns.sheets) {
       let a = 0
       for (const q of s.placed) a += q.part.area
       used += a
-      sheets.push({ t, w: s.w, h: s.h, placed: s.placed, util: a / (s.w * s.h), used: s.used })
+      // utnyttinga mot BRUKT stripe, som i dei andre motorane — resten av
+      // plata er ikkje avfall, han er plate ein framleis har
+      sheets.push({
+        t,
+        w: s.w,
+        h: s.h,
+        placed: s.placed,
+        util: a / (s.w * Math.max(1, s.used)),
+        used: s.used,
+      })
     }
   }
   return { sheets, area, used }
