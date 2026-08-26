@@ -17,7 +17,9 @@ import {
   randomBag,
   shoelace,
   type Group,
+  type Hovuddrag,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 import { buildSlices } from "./profile"
@@ -247,6 +249,29 @@ export const POSES: readonly Partial<Params>[] = [
     skiver: 11, plyT: 12.5, luft: 32, kuppel: 0.4, frambein: 120,
     bakbein: 130, innsving: 0.05, nase: 30,
   },
+]
+
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = [
+  "grotta", "benken", "stolen", "den lette", "vifta", "vengene", "spent",
+  "pidestallen", "akvedukten", "sleden", "orgelet", "kvilestolen",
+]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag,
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["hogd", 1]] },
+  { id: "rygg", label: "rygg", keys: [["ryggH", 1]] },
+  { id: "boge", label: "boge", keys: [["bogeH", 1]] },
+  { id: "luft", label: "luft", keys: [["luft", 1]] },
+  { id: "skiver", label: "skiver", keys: [["skiver", 1]] },
+  { id: "kuppel", label: "kuppel", keys: [["kuppel", 1]] },
 ]
 
 /** kva to fingrar på lerretet skrur på */

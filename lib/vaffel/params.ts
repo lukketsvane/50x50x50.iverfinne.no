@@ -17,7 +17,9 @@ import {
   poseBag,
   randomBag,
   type Group,
+  type Hovuddrag,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 import { applyFix } from "./reparasjon"
@@ -195,6 +197,29 @@ export const POSES: readonly Partial<Params>[] = [
     ribbX: 8, ribbY: 8, ribbT: 9.5, bogeH: 0.66, bogeBX: 0.58, bogeBY: 0.58,
     bogeN: 2.8,
   },
+]
+
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = [
+  "tett rutenett", "mjuk sylinder", "nesten kube", "timeglas",
+  "portalbenken", "lågryggstolen", "lenekrakken",
+]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag,
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["hogd", 1]] },
+  { id: "plan", label: "plan", keys: [["planA", 1], ["planB", 1]] },
+  { id: "midje", label: "midje", keys: [["midje", 1], ["midjeW", 0.5]] },
+  { id: "sete", label: "sete", keys: [["sokk", 1], ["framkant", 0.5]] },
+  { id: "ribber", label: "ribber", keys: [["ribbX", 1], ["ribbY", 1]] },
+  { id: "boge", label: "boge", keys: [["bogeH", 1], ["bogeBX", 0.6], ["bogeBY", 0.6]] },
 ]
 
 /** kva to fingrar på lerretet skrur på */

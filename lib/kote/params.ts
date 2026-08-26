@@ -19,7 +19,9 @@ import {
   randomBag,
   smooth,
   type Group,
+  type Hovuddrag,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 import { buildStack, hylseAv, luftFor, stackTal, toppHogd } from "./stack"
@@ -282,6 +284,28 @@ export const POSES: readonly Partial<Params>[] = [
     stavar: 3, stavD: 12, stavInn: 16, stavOver: 20, kileB: 4.5, kileH: 22,
     skaal: 7, riller: 12, skaalR: 0.55,
   },
+]
+
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = [
+  "skruen", "sokkelen", "kløveren", "porten", "trakta", "kotekartet",
+]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag,
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["hogd", 1]] },
+  { id: "vriding", label: "vriding", keys: [["vri", 1]] },
+  { id: "midje", label: "midje", keys: [["midjeR", 1]] },
+  { id: "hol", label: "hol", keys: [["holhogd", 1], ["holbreidd", 0.5]] },
+  { id: "luft", label: "luft", keys: [["luft", 1]] },
+  { id: "lober", label: "lober", keys: [["lober", 1]] },
 ]
 
 /** kva to fingrar på lerretet skrur på */
