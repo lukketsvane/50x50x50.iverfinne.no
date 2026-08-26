@@ -235,5 +235,15 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     why: "Poppelkjerne er lett, men han er òg mjuk i hòlet, og her går heile lasta gjennom éin dybel i eitt hòl per skal. Bjørk og bøk toler lageret.",
   })
 
+  // --- plateutnytting (mjuk) -------------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.38,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Blankettar er lange rektangel og nestar betre enn noka anna typologi her — det er ein av grunnane til at pressbøying finst. Under 38 prosent kastar breidda og fanen meir enn forma treng.",
+  })
+
   return out
 }

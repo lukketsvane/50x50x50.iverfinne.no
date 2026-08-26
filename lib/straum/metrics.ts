@@ -44,6 +44,7 @@ import {
   keep,
 } from "../core"
 import { crossings, makeBody, spans, type Body } from "./body"
+import { nest } from "./nest"
 import { buildParts, type Build } from "./parts"
 import { buildMesh, DETAIL } from "./surface"
 import type { Params } from "./params"
@@ -354,10 +355,19 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   }
   for (const q of B.fins) legs += q.legs
 
+  // --- plata ----------------------------------------------------------------
+  // Avfallsrekninga på arket. Nemnaren er den stripa av arka som faktisk
+  // går gjennom maskina — breidda gonger brukt lengd, summert — same
+  // rekning som i dei andre motorane, så talet kan samanliknast.
+  const nst = nest(B.parts)
+  const sheetArea = nst.sheets.reduce((s, q) => s + q.used * q.w, 0)
+  const sheetUtil = sheetArea > 0 ? nst.used / sheetArea : 0
+
   const mm = (v: number) => nn(v, 0)
   const mm1 = (v: number) => nn(v, 1)
   const cm2 = (v: number) => nn(v / 100, 0) + " cm²"
   const dm3 = (v: number) => nn(v / 1e6, 2) + " dm³"
+  const m2 = (v: number) => nn(v / 1e6, 2) + " m²"
   const pct = (v: number) => nn(v * 100, 0) + " %"
   const kg = (v: number) => nn(v, 2)
   const mpa = (v: number) => nn(v, 2)
@@ -399,6 +409,9 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     ["gap", "luft mellom finnane", bd.pitch * cosA - p.finneT, "mm", mm1],
     ["slot", "sporbreidd i planet", p.finneT / cosA + p.pressfit, "mm", mm1],
     ["parts", "delar", B.parts.length, "stk", mm],
+    ["sheets", "plater", nst.sheets.length, "stk", mm],
+    ["sheetArea", "plate medgått", sheetArea, "mm²", m2],
+    ["sheetUtil", "plateutnytting", sheetUtil, "", pct],
     ["plyArea", "finérareal", plyArea, "mm²", cm2],
     ["volume", "godsvolum", volume, "mm³", dm3],
     ["solid", "kroppen som massiv", solidVol, "mm³", dm3],
@@ -440,6 +453,9 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     massCut,
     parts: B.parts.length,
     plyArea,
+    sheets: nst.sheets.length,
+    sheetArea,
+    sheetUtil,
     units: B.fins.length,
     unitLabel: "finnar",
     list,

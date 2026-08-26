@@ -193,5 +193,15 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     why: "Poppelkjerne er lett og billeg, men her ber kvar skive åleine på tvers av lufta — det finst inga naboplate å lene seg på før stavane. Bjørk og bøk toler det.",
   })
 
+  // --- plateutnytting (mjuk) -------------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.23,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Plata er ein del av objektet, òg den delen som vert til spon. Skiver med djup grotte og høg boge let mest av arket liggja att som avfall — det er eit val, og det skal stå her og ikkje i hovudet.",
+  })
+
   return out
 }

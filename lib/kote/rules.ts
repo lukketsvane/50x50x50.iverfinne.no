@@ -257,5 +257,15 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     why: "Heile lastvegen går gjennom hylsa si flate mot finéren og gjennom stavhòlet si vegg. Poppelkjerne er lett og billeg, men han krøller seg under eit punkttrykk på tvers av planet. Bjørk og bøk toler det.",
   })
 
+  // --- plateutnytting (mjuk) -------------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.19,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Runde plater i firkanta ark er den dyraste forma å neste; hjørna er tapte same kva. Under nitten prosent er det radiane og holet som kastar meir enn hjørna, og det valet skal stå på papiret.",
+  })
+
   return out
 }

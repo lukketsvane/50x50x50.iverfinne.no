@@ -232,6 +232,18 @@ export type Metrics = {
 
   parts: number // tal delar
   plyArea: number // finérareal i alt, mm²
+
+  /**
+   * Plata er ein del av objektet, òg den delen som vert til spon. Dei tre
+   * tala her er avfallsrekninga på arket: kor mange plater kuttlista tek i
+   * bruk, kor mykje av dei som faktisk går gjennom maskina (breidda gonger
+   * den brukte lengda, summert over arka), og kor stor del av det arealet
+   * som endar som del i staden for som avfall. Teljaren er alltid NETTO
+   * delareal — hòl i ein del er avfall, ikkje del.
+   */
+  sheets: number // plater teke i bruk
+  sheetArea: number // medgått plateareal, mm²
+  sheetUtil: number // plateutnytting: netto delareal / medgått plateareal, 0–1
   /** kva den einskilde typologien tel som «lag»: lamellar, blad, finnar */
   units: number
   unitLabel: string

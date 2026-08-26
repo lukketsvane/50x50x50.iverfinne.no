@@ -101,6 +101,11 @@ export function nest(parts: Part[]): Nesting {
   return { sheets, sheetW: SHEET_W, sheetH: SHEET_H, util: usedArea > 0 ? area / usedArea : 0 }
 }
 
+/** medgått plateareal: breidda gonger den brukte lengda, summert over arka */
+export function usedArea(ns: Nesting): number {
+  return ns.sheets.reduce((s, q) => s + q.used * ns.sheetW, 0)
+}
+
 /** delen sine konturar der han faktisk ligg på plata */
 export function placedRings(q: Placed): { outline: Pt[]; holes: Pt[][] } {
   const d = dims(q.part)

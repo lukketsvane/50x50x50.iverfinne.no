@@ -23,7 +23,7 @@ import {
   type Metrics,
   type Pt,
 } from "../core"
-import { nest } from "../vaffel/nest"
+import { nest, usedArea } from "../vaffel/nest"
 import { buildSlices, profileAt, type Build } from "./profile"
 import { lagMesh } from "./mesh"
 import { buildParts } from "./parts"
@@ -55,6 +55,7 @@ export function measure(p: Params, pre?: Build): Metrics {
   const mesh = lagMesh(p, b)
   const pl = buildParts(p, b)
   const ns = nest(pl.parts)
+  const sArea = usedArea(ns)
 
   const envX = mesh.max[0] - mesh.min[0]
   const envY = mesh.max[1] - mesh.min[1]
@@ -171,6 +172,7 @@ export function measure(p: Params, pre?: Build): Metrics {
   const mm1 = (v: number) => nn(v, 1) + " mm"
   const cm2 = (v: number) => nn(v / 100, 0) + " cm²"
   const dm3 = (v: number) => nn(v / 1e6, 2) + " dm³"
+  const m2 = (v: number) => nn(v / 1e6, 2) + " m²"
   const pct = (v: number) => nn(v * 100, 0) + " %"
 
   const raw: [string, string, number, string, string][] = [
@@ -204,6 +206,8 @@ export function measure(p: Params, pre?: Build): Metrics {
     ["parts", "delar", pl.parts.length + b.rods.length, "stk", nn(pl.parts.length + b.rods.length, 0)],
     ["kinds", "unike delar", pl.ids.length, "stk", nn(pl.ids.length, 0)],
     ["sheets", "plater", ns.sheets.length, "stk", nn(ns.sheets.length, 0)],
+    ["sheetArea", "plate medgått", sArea, "mm²", m2(sArea)],
+    ["sheetUtil", "plateutnytting", ns.util, "", pct(ns.util)],
     ["plyArea", "finérareal", pl.area, "mm²", cm2(pl.area)],
     ["volume", "godsvolum", volume, "mm³", dm3(volume)],
     ["massCut", "masse som kutta", pl.mass, "kg", nn(pl.mass, 2)],
@@ -220,6 +224,7 @@ export function measure(p: Params, pre?: Build): Metrics {
     sigmaC, sigmaM, capC: cap.capC, capM: cap.capM, util,
     volume, mass, massCut: pl.mass,
     parts: pl.parts.length + b.rods.length, plyArea: pl.area,
+    sheets: ns.sheets.length, sheetArea: sArea, sheetUtil: ns.util,
     units: b.slices.length, unitLabel: "skiver",
     list,
   }

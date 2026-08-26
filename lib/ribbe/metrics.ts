@@ -38,6 +38,7 @@ import type { Params } from "./params"
 import { makeShell, type Shell } from "./shell"
 import { buildAll, DETAIL, lagMesh, type Built } from "./mesh"
 import { buildParts } from "./parts"
+import { nest, nestArea } from "./nest"
 
 /**
  * Lasta som når éi ribbe. NS-EN 1728 gjev 1600 N konsentrert på setet;
@@ -116,6 +117,8 @@ export function measure(p: Params, pre?: { sh?: Shell; g?: Built }): Metrics {
   const comZ = volume > 0 ? momZ / volume : 0
   const mass = (volume * mat.rho) / 1e9
   const pl = buildParts(sh, g, mat.rho)
+  const ns = nest(pl.parts)
+  const sArea = nestArea(ns)
 
   // --- setet ---------------------------------------------------------------
   let sx0 = Infinity
@@ -194,6 +197,7 @@ export function measure(p: Params, pre?: { sh?: Shell; g?: Built }): Metrics {
   const mm1 = (v: number) => nn(v, 1)
   const cm2 = (v: number) => nn(v / 100, 0) + " cm²"
   const dm3 = (v: number) => nn(v / 1e6, 2) + " dm³"
+  const m2 = (v: number) => nn(v / 1e6, 2) + " m²"
   const pct = (v: number) => nn(v * 100, 0) + " %"
 
   const raw: [string, string, number, string, string][] = [
@@ -226,6 +230,9 @@ export function measure(p: Params, pre?: { sh?: Shell; g?: Built }): Metrics {
     ["hub", "nav, minste radius", sh.rHub, "mm", mm1(sh.rHub)],
     ["parts", "delar", pl.parts.length, "stk", mm(pl.parts.length)],
     ["kinds", "unike delar", pl.ids.length, "stk", mm(pl.ids.length)],
+    ["sheets", "plater", ns.sheets.length, "stk", mm(ns.sheets.length)],
+    ["sheetArea", "plate medgått", sArea, "mm²", m2(sArea)],
+    ["sheetUtil", "plateutnytting", ns.util, "", pct(ns.util)],
     ["plyArea", "finérareal", pl.area, "mm²", cm2(pl.area)],
     ["volume", "godsvolum", volume, "mm³", dm3(volume)],
     ["massCut", "masse som kutta", pl.mass, "kg", nn(pl.mass, 2)],
@@ -263,6 +270,9 @@ export function measure(p: Params, pre?: { sh?: Shell; g?: Built }): Metrics {
     massCut: pl.mass,
     parts: pl.parts.length,
     plyArea: pl.area,
+    sheets: ns.sheets.length,
+    sheetArea: sArea,
+    sheetUtil: ns.util,
     units: nRib,
     unitLabel: "blad",
     list,
