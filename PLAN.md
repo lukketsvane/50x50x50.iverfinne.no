@@ -674,6 +674,14 @@ heuristikk. Objektet vert aldri gøymt bak panelet, på noko arknivå.
 no seier ein chip KVA band og kva tal, medan draget går. Ein gest utan
 namn er ein løyndom, og løyndomar er ikkje interaksjon.
 
+**Klypa slutta å zoome.** Alt bur i same 500-kuben og innramminga er
+automatisk, so klyp-zoom var ein gest brukt på ingenting. No skrur klypa
+storleiken — den tredje aksen som formar mest per motor: planet på
+VAFFEL, setet på STRAUM og KARVE, fotradien på KOTE. Sprikande fingrar
+gjer møbelet breiare, og peikar nøkkelen på primæren i eit hovuddrag,
+køyrer gesten heile draget. Musehjulet på desktop zoomar framleis; der
+finst ingen gestkonflikt, og eit skøytepunkt toler eit nærbilete.
+
 **Terningen ber avlen.** Spira hadde sin eigen knapp i hovudlina; no er
 han borte, og avlen ligg som dobbelttrykk på terningen — same språket
 som låsen på modulveljaren. Trykket ventar det same vesle vindauga på

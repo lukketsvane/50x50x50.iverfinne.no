@@ -46,9 +46,12 @@ kan gjerast med skyvarane bak, og veggen ser alt draget gjorde.
 han er. Finstilling, ikkje fyrsteinntrykk.
 
 På lerretet skrur to fingrar dei to banda som formar mest (per motor), og
-ein chip syner bandet og talet medan draget går. Terningen ber begge dei
-generative flytane: eitt trykk kastar, dobbelttrykk avlar — og båe
-respekterer låste skruar.
+klypa skrur storleiken: sprikande fingrar gjer møbelet breiare. Klypa
+zoomar ikkje — alt bur i same 500-kuben og innramminga er automatisk, so
+gesten er ledig for det ho tyder. Ein chip syner kva som vert skrudd og
+talet det står i, medan gesten går. Terningen ber begge dei generative
+flytane: eitt trykk kastar, dobbelttrykk avlar — og båe respekterer
+låste skruar.
 
 ## Dei to aksane
 

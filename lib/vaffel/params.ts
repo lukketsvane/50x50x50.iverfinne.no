@@ -223,7 +223,7 @@ export const HOVUDDRAG: readonly Hovuddrag[] = [
 ]
 
 /** kva to fingrar på lerretet skrur på */
-export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "midje" }
+export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "midje", pinch: "planA" }
 
 export function clampParams(o: unknown, prev: Params): Params {
   // Gamle lenkjer har eitt bogeB. Det talet ER dei to nye i den gamle

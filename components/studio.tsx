@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ENGINES, getEngine, isEngineId } from "@/lib/engines"
 import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
-import { nn, seeded } from "@/lib/core"
+import { applyDrag, nn, seeded } from "@/lib/core"
 import type { BuildRes, DetailKey, MaalRes, Req, Res, SynRes } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
 import { BEIS } from "./object-mesh"
@@ -246,11 +246,20 @@ export function Studio() {
       const r = eng.ranges[key]
       if (!r) return
       const frac = deltaPx / NUDGE_RANGE_PX
+      // Peikar nøkkelen på primæren i eit hovuddrag, køyrer gesten heile
+      // draget: klypa på VAFFEL flytter heile planet, ikkje berre den
+      // eine aksen av det.
+      const drag = eng.hovuddrag.find((d) => d.keys[0][0] === key)
       setBags((b) => {
         const cur = b[engine] ?? eng.defaults
         const at = typeof cur[key] === "number" ? (cur[key] as number) : r.min
         const v = Math.min(r.max, Math.max(r.min, at + frac * (r.max - r.min)))
-        return { ...b, [engine]: { ...cur, [key]: +v.toFixed(4) } }
+        return {
+          ...b,
+          [engine]: drag
+            ? applyDrag(drag, v, cur, eng.ranges)
+            : { ...cur, [key]: +v.toFixed(4) },
+        }
       })
       // chipen les sjølve verdien frå params ved teikning — her berre KVA
       // som vert skrudd, og NÅR, so han kan kvile att etter draget
@@ -369,8 +378,11 @@ export function Studio() {
     ? mode === "lukka" ? 0.07 : mode === "halv" ? 0.52 : 0.64
     : mode === "lukka" ? 0.1 : mode === "halv" ? 0.55 : 0.62
 
-  // gestechipen: namnet på bandet gesten skrur på, og talet det står i no
+  // Gestechipen: namnet på det gesten skrur på, og talet det står i no.
+  // Køyrer gesten eit hovuddrag, er det draget sitt namn som skal stå —
+  // «plan», ikkje «plan djup» — for det er heile planet som flyttar seg.
   const hudR = hud ? eng.ranges[hud.k] : null
+  const hudDrag = hud ? eng.hovuddrag.find((d) => d.keys[0][0] === hud.k) : null
   const hudVal = hud && typeof params[hud.k] === "number" ? (params[hud.k] as number) : null
 
   return (
@@ -428,7 +440,9 @@ export function Studio() {
           >
             {hud && hudR && hudVal !== null ? (
               <>
-                <span className="uppercase tracking-[0.14em] opacity-55">{hudR.label}</span>
+                <span className="uppercase tracking-[0.14em] opacity-55">
+                  {hudDrag?.label ?? hudR.label}
+                </span>
                 <span className="tab">
                   {hudVal
                     .toFixed(hudR.step >= 1 ? 0 : hudR.step >= 0.1 ? 1 : 2)

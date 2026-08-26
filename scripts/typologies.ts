@@ -86,6 +86,8 @@ function probe(e: EngineDef) {
   ok(dragMiss.length === 0, "kvart hovuddrag held seg til banda", dragMiss.join(","))
   ok(e.hovuddrag.every((d) => d.keys.length > 0 && d.keys[0][1] === 1),
     "kvart hovuddrag har ein primær med vekt 1")
+  const nudgeMiss = Object.values(e.nudge).filter((k) => !e.ranges[k])
+  ok(nudgeMiss.length === 0, "gestane peikar på band som finst", nudgeMiss.join(","))
 
   // --- standarden ligg inne i sitt eige spenn ------------------------------
   const outside = Object.entries(e.ranges).filter(([k, r]) => {
