@@ -501,6 +501,63 @@ export function ControlsPanel(props: {
     sheetScroll.current?.scrollTo({ top: 0 })
   }, [engine, open])
 
+  // Arkbiletet som HØGOPPLØYST PNG. Eit langtrykk («Arkiver i Bilder»)
+  // lagrar biletet slik img-en ber det, og ein SVG vert då rastrert i
+  // visningsstorleik — altfor grovt til å lese delnamna. Difor rastrerer
+  // panelet sjølv, éin gong per måling, til ~2600 px breidd, og img-en
+  // ber PNG-en. Skjermen ser ingen skilnad; lagringa får full oppløysing.
+  const [synPng, setSynPng] = useState<string | null>(null)
+  const synPngForrige = useRef<string | null>(null)
+  useEffect(() => {
+    if (!syn) {
+      setSynPng(null)
+      return
+    }
+    let dau = false
+    const img = new Image()
+    const svgUrl = URL.createObjectURL(new Blob([syn], { type: "image/svg+xml" }))
+    img.onload = () => {
+      URL.revokeObjectURL(svgUrl)
+      if (dau) return
+      // mm-breidda i rota gjev naturalWidth; viewBox er reserven
+      let w = img.naturalWidth
+      let h = img.naturalHeight
+      if (!w || !h) {
+        const vb = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(syn)
+        w = vb ? parseFloat(vb[1]) : 1000
+        h = vb ? parseFloat(vb[2]) : 500
+      }
+      const W = 2600
+      const H = Math.max(1, Math.round((h / w) * W))
+      const c = document.createElement("canvas")
+      c.width = W
+      c.height = H
+      const g = c.getContext("2d")
+      if (!g) return
+      g.fillStyle = "#ffffff"
+      g.fillRect(0, 0, W, H)
+      g.drawImage(img, 0, 0, W, H)
+      c.toBlob((b) => {
+        if (!b || dau) return
+        const url = URL.createObjectURL(b)
+        setSynPng(url)
+        if (synPngForrige.current) URL.revokeObjectURL(synPngForrige.current)
+        synPngForrige.current = url
+      }, "image/png")
+    }
+    img.onerror = () => URL.revokeObjectURL(svgUrl)
+    img.src = svgUrl
+    return () => {
+      dau = true
+    }
+  }, [syn])
+  useEffect(
+    () => () => {
+      if (synPngForrige.current) URL.revokeObjectURL(synPngForrige.current)
+    },
+    [],
+  )
+
   // Regelen peikar: eit trykk på ein broten regel opnar «alt», rullar til
   // den fyrste skyvaren regelen heng av, og let alle sine blinke éin gong.
   // Skilnaden på ein reiskap og ein dommar er om han peikar.
@@ -1040,7 +1097,7 @@ export function ControlsPanel(props: {
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
+                  src={synPng ?? `data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
                   alt="alle flatene, slik dei ligg på plata"
                   className="max-h-40 w-full object-contain"
                   style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
