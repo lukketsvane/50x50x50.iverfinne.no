@@ -776,7 +776,7 @@ export function ControlsPanel(props: {
       <section
         aria-label="kontrollar"
         aria-busy={busy}
-        className="pointer-events-auto w-full max-w-md rounded-3xl border"
+        className="pointer-events-auto relative w-full max-w-md rounded-3xl border"
         style={{
           ...HAIR,
           background: "var(--paper)",
@@ -785,6 +785,40 @@ export function ControlsPanel(props: {
           transition: dragging.current ? undefined : "transform 180ms ease",
         }}
       >
+        {/* Reglane som ryk ligg UTANFOR dokumentflyten: absolutt over
+            panelet, veksande OPPOVER over lerretet. Ei varselline som kom
+            inne i arket lyfte heile det botnfeste panelet — skyvaren flytte
+            seg under fingeren midt i draget. Her kan lista koma og gå
+            utan at ein einaste piksel i panelet rører seg. */}
+        {open && failed.length > 0 && (
+          <div className="absolute inset-x-0 bottom-full mb-2 flex flex-col gap-1 px-1">
+            {failed.map((r) => {
+              const kanPeike = (r.peikar ?? []).some((k) => eng.ranges[k])
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  disabled={!kanPeike}
+                  onClick={() => peik(r)}
+                  title={r.why}
+                  className="flex w-full items-baseline justify-between gap-3 rounded-xl border px-3 py-1 text-left text-[11px] leading-4 disabled:pointer-events-none"
+                  style={{
+                    ...HAIR,
+                    background: "var(--paper)",
+                    color: r.hard ? "var(--warn)" : "var(--ink)",
+                    opacity: r.hard ? 1 : 0.75,
+                  }}
+                >
+                  <span className="tracking-[0.06em]">
+                    {r.hard ? "bryt" : "merk"} · {r.label}
+                    {kanPeike && <span className="pl-1 opacity-45">→</span>}
+                  </span>
+                  <span className="tab shrink-0">{r.value}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
         {/* dragsona: grepet og hovudlina. Fingeren dreg arket mellom dei
             tre stega; knappane verkar som før av di eit trykk utan drag
             ikkje kryssar terskelen. */}
@@ -1094,41 +1128,6 @@ export function ControlsPanel(props: {
                   form av lasta
                 </button>
               </div>
-            )}
-
-
-            {/* reglane som ryk: éi line kvar, grunngjevinga i title. Panelet
-                seier KVA som er gale; KVIFOR ligg eit fingertrykk unna. */}
-            {failed.length > 0 && (
-              <ul className="space-y-1 py-1">
-                {failed.map((r) => {
-                  const kanPeike = (r.peikar ?? []).some((k) => eng.ranges[k])
-                  return (
-                    <li key={r.id}>
-                      {/* Regelen peikar: trykket opnar «alt» og rullar til
-                          skyvaren som kan rette han. Ein regel utan skyvar
-                          (innpassinga, materialvalet) står som line. */}
-                      <button
-                        type="button"
-                        disabled={!kanPeike}
-                        onClick={() => peik(r)}
-                        title={r.why}
-                        className="flex w-full items-baseline justify-between gap-3 text-left text-[11px] leading-4 disabled:pointer-events-none"
-                        style={{
-                          color: r.hard ? "var(--warn)" : undefined,
-                          opacity: r.hard ? 1 : 0.65,
-                        }}
-                      >
-                        <span className="tracking-[0.06em]">
-                          {r.hard ? "bryt" : "merk"} · {r.label}
-                          {kanPeike && <span className="pl-1 opacity-45">→</span>}
-                        </span>
-                        <span className="tab shrink-0">{r.value}</span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
             )}
 
 
