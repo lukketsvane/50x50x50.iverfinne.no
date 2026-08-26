@@ -23,8 +23,10 @@ import {
   smooth,
   superR,
   type Group,
+  type Hovuddrag,
   type Material,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 // metrics.ts hentar berre TYPEN Params herifrå, so importen er asyklisk
@@ -241,9 +243,29 @@ export const POSES: readonly Partial<Params>[] = [
   { flikar: 5, flik: 0.14, planN: 2.4, planAsp: 0, blades: 20, waist: 0.18 },
 ]
 
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = ["vridd", "timeglas", "sopp", "krysset", "blomen"]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag,
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["seatZ", 1]] },
+  { id: "midje", label: "midje", keys: [["waist", 1], ["waistW", 0.5]] },
+  { id: "vriding", label: "vriding", keys: [["twist", 1]] },
+  { id: "blad", label: "blad", keys: [["blades", 1]] },
+  { id: "band", label: "band", keys: [["bands", 1]] },
+  { id: "skaal", label: "skål", keys: [["dish", 1]] },
+]
+
 /** Kva to-fingers-rulling på lerretet skrur på. Midja og vridinga er dei
  *  to som endrar kva objektet ER og ikkje berre kva det måler. */
-export const NUDGE_PARAMS = { vertical: "waist", horizontal: "twist" }
+export const NUDGE_PARAMS = { vertical: "waist", horizontal: "twist", pinch: "planR" }
 
 export const clampParams = (o: unknown, prev: Params): Params =>
   clampBag(o, prev as unknown as ParamBag, PARAM_RANGES, PARAM_KEYS) as unknown as Params

@@ -33,8 +33,10 @@ import { contourMapSvg, sheetSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
   GROUPS,
+  HOVUDDRAG,
   NUDGE_PARAMS,
   PARAM_KEYS,
+  POSAR,
   PARAM_RANGES,
   clampParams,
   randomParams,
@@ -73,6 +75,8 @@ export const STRAUM: EngineDef = {
   keys: PARAM_KEYS,
   defaults: DEFAULT_PARAMS,
   nudge: NUDGE_PARAMS,
+  poses: POSAR,
+  hovuddrag: HOVUDDRAG,
   unitLabel: "finnar",
 
   // Params er ein type alias og ikkje eit interface, og difor tildelbar til

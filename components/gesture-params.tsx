@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import * as THREE from "three"
 import { useThree } from "@react-three/fiber"
 
-export type NudgeAxis = "vertical" | "horizontal"
+export type NudgeAxis = "vertical" | "horizontal" | "pinch"
 
 /**
  * Fingergestar på lerretet. Ein skyvar er presis, men treg; ein gest er
@@ -14,7 +14,11 @@ export type NudgeAxis = "vertical" | "horizontal"
  *  - éin finger        → OrbitControls, snu objektet
  *  - dobbelttrykk      → onDoubleTap, ramm inn objektet på nytt
  *  - to fingrar loddrett / vassrett → onNudge, skrur ein parameter
- *  - klyp              → kamera nærare og lenger unna
+ *  - klyp              → onNudge («pinch»): storleiken på møbelet.
+ *                        Klypa zoomar ikkje — alt bur i same 500-kuben og
+ *                        innramminga er automatisk, so gesten er ledig
+ *                        for det klypa tyder: sprikande fingrar gjer
+ *                        møbelet breiare.
  *  - tre fingrar       → onLight, styrer hovudlyset. Kameraet står stille;
  *                        posituren frå før fingrane landa vert lagd
  *                        tilbake med det same gesten er avgjord, slik at
@@ -133,16 +137,12 @@ export function GestureParams({
         } else {
           return
         }
-        if (mode !== "pinch") restore()
+        // alle to-fingers-gestane legg kameraet tilbake: rotasjonen frå
+        // den fyrste fingeren som landa skal ikkje verte hengande att
+        restore()
       }
       if (mode === "pinch") {
-        if (last.d > 0 && c.d > 0) {
-          const target = controls?.target?.clone() ?? new THREE.Vector3(0, 0.35, 0)
-          const offset = camera.position.clone().sub(target)
-          const dist = THREE.MathUtils.clamp(offset.length() * (last.d / c.d), 2.4, 16)
-          camera.position.copy(target).add(offset.setLength(dist))
-          invalidate()
-        }
+        if (last.d > 0 && c.d > 0) onNudge("pinch", c.d - last.d)
       } else if (mode === "v") {
         onNudge("vertical", -dy)
       } else {

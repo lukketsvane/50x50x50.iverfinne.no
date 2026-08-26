@@ -1,9 +1,19 @@
 "use client"
 
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type JSX } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type JSX,
+} from "react"
 import {
   MATERIALS,
+  applyDrag,
   type EngineId,
+  type Hovuddrag,
   type Material,
   type Metrics,
   type ParamBag,
@@ -19,8 +29,14 @@ import { BEIS } from "./object-mesh"
  *
  * Same kontrollspråk som parametric.iverfinne.no, med vilje: eit flytande
  * ark nedst med tre tilstandar. Lukka er det éi line — motoren, tre tal og
- * to knappar — og objektet eig heile skjermen. Halvope kjem lesemåtane,
- * materialet, måltavla og eksporten. Heilt ope kjem skyveveggen.
+ * to knappar — og objektet eig heile skjermen.
+ *
+ * Halvope er hovudflata, og ho er bygd for folk som IKKJE kjenner
+ * parameterromma: posane (namngjevne inngangar i rommet) og hovuddraga
+ * (dei 3–6 kontrollane som verkeleg formar). Skyvarveggen med alle banda
+ * finst framleis, men bak eit medvite «alt»-nivå — han er finstillinga,
+ * ikkje fyrsteinntrykket. Tjueein til førtifem skyvarar er ikkje eit
+ * grensesnitt; dei er eit arkiv.
  *
  * Det sandkassen legg til språket er tala: dei tre som avgjer om objektet
  * i det heile er eit sitjemøbel står i sjølve lina, alltid, og skiftar
@@ -30,6 +46,9 @@ import { BEIS } from "./object-mesh"
  * Ingen tal vert rekna ut her. Alt kjem frå `metrics` og `rules`, som har
  * målt det objektet som faktisk står på skjermen.
  */
+
+/** arket sine tre steg — tilstanden bur i studioen, av di scena treng henne */
+export type SheetMode = "lukka" | "halv" | "full"
 
 const VIEWS: readonly { id: View; label: string; hint: string }[] = [
   { id: "flate", label: "flate", hint: "flata objektet nærmar seg, ferdig" },
@@ -98,13 +117,6 @@ const IcoShuffle = (
     <path d="m18 14 4 4-4 4" />
   </svg>
 )
-const IcoAvl = (
-  <svg viewBox="0 0 24 24" className="h-4 w-4" {...STROKE}>
-    <path d="M12 21v-8" />
-    <path d="M12 13c0-4.2 3.2-7 8-7 0 4.2-3.2 7-8 7Z" />
-    <path d="M12 16c0-3.2-2.6-5.2-6-5.2 0 3.2 2.6 5.2 6 5.2Z" />
-  </svg>
-)
 const IcoSliders = (
   <svg viewBox="0 0 24 24" className="h-4 w-4" {...STROKE}>
     <path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4" />
@@ -118,12 +130,6 @@ const IcoDown = (
 const IcoUp = (
   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...STROKE}>
     <path d="m18 15-6-6-6 6" />
-  </svg>
-)
-const IcoReset = (
-  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" {...STROKE}>
-    <path d="M3 12a9 9 0 1 0 2.6-6.36" />
-    <path d="M3 4v4.5h4.5" />
   </svg>
 )
 const IcoShare = (
@@ -191,6 +197,48 @@ function tableRows(m: Metrics | null): TableRow[] {
     { label: `plateutnytting · ${n0(m.sheets)} pl.`, value: n0(m.sheetUtil * 100), unit: "%", rules: R_PLATE },
     { label: "utnytting", value: n0(m.util * 100), unit: "%", rules: R_UTN },
   ]
+}
+
+/** Eitt hovuddrag: primæren gjev posisjonen og talet, fylgjarane går med.
+ *  Ingen lås — draget styrer fleire band, og låsane høyrer banda til. */
+function DragRow({
+  drag,
+  ranges,
+  params,
+  onChange,
+}: {
+  drag: Hovuddrag
+  ranges: Record<string, Range>
+  params: ParamBag
+  onChange: (p: ParamBag) => void
+}) {
+  const [pk] = drag.keys[0]
+  const r = ranges[pk]
+  const value = num(params, pk, r.min)
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <span
+        className="w-24 shrink-0 text-[10px] uppercase leading-[1.2] tracking-[0.14em]"
+        style={{ color: "var(--ink)" }}
+      >
+        {drag.label}
+      </span>
+      <input
+        type="range"
+        className="pslider flex-1"
+        min={r.min}
+        max={r.max}
+        step={r.step}
+        value={value}
+        aria-label={drag.label}
+        onChange={(e) => onChange(applyDrag(drag, Number(e.target.value), params, ranges))}
+      />
+      <span className="tab w-14 shrink-0 text-right text-[11px]" style={{ color: "var(--ink)" }}>
+        {value.toFixed(decimals(r.step)).replace(".", ",")}
+        {r.unit && <span className="pl-0.5 opacity-45">{r.unit}</span>}
+      </span>
+    </div>
+  )
 }
 
 /** Éin skyvar: etiketten er låsen, prikken seier om han er teken. */
@@ -266,6 +314,9 @@ export function ControlsPanel(props: {
   hiDetail: boolean
   isDesktop: boolean
   busy: boolean
+  /** arket sitt steg — lyft opp i studioen so scena kan lyfte objektet fri */
+  mode: SheetMode
+  onMode: (m: SheetMode) => void
   onEngine: (e: EngineId) => void
   onToggleEngineLock: () => void
   onChange: (p: ParamBag) => void
@@ -295,6 +346,8 @@ export function ControlsPanel(props: {
     hiDetail,
     isDesktop,
     busy,
+    mode,
+    onMode,
     onEngine,
     onToggleEngineLock,
     onChange,
@@ -310,8 +363,7 @@ export function ControlsPanel(props: {
     onShare,
   } = props
 
-  // lukka → halv (lesemåtar, materiale, tavla, eksport) → full (skyveveggen)
-  const [mode, setMode] = useState<"lukka" | "halv" | "full">("lukka")
+  // lukka → halv (posar, hovuddrag, lesemåtar, eksport) → full («alt»)
   const open = mode !== "lukka"
 
   // Modulveljaren: eitt trykk vil opne menyen, to raske vil låse. Det
@@ -332,15 +384,37 @@ export function ControlsPanel(props: {
     }, 260)
   }, [onToggleEngineLock])
 
+  // Terningen ber avlen. Eitt trykk VENTAR det same vesle vindauga som
+  // modulveljaren (260 ms) på tvillingen sin: kjem han, er det avl og
+  // ikkje kast. Rekkjefylgja er ikkje pedanteri — eit kast som fyrte
+  // fyrst ville flytte punktet avlen skulle starte i.
+  const shuffleWait = useRef<number | null>(null)
+  const onShuffleTap = useCallback(() => {
+    if (avlGang) return
+    if (shuffleWait.current !== null) {
+      window.clearTimeout(shuffleWait.current)
+      shuffleWait.current = null
+      onAvl()
+      return
+    }
+    shuffleWait.current = window.setTimeout(() => {
+      shuffleWait.current = null
+      onShuffle()
+    }, 260)
+  }, [avlGang, onAvl, onShuffle])
+
   // Arket er eit iOS-ark: dra i grepet eller hovudlina, opp for meir og
   // ned for mindre. Fingeren får eit lite gummiband som svar medan han
   // dreg, og slepp han forbi terskelen, byter arket steg.
   const MODES = ["lukka", "halv", "full"] as const
-  const stepMode = useCallback((dir: 1 | -1) => {
-    setMode((m) => MODES[Math.min(2, Math.max(0, MODES.indexOf(m) + dir))])
-    // MODES er ein konstant
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const stepMode = useCallback(
+    (dir: 1 | -1) => {
+      onMode(MODES[Math.min(2, Math.max(0, MODES.indexOf(mode) + dir))])
+      // MODES er ein konstant
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [mode, onMode],
+  )
   const dragging = useRef<{ y0: number; id: number } | null>(null)
   const [pull, setPull] = useState(0)
   const onSheetDown = (e: React.PointerEvent) => {
@@ -369,6 +443,13 @@ export function ControlsPanel(props: {
 
   const eng = getEngine(engine)
 
+  // Arket skal alltid opne på toppen — posane er fyrsteinntrykket, ikkje
+  // der ein sist var. Same når motoren byter: nytt rom, ny topp.
+  const sheetScroll = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    sheetScroll.current?.scrollTo({ top: 0 })
+  }, [engine, open])
+
   const broken = useMemo(() => {
     const hard = new Set<string>()
     const soft = new Set<string>()
@@ -387,12 +468,39 @@ export function ControlsPanel(props: {
     [params, onChange, eng],
   )
 
+  // Ein pose er eit hopp, ikkje eit kast: nøyaktig det handdesigna punktet,
+  // med materialet ein alt står i — posane eig form, ikkje finér.
+  const gotoPose = useCallback(
+    (bag: Readonly<Partial<Record<string, number | string>>>) =>
+      onChange(
+        eng.clamp(
+          { ...eng.defaults, ...bag, material: bag.material ?? params.material },
+          params,
+        ),
+      ),
+    [eng, params, onChange],
+  )
+
+  // Kva pose står ein i? Chipen skal lyse når punktet ER posen — ikkje når
+  // det liknar. Materialet tel ikkje med: posane eig form, ikkje finér.
+  const atPose = useMemo(() => {
+    const same = (target: ParamBag) => eng.keys.every((k) => params[k] === target[k])
+    return {
+      standard: same(eng.clamp(eng.defaults, eng.defaults)),
+      idx: eng.poses.findIndex((p) =>
+        same(eng.clamp({ ...eng.defaults, ...p.bag }, eng.defaults)),
+      ),
+    }
+  }, [eng, params])
+
   /** Dei tre tala som avgjer om det er eit sitjemøbel, i sjølve lina.
    *  Panelet kan lukkast; rekninga kan ikkje. */
+  // heiltal i vinkelen: desimalen høyrer tavla til, og på ein smal telefon
+  // er han skilnaden på tre tal og to og eit halvt
   const headline: { text: string; ids: readonly string[] }[] = metrics
     ? [
         { text: `${n1(metrics.mass)} kg`, ids: R_MASSE },
-        { text: `${n1(metrics.tipAngle)}°`, ids: R_VELTE },
+        { text: `${n0(metrics.tipAngle)}°`, ids: R_VELTE },
         { text: `${n0(metrics.util * 100)} %`, ids: R_UTN },
       ]
     : []
@@ -428,16 +536,16 @@ export function ControlsPanel(props: {
           }}
           style={{ touchAction: "none" }}
         >
-          {open && (
-            <div className="flex justify-center pt-1.5" aria-hidden="true">
-              <div
-                className="h-1 w-9 rounded-full"
-                style={{ background: "color-mix(in srgb, var(--ink) 22%, transparent)" }}
-              />
-            </div>
-          )}
+          {/* Grepet står der òg når arket er lukka: det er lovnaden om at
+              lina KAN dragast opp, ikkje berre pynt på eit ope ark. */}
+          <div className="flex justify-center pt-1.5" aria-hidden="true">
+            <div
+              className="h-1 w-9 rounded-full"
+              style={{ background: "color-mix(in srgb, var(--ink) 22%, transparent)" }}
+            />
+          </div>
           {/* hovudlina — motoren, rekninga, terningen og opnaren */}
-          <div className="flex items-center gap-1.5 p-2.5">
+          <div className="flex items-center gap-1.5 p-2.5 pt-1">
           {/* Modulveljaren: eitt trykk opnar menyen (etter eit lite
               vindauga), DOBBELTTRYKK låser terningen til den valde
               modulen. Låst står pilla svart med prikk — same språket som
@@ -482,7 +590,7 @@ export function ControlsPanel(props: {
                   // so taket er høgda MINUS det arket — kring 385 px målt,
                   // med litt mon. Rullinga held seg i menyen so ho ikkje
                   // dreg arket med seg.
-                  className="absolute bottom-full left-0 z-20 mb-2 max-h-[max(132px,calc(100dvh-400px))] min-w-32 overflow-y-auto overscroll-contain rounded-2xl border p-1"
+                  className="rise absolute bottom-full left-0 z-20 mb-2 max-h-[max(132px,calc(100dvh-400px))] min-w-32 overflow-y-auto overscroll-contain rounded-2xl border p-1"
                   style={{ ...HAIR, background: "var(--paper)" }}
                 >
                   {ENGINES.map((e) => (
@@ -510,7 +618,20 @@ export function ControlsPanel(props: {
             )}
           </div>
 
-          <span className="tab min-w-0 flex-1 truncate pl-1.5 text-[11px] tracking-[0.06em]">
+          {/* Tala er òg opnaren: heile lina mellom pilla og knappane er
+              trykkflate for arket. Medan motoren reknar pulserer tala i
+              staden for at ein eigen prikk skal ta plass i lina. */}
+          {/* namnet til knappen ER tala — ein skjermlesar skal høyre
+              rekninga, ikkje ein etikett om henne */}
+          <button
+            type="button"
+            onClick={() => onMode(open ? "lukka" : "halv")}
+            aria-expanded={open}
+            className={
+              "tab min-w-0 flex-1 truncate pl-1.5 text-left text-[11px] tracking-[0.06em]" +
+              (busy ? " pulsar" : "")
+            }
+          >
             {headline.length === 0 ? (
               <span className="opacity-40">reknar …</span>
             ) : (
@@ -530,47 +651,29 @@ export function ControlsPanel(props: {
                 </span>
               ))
             )}
-          </span>
+          </button>
 
-          {/* prikken har fast plass, så lina står i ro medan motoren reknar */}
-          <span
-            aria-hidden="true"
-            className="block h-[5px] w-[5px] shrink-0 rounded-full"
-            style={{
-              background: "var(--ink)",
-              opacity: busy ? 0.8 : 0.12,
-              transition: "opacity 200ms ease",
-            }}
-          />
-
+          {/* Terningen ber avlen: eitt trykk kastar, dobbelttrykk avlar —
+              same tolmodige vindauga som låsen på modulveljaren, so eit
+              kast aldri fyrer FØR avlen og flytter punktet søket skulle
+              starte i. Under søket syner knappen steget. */}
           <button
             type="button"
-            onClick={onAvl}
-            disabled={avlGang !== null}
-            aria-label="avl — same objekt, mindre plate: søket held dei harde reglane og minimerer materialet gjennom maskina"
-            title="avl — tåle mest, bruke minst"
-            className={ICON_BTN}
-            style={{ ...HAIR, color: "var(--ink)" }}
+            onClick={onShuffleTap}
+            aria-label="terning — nye tal innanfor grensene, låste skruar står; dobbelttrykk avlar: same objekt, mindre plate"
+            title="terning — dobbelttrykk avlar"
+            className={ICON_BTN_SOLID}
+            style={{ background: "var(--ink)", color: "var(--paper)" }}
           >
             {avlGang ? (
               <span className="text-[9px] tabular-nums">{avlGang.steg}</span>
             ) : (
-              IcoAvl
+              IcoShuffle
             )}
           </button>
           <button
             type="button"
-            onClick={onShuffle}
-            aria-label="terning — nye tal innanfor grensene, låste skruar står"
-            title="terning"
-            className={ICON_BTN_SOLID}
-            style={{ background: "var(--ink)", color: "var(--paper)" }}
-          >
-            {IcoShuffle}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode(open ? "lukka" : "halv")}
+            onClick={() => onMode(open ? "lukka" : "halv")}
             aria-label={open ? "gøym kontrollane" : "vis kontrollane"}
             aria-expanded={open}
             className={ICON_BTN}
@@ -581,9 +684,69 @@ export function ControlsPanel(props: {
           </div>
         </div>
 
-        {/* det utvidbare arket */}
-        {open && (
-          <div className="max-h-[56vh] overflow-y-auto overscroll-contain px-3 pb-3">
+        {/* Det utvidbare arket. Alltid montert: høgda glid mellom 0fr og
+            1fr i staden for at innhaldet sprett inn og ut, og eit lukka
+            ark er `inert` so ingen knapp bak kanten kan få fokus. */}
+        <div
+          className="glid"
+          style={{ display: "grid", gridTemplateRows: open ? "1fr" : "0fr" }}
+        >
+          <div className="min-h-0 overflow-hidden">
+          <div
+            ref={sheetScroll}
+            inert={!open}
+            className="max-h-[56vh] overflow-y-auto overscroll-contain px-3 pb-3"
+          >
+            {/* Posane: namngjevne inngangar i parameterrommet — der ein
+                startar, ikkje der ein finstiller. «Standard» er
+                referansepunktet sjølv. Dei same punkta jittrar terningen
+                kring; her står dei med namn. */}
+            {eng.poses.length > 0 && (
+              <div className="noscroll -mx-3 overflow-x-auto px-3">
+                <div className="flex w-max items-center gap-1.5 py-1">
+                  <button
+                    type="button"
+                    onClick={onReset}
+                    aria-pressed={atPose.standard}
+                    title="referansepunktet — standardobjektet"
+                    className={CHIP}
+                    style={chipStyle(atPose.standard)}
+                  >
+                    standard
+                  </button>
+                  {eng.poses.map((p, i) => (
+                    <button
+                      key={p.namn}
+                      type="button"
+                      onClick={() => gotoPose(p.bag)}
+                      aria-pressed={atPose.idx === i}
+                      className={CHIP}
+                      style={chipStyle(atPose.idx === i)}
+                    >
+                      {p.namn}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Hovuddraga: dei få kontrollane som verkeleg formar. Kvart
+                drag styrer eitt eller fleire band saman; veggen med alle
+                banda står bak «alt». */}
+            {eng.hovuddrag.length > 0 && (
+              <div className="pb-1">
+                {eng.hovuddrag.map((d) => (
+                  <DragRow
+                    key={d.id}
+                    drag={d}
+                    ranges={eng.ranges}
+                    params={params}
+                    onChange={onChange}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* lesemåtane — tre ord held; kva dei tyder ligg i title */}
             <div className="flex flex-wrap items-center gap-1.5 py-1">
               {VIEWS.map((v) => (
@@ -684,6 +847,27 @@ export function ControlsPanel(props: {
                 className="my-1.5 overflow-hidden rounded-2xl border p-2"
                 style={{ ...HAIR, background: "#ffffff" }}
               >
+                {/* Arket ber talet sitt sjølv: kor stor del av den medgåtte
+                    plata som vert delar, og kor mange plater det tek. Det
+                    er den eine aksen i avfallsrekninga, rett på biletet av
+                    henne. */}
+                <div className="flex items-baseline justify-between px-1 pb-1 text-[10px]">
+                  <span className="uppercase tracking-[0.24em] opacity-35">arket</span>
+                  {metrics && (
+                    <span
+                      className="tab"
+                      style={{
+                        color: isHard(R_PLATE) ? "var(--warn)" : "var(--ink)",
+                        opacity: isHard(R_PLATE) ? 1 : 0.6,
+                        textDecoration: isSoft(R_PLATE) ? "underline dotted" : undefined,
+                        textUnderlineOffset: 3,
+                      }}
+                    >
+                      {n0(metrics.sheetUtil * 100)} % · {n0(metrics.sheets)}{" "}
+                      {metrics.sheets === 1 ? "plate" : "plater"}
+                    </span>
+                  )}
+                </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
@@ -710,45 +894,46 @@ export function ControlsPanel(props: {
                   {x.label}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={onReset}
-                aria-label="tilbake til standardobjektet"
-                title="tilbake til standardobjektet"
-                className={CHIP + " ml-auto"}
-                style={chipStyle(false)}
-              >
-                {IcoReset}
-              </button>
+              {/* «standard»-chipen i poserada er vegen attende; her står
+                  berre delinga att */}
               <button
                 type="button"
                 onClick={onShare}
                 aria-label="del — lenkja ber heile objektet"
                 title="del — lenkja ber heile objektet"
-                className={CHIP}
+                className={CHIP + " ml-auto"}
                 style={chipStyle(false)}
               >
                 {IcoShare}
               </button>
             </div>
 
-            {/* utvidaren mellom halvt og heilt ope — skyveveggen bak han.
-                Berre pila: kva ho gjer, viser ho. */}
+            {/* «Alt»-nivået: måltavla og veggen med alle banda. Ordet står
+                på knappen med vilje — det som ligg bak er alt, ikkje meir
+                av det same. */}
             <button
               type="button"
               aria-expanded={mode === "full"}
-              aria-label={mode === "full" ? "færre kontrollar" : "alle parametrar"}
-              onClick={() => setMode(mode === "full" ? "halv" : "full")}
-              className="mt-1.5 flex w-full items-center justify-center rounded-2xl border py-1.5 opacity-60 transition active:scale-[0.99]"
+              aria-label={mode === "full" ? "gøym måltavla og alle banda" : "alt — måltavla og alle banda"}
+              onClick={() => onMode(mode === "full" ? "halv" : "full")}
+              className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-2xl border py-1.5 opacity-60 transition active:scale-[0.99]"
               style={HAIR}
             >
+              <span className="text-[10px] uppercase leading-none tracking-[0.24em]">alt</span>
               {mode === "full" ? IcoUp : IcoDown}
             </button>
 
-            {mode === "full" && (
-              <>
+            {/* «alt»-nivået glid òg: alltid montert, høgda mellom 0fr og
+                1fr, inert når det er samanfalde */}
+            <div
+              className="glid"
+              style={{ display: "grid", gridTemplateRows: mode === "full" ? "1fr" : "0fr" }}
+            >
+              <div className="min-h-0 overflow-hidden" inert={mode !== "full"}>
+            <h3 className="mt-3 pb-0.5 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
+              måltavla
+            </h3>
             <dl
-              className="mt-3"
               style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
             >
               {rows.map((row) => {
@@ -780,11 +965,8 @@ export function ControlsPanel(props: {
                 )
               })}
             </dl>
-              </>
-            )}
 
-            {mode === "full" &&
-              eng.groups.map((g) => (
+            {eng.groups.map((g) => (
                 <div key={g.id} className="pt-3">
                   <h3 className="pb-0.5 text-[10px] uppercase leading-none tracking-[0.24em] opacity-35">
                     {g.label}
@@ -802,8 +984,11 @@ export function ControlsPanel(props: {
                   ))}
                 </div>
               ))}
+              </div>
+            </div>
           </div>
-        )}
+          </div>
+        </div>
       </section>
     </div>
   )
