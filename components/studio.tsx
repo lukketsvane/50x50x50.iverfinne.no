@@ -81,6 +81,12 @@ export function Studio() {
   const params = bags[engine] ?? eng.defaults
   const locked = locks[engine] ?? new Set<string>()
 
+  // «last» finst berre der motoren kan svare på han: byter ein til ein
+  // motor utan lastkart, fell lesemåten attende til delane
+  useEffect(() => {
+    if (view === "last" && !eng.kanLast) setView("lag")
+  }, [engine, view, eng])
+
   const worker = useRef<Worker | null>(null)
   const reqId = useRef(0)
   const shown = useRef(0)
@@ -112,7 +118,9 @@ export function Studio() {
     setEngine(id)
     setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
     const v = obj.view
-    if (v === "lag" || v === "kontur" || v === "flate") setView(v)
+    if (v === "lag" || v === "kontur" || v === "flate" || (v === "last" && e.kanLast)) {
+      setView(v)
+    }
     if (typeof obj.beis === "string" && BEIS.some((b) => b.id === obj.beis)) {
       setBeis(obj.beis)
     }

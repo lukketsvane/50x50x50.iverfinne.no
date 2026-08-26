@@ -141,6 +141,28 @@ function probe(e: EngineDef) {
   ok(utanPeikar.length <= 3, `${r.length - utanPeikar.length} av ${r.length} reglar peikar`,
     utanPeikar.map((x) => x.id).join(","))
 
+  // --- lastkartet, der motoren ber det -------------------------------------
+  if (e.kanLast) {
+    const lb = e.build(e.defaults, "mid", "last")
+    const nv = lb.positions.length / 3
+    const felt = lb.felt
+    ok(!!felt && felt.length === nv, "lastkartet dekkjer kvart hjørne",
+      felt ? `${felt.length} mot ${nv}` : "manglar")
+    if (felt) {
+      let fMax = 0
+      let bad = 0
+      for (let i = 0; i < felt.length; i++) {
+        if (!Number.isFinite(felt[i]) || felt[i] < 0) bad++
+        else if (felt[i] > fMax) fMax = felt[i]
+      }
+      ok(bad === 0, "ingen NaN eller negative i lastkartet", `${bad}`)
+      // kartet og tavla les same modell: toppen av feltet skal liggje ved
+      // utnyttinga i tavla (fiberen gjer at kartet aldri går OVER)
+      ok(fMax <= m.util * 1.05 + 0.02 && fMax >= m.util * 0.5,
+        `kartmaks ${Math.round(fMax * 100)} % mot tavla ${Math.round(m.util * 100)} %`)
+    }
+  }
+
   // --- nettet ---------------------------------------------------------------
   for (const view of VIEWS) {
     for (const detail of DETAILS) {

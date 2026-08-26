@@ -54,6 +54,8 @@ const VIEWS: readonly { id: View; label: string; hint: string }[] = [
   { id: "flate", label: "flate", hint: "flata objektet nærmar seg, ferdig" },
   { id: "lag", label: "lag", hint: "delane slik dei faktisk er, montert" },
   { id: "kontur", label: "kontur", hint: "dei flate kuttprofilane" },
+  // berre motorar med kanLast får denne chipen — sjå filtreringa i rada
+  { id: "last", label: "last", hint: "lastkartet: utnyttinga under 1600 N (NS-EN 1728), måla på flata" },
 ]
 
 const EXPORTS: readonly { id: "stl" | "dxf" | "svg" | "ark"; label: string; hint: string }[] = [
@@ -772,9 +774,9 @@ export function ControlsPanel(props: {
               </div>
             )}
 
-            {/* lesemåtane — tre ord held; kva dei tyder ligg i title */}
+            {/* lesemåtane — fire ord held; kva dei tyder ligg i title */}
             <div className="flex flex-wrap items-center gap-1.5 py-1">
-              {VIEWS.map((v) => (
+              {VIEWS.filter((v) => v.id !== "last" || eng.kanLast).map((v) => (
                 <button
                   key={v.id}
                   type="button"
@@ -801,6 +803,26 @@ export function ControlsPanel(props: {
                 </button>
               )}
             </div>
+
+            {/* Skalaen til lastkartet, berre når det står på: null til
+                kapasiteten, med lasta i midten som namn. Kartet og tavla
+                les same tal — 100 % HER er 100 % DER. */}
+            {view === "last" && (
+              <div className="flex items-center gap-2 py-1 text-[10px]">
+                <span className="tab opacity-55">0</span>
+                {/* same kvadratrotskala som kartet: stoppa ligg på √u */}
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 min-w-0 flex-1 rounded-full"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, #2b4a68, #3f7d8c 55%, #e9e2d2 74%, #ed520f 89%, #7f1d1d)",
+                  }}
+                />
+                <span className="tab opacity-55">kapasitet</span>
+                <span className="uppercase tracking-[0.14em] opacity-40">1600 N</span>
+              </div>
+            )}
 
             {/* materialet og beisen i EI rad: fargen ER etiketten, namna
                 ligg i title. Beisen sit på plateflatene; kutta står som rå
