@@ -18,7 +18,7 @@ import { ALLE_MOTORAR as ENGINES } from "../lib/engines.ts"
 
 const VIEWS: View[] = ["flate", "lag", "kontur"]
 const DETAILS: DetailKey[] = ["lav", "mid", "hog"]
-const KINDS: ExportKind[] = ["stl", "dxf", "svg", "ark"]
+const KINDS: ExportKind[] = ["stl", "dxf", "svg", "ark", "arksyn"]
 
 let fails = 0
 const ok = (cond: boolean, what: string, detail = "") => {

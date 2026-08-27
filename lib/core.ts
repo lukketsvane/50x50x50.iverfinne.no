@@ -302,7 +302,14 @@ export type DetailKey = "lav" | "mid" | "hog"
  *  på den siste. */
 export type View = "flate" | "lag" | "kontur" | "last"
 
-export type ExportKind = "stl" | "dxf" | "svg" | "ark"
+/**
+ * `arksyn` er ikkje ei fil nokon lastar ned: det er BILETET av plata som
+ * står i panelet. Han finst av di kortet og talet ved sida av det må kome
+ * frå SAME pakkinga — eksportarket vert pakka tett (tre sorteringar, fint
+ * raster) og ville synt ein annan prosent enn tavla, og eit kort som seier
+ * eitt tal og viser eit anna er verre enn ikkje noko kort.
+ */
+export type ExportKind = "stl" | "dxf" | "svg" | "ark" | "arksyn"
 
 /**
  * Maskina som skal kutte. Fresen skjer 1:1 or heil plate; laseren kuttar

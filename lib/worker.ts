@@ -282,7 +282,7 @@ self.onmessage = (e: MessageEvent<Req>) => {
         // hugsa frå målinga, so teikninga kostar berre sjølve SVG-en — og
         // ho teier på same viset når eit nyare punkt har teke over.
         if (newest !== req.id) return
-        const svg = eng.exportFile(req.params, "svg")
+        const svg = eng.exportFile(req.params, "arksyn")
         if (newest !== req.id || !svg.text) return
         const syn: SynRes = { kind: "syn", id: req.id, engine: req.engine, svg: svg.text }
         ;(self as unknown as Worker).postMessage(syn)

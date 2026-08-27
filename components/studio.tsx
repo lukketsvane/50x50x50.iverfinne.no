@@ -53,8 +53,10 @@ export function Studio() {
   const [engineLock, setEngineLock] = useState(true)
   // beis er ferdig handsaming, som lakk: han bur i visinga og hashen, aldri
   // i parameterrommet — masse og styrke bryr seg ikkje om farge.
-  // NATUR er standard: materialet er sanninga, beisen er valet.
-  const [beis, setBeis] = useState("natur")
+  // AHO-oransjen er standard: eit møbel er eit VAL, og fargen seier med
+  // ein gong at dette er noko nokon har bestemt. Naturen står eitt trykk
+  // unna, og veden syner gjennom beisen uansett — sjå object-mesh.
+  const [beis, setBeis] = useState("aho")
   const [hiDetail, setHiDetail] = useState(false)
   const [light, setLight] = useState<LightDir>({ az: 0.85, el: 0.52 })
   const [data, setData] = useState<BuildRes | null>(null)

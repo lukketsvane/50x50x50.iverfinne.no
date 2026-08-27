@@ -155,6 +155,14 @@ export const STRAUM: EngineDef = {
         data: bytes.buffer.slice(0) as ArrayBuffer,
       }
     }
+    if (what === "arksyn") {
+      // biletet i panelet: same pakking som measure las — sjå ExportKind
+      return {
+        name: "straum-ark.svg",
+        mime: "image/svg+xml",
+        text: alleArkSvg(nest(parts().parts)),
+      }
+    }
     if (what === "dxf" || what === "ark") {
       // laseren: modellskala tjukn/finneT — og ÉI plate for alt: sokkel
       // og kappe vert kutta or same tynne arket som finnane
