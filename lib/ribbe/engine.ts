@@ -91,6 +91,11 @@ export const RIBBE: EngineDef = {
     if (what === "svg") {
       return { name: "ribbe-profilar.svg", mime: "image/svg+xml", text: profileSvg(sh, g) }
     }
+    if (what === "arksyn") {
+      // biletet i panelet: same pakking som measure las — sjå ExportKind
+      const ns = nest(buildParts(sh, g, MATERIALS[p.material].rho).parts)
+      return { name: "ribbe-ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
+    }
     // laseren: modellskala tjukn/bladeT, nesta på lasersenga
     const laser = maskin?.id === "laser" ? maskin : null
     const s = laser ? laser.tjukn / p.bladeT : 1

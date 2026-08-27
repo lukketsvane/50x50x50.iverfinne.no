@@ -149,6 +149,14 @@ export const SKIVE: EngineDef = {
     if (what === "svg") {
       return { name: "skive-profilar.svg", mime: "image/svg+xml", text: profileSvg(b) }
     }
+    if (what === "arksyn") {
+      // biletet i panelet: same pakking som measure las — sjå ExportKind
+      return {
+        name: "skive-ark.svg",
+        mime: "image/svg+xml",
+        text: alleArkSvg(nest(buildParts(p, b).parts)),
+      }
+    }
     // laseren: modellskala tjukn/plyT, nesta på lasersenga
     const laser = maskin?.id === "laser" ? maskin : null
     const s = laser ? laser.tjukn / p.plyT : 1

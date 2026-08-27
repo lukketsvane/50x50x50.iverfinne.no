@@ -162,6 +162,11 @@ export const VAFFEL: EngineDef = {
     if (what === "svg") {
       return { name: "vaffel-profilar.svg", mime: "image/svg+xml", text: profileSvg(g) }
     }
+    if (what === "arksyn") {
+      // biletet i panelet: same pakking som measure las — sjå ExportKind
+      const ns = nest(buildParts(g, p.material as Material).parts)
+      return { name: "vaffel-ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
+    }
     // laseren: heile geometrien i modellskala tjukn/ribbT, so spora
     // framleis passar plata — nesta på lasersenga med laserluft
     const laser = maskin?.id === "laser" ? maskin : null

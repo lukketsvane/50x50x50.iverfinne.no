@@ -129,7 +129,7 @@ export const BOYG: EngineDef = {
       return { name: "boyg-blankettar.svg", mime: "image/svg+xml", text: blankettSvg(b, p) }
     }
     const ns = nest(buildParts(b, p).parts)
-    if (what === "ark") {
+    if (what === "ark" || what === "arksyn") {
       return { name: "boyg-" + ns.sheets.length + "ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
     }
     return { name: "boyg.dxf", mime: "application/dxf", text: partsToDxf(ns, p.plyT) }
