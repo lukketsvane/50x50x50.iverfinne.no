@@ -21,6 +21,7 @@ const FORM: [string, number][] = [
   ["hals", 1.0],
   ["midje", 1.0],
   ["bogeH", 0.9],
+  ["port", 1.1],
   ["holform", 0.8],
   ["holstorleik", 0.6],
   ["ryggH", 1.2],
