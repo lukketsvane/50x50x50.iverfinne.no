@@ -7,11 +7,18 @@
  * heile. Ei plate er ei plate, seier han, og komforten kjem av vinklar:
  * setet vippa, ryggen lena.
  *
- * Prisen er ærleg og står i tavla: flata er flat. Vinsten er dei to tala
- * ingen annan motor er i nærleiken av — FIRE delar og ein kile, og eit
- * kuttark der fire store, enkle former pakkar tettare enn nokon annan
- * typologi klarar. Han er den eine enden av rommet, og eit argument treng
- * begge endane: KOR LITE kan ein stol vera, og kva kostar det.
+ * UNDERSTELLET ER EIN X. To blad står i kvar sitt loddrette plan, og dei
+ * to plana kryssar kvarandre midt under setet. Det er den einaste
+ * konstruksjonen som gjev fire føter, fire hjørne og berre EITT ledd i
+ * heile understellet — ei krysshalving, det eine bladet hogd ned frå
+ * toppen, det andre opp frå bogen. To parallelle sidevegger ville sett
+ * likt ut frå sida og vore ein heilt annan stol: fire ledd, og ei ramme
+ * som klappar saman den vegen ingen ser.
+ *
+ * Prisen er ærleg og står i tavla: flata er flat, og i ein kube på
+ * femhundre vert ryggen ei LIST og ikkje ein rygg. Vinsten er dei to tala
+ * ingen annan motor er i nærleiken av — FEM delar, og fem millisekund frå
+ * skyvar til måltal, av di det ikkje er noko å byggje.
  *
  * Kilen er den einaste delen som SKAL kuttast i eit anna treslag. Han er
  * det som held møbelet saman, og då skal ein sjå kvar han sit.
@@ -61,7 +68,7 @@ const EMPTY = () => new Float32Array(0)
 export const LAFT: EngineDef = {
   id: "laft",
   label: "laft",
-  note: "fire plater og ein kile, lafta i kvarandre — flatpakka, utan lim",
+  note: "to kryssande blad, eit sete og ei list — flatpakka, utan lim",
   ranges: PARAM_RANGES,
   groups: GROUPS,
   keys: PARAM_KEYS,

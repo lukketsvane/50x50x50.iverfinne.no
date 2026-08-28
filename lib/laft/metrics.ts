@@ -99,13 +99,21 @@ export function measure(p: Params): Metrics {
   const mass = (volume * rho) / 1e9
 
   // --- foten: føtene til dei to bladene -----------------------------------
-  const blad = b.delar.find((d) => d.kind === "bein")!
-  const foter = runsAt(blad.outline, blad.holes, 0.8)
+  // Bladplana kryssar, so føtene kan ikkje reknast av eit spenn. Kvar
+  // fot vert lagd ned i verda gjennom sitt eige blad si plassering, og
+  // det konvekse hylsteret av dei fire er støtteflata.
+  const blad = b.delar.filter((d) => d.kind === "bein")
   const golv: Pt[] = []
-  for (const sgn of [-1, 1]) {
-    for (const [xa, xb] of foter) {
-      for (const yy of [(sgn * p.spenn) / 2 - p.plyT / 2, (sgn * p.spenn) / 2 + p.plyT / 2]) {
-        golv.push([xa, yy], [xb, yy])
+  let foterTal = 0
+  for (const d of blad) {
+    const foter = runsAt(d.outline, d.holes, 0.8)
+    foterTal += foter.length
+    for (const [sa, sb] of foter) {
+      for (const s2 of [sa, sb]) {
+        for (const w of [0, d.t]) {
+          const q = tilVerda(d.plass, [s2, 0], w)
+          golv.push([q[0], q[1]])
+        }
       }
     }
   }
@@ -119,14 +127,34 @@ export function measure(p: Params): Metrics {
     if (q[1] > fy1) fy1 = q[1]
   }
   if (!Number.isFinite(fx0)) { fx0 = fx1 = fy0 = fy1 = 0 }
-  const contacts = foter.length * 2
+  const contacts = foterTal
 
   // --- setet ---------------------------------------------------------------
   const seatZ = b.seteTopp(b.xF)
   // brukbar djupn: framkanten fram til ryggen, ikkje heile plata
   const xRygg = b.delar.find((d) => d.kind === "rygg")!.plass.o[0]
   const seatD = Math.max(0, b.xF - xRygg)
-  const seatW = Math.max(0, p.breidd - 2 * p.nase)
+  // Sitjebreidda vert MÅLT i omrisset, ikkje rekna av breiddetalet:
+  // sigden og skjoldet og stadion har heilt ulik breidd der ein faktisk
+  // sit, og eit tal som berre les `breidd` ville seie det same om alle
+  // tre. Snittet ligg midt i den brukbare djupna.
+  const sete0 = b.delar.find((d) => d.kind === "sete")!
+  const uSnitt = (b.xF + xRygg) / 2 / Math.cos(b.a)
+  let sw0 = Infinity
+  let sw1 = -Infinity
+  {
+    const ring = sete0.outline
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]
+      const [xj, yj] = ring[j]
+      if (xi > uSnitt !== xj > uSnitt) {
+        const y = yi + ((uSnitt - xi) * (yj - yi)) / (xj - xi)
+        if (y < sw0) sw0 = y
+        if (y > sw1) sw1 = y
+      }
+    }
+  }
+  const seatW = Number.isFinite(sw0) ? Math.max(0, sw1 - sw0) : 0
   const sitZ = b.seteTopp((b.xF + xRygg) / 2)
 
   // --- velting -------------------------------------------------------------
@@ -178,8 +206,8 @@ export function measure(p: Params): Metrics {
     ["util", "utnytting", v.util, "", pct],
 
     ["units", "plater", pl.parts.length, "stk", mm],
-    ["spenn", "beinspenn", p.spenn, "mm", mm],
-    ["overheng", "setet utanfor bladet", b.overheng, "mm", mm],
+    ["spenn", "kryssvinkel", (2 * b.phi * 180) / Math.PI, "°", mm],
+    ["overheng", "setet utanfor kryssarmen", b.overheng, "mm", mm],
     ["parts", "delar", pl.parts.length, "stk", mm],
     ["sheets", "plater", ns.sheets.length, "stk", mm],
     ["sheetArea", "plate medgått", sheetArea, "mm²", m2],

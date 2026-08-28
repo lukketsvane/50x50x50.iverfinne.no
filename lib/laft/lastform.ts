@@ -1,12 +1,13 @@
 /**
  * LAFT — form av lasta.
  *
- * Spaken er BEINSPENNET, og målet er ikkje eit tak: det er ei BALANSE.
- * Flytt bladene utover, og spennet setet må bere over veks (M = P·L/4);
- * flytt dei innover, og utkraginga utanfor dei veks (M = P·a). Dei to
- * dreg kvar sin veg, og det finst nøyaktig éin avstand der dei er like
- * store — det punktet er så lite plate som setet nokon gong kan koma
- * unna med, og modellen kan rekne seg fram til det.
+ * Spaken er KRYSSET si breidd, og målet er ikkje eit tak: det er ei
+ * BALANSE. Skyv føtene utover, og setet må bere lenger ut til hjørnet
+ * mellom to armar (M = P·a); skyv dei innover, og armane held opp mindre
+ * av plata, so berebreidda fell. Dei to dreg kvar sin veg, og det finst
+ * nøyaktig éi breidd der dei er like store — det punktet er så lite
+ * plate som setet nokon gong kan koma unna med, og modellen kan rekne
+ * seg fram til det.
  *
  * Difor formar denne knappen annleis enn i dei andre motorane: der
  * tynnar han til han når seksti prosent, her går han til BOTNEN av
@@ -24,9 +25,9 @@ function harde(p: Params): number {
 }
 
 export function lastForm(p: Params): Params {
-  const r = PARAM_RANGES.spenn
+  const r = PARAM_RANGES.fotY
   const utnytt = (s: number) => {
-    const q = clampParams({ ...p, spenn: +s.toFixed(3) }, p)
+    const q = clampParams({ ...p, fotY: +s.toFixed(3) }, p)
     return lastVerste(bygg(q)).util
   }
 
@@ -55,13 +56,13 @@ export function lastForm(p: Params): Params {
   }
   let s = (lo + hi) / 2
 
-  // ærleg retrett: eit spenn som balanserer lasta, men bryt ein hard
+  // ærleg retrett: eit fotY som balanserer lasta, men bryt ein hard
   // regel den førre satsen heldt, er ikkje ei betring
   const tak = harde(p)
-  let ut = clampParams({ ...p, spenn: s }, p)
+  let ut = clampParams({ ...p, fotY: s }, p)
   for (let i = 0; i < 10 && harde(ut) > tak; i++) {
-    s += (p.spenn - s) * 0.3
-    ut = clampParams({ ...p, spenn: s }, p)
+    s += (p.fotY - s) * 0.3
+    ut = clampParams({ ...p, fotY: s }, p)
   }
   return ut
 }
