@@ -430,6 +430,7 @@ export function applyDrag(
 // =============================================================================
 export type EngineId =
   | "skal"
+  | "viking"
   | "laft"
   | "straum"
   | "ribbe"

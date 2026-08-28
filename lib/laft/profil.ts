@@ -35,7 +35,7 @@
  */
 import { shoelace, type Pt, type Vec3 } from "../core"
 import { materialet, type Params } from "./params"
-import { rekt, sporRing, tilPlan, tilVerda, type Plass } from "./spor"
+import { rekt, sporRing, tilPlan, tilVerda, type Plass } from "../plater"
 import { ryggPlass as loysRygg, setePlan } from "./seteplan"
 
 export { setePlan } from "./seteplan"

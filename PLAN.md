@@ -1352,6 +1352,92 @@ referansane som får pakken inn i kuben utan å ofre fotavtrykket.
 
 ---
 
+### 26 · VIKING: den sjette typologien, og eit mål på kva ein typologi ER — GJORD
+
+**Kvifor.** «Viking og laft bør vera ulike.» Det finst ingen viking i
+repoet, so spørsmålet var eigentleg: kva rom er ledig?
+
+**Kartet fyrst.** Fem lesarar gjekk gjennom kvar sin motor og svara på kva
+han KAN og ikkje kan. Den skarpaste lina kom frå SKIVE: «det SKIVE ikkje
+kan gje og som framleis ikkje er teke: ei LUKKA sitjeflate av flate
+plater» — og grunnen står i same lesinga: i alle dei fire snittande
+motorane **sit du på plata sin KANT**. Sju til tjueein tverrskorne
+finérkantar under låret. LAFT lét deg sitje på flata, men flata er flat.
+
+|  | du sit på KANTEN | du sit på FLATA |
+|---|---|---|
+| **krum flate** | vaffel · skive · straum · ribbe | **VIKING** |
+| **flat flate** | — | laft |
+
+**Klinkbygging fyller ruta.** Eit klinkbygd skrog er krumt utan at eit
+einaste bord er krumt: kvart bord er ei flat stripe, og krumminga bur i
+VINKELEN MELLOM DEI. Borda overlappar i lappen i staden for å møtast kant
+i kant i eit spor, og skalet vert ei lukka flate ein kan leggje handa på.
+Delelista er n bord, to spant og n−1 naglar.
+
+**Prøva før bygginga.** `scripts/typologi-avstand.ts` vart skriven fyrst,
+og ho prøver ein påstand `lib/engines.ts` har hatt heile tida utan at han
+kunne målast: at dei fem ER fem typologiar. Motorane deler ikkje ein
+einaste parameter, so det som kan samanliknast er det ferdige objektet —
+skuggen på dei tre sideflatene i kuben, og delelista. Terskelen er ikkje
+sett, han er målt: den likaste paringa mellom dei fem i nedtrekket er
+**straum–ribbe på 0,635**, og det er baren ein sjette må halde seg under.
+
+**Og ho beit med ein gong.** Fyrste VIKING landa på **0,650 mot RIBBE** —
+over baren. Ikkje på skuggen (0,57), men på DELELISTA: 27 delar à 289 cm²
+mot RIBBE sine 34 à 331. Årsaka var seksten bitte små naglar, to i kvar
+lapp, og dei var dessutan eit dårleg flatpakkeval. Éin nagle i kvar lapp,
+midt mellom spanta der han faktisk gjer arbeidet, tok delelista til 17 og
+avstanden til **0,573**. Mot LAFT ligg han på **0,40** — godt klar.
+
+**Tre kasta konstruksjonar undervegs**, alle av same slaget: eit tal som
+skulle vore ei måling.
+
+1. *Profilen sett som x og z i tre soner.* Rette mål, men sonene møttest
+   med kvar sin tangent, og eit knekk på hundre grader hamna midt i eit
+   bord. Ein hundre graders lapp er ikkje klink, det er eit hjørne.
+2. *Profilen bygd av tangentvinkelen og skalert etterpå.* Glatt kurve, men
+   skaleringa kopla alt til alt: ei skål på 44 mm gav ei leppe på 270, og
+   reparasjonen jaga eit mål som flytta seg medan ho sikta. No er det fem
+   punkt i millimeter og ein sentripetal spline gjennom dei.
+3. *Skroget som nådde golvet.* Spant og skrog slost om å vera bein, so
+   spantomrisset skar seg sjølv. Ein båt står ikkje på stamnen — han ligg
+   i ei krybbe. Skalet er no berre skalet, og spanta ber det.
+
+**Reparasjonen las to gonger feil, og begge gongene av same grunn:** ho
+rekna ei formel der geometrien løyser noko. Høgda kjem av ei kurve som
+vert skalert etter kvar ein sit; eit anslag bommar med tretti millimeter.
+No les `fiks()` `skrogMaal()`, akkurat som LAFT no les `ryggPlass()`.
+
+**Typologien sitt eige dilemma står i tavla.** Den same vinkelen som gjev
+krumminga opnar ei GLIPE i lappen — `lapp · sin(vinkel)` — og ei opning
+mellom fem og tjuefem millimeter tek ein finger. Målt over terningen ligg
+lappevinkelen mellom 18 og 73 grader. Det finst to vegar ut og båe kostar:
+fleire bord lukkar glipa, eller ein DJUPARE lapp gjer henne så brei at ho
+ikkje er ei klemme. Rekninga seier at den andre er den brukande, og at ho
+krev FÅ bord — fem til ni — som er nettopp det ein færing har. VIKING er
+den einaste motoren der talet på delar er eit komfortval, og regelen slår
+ut på tretti prosent av terningen med vilje.
+
+**To filer flytta ut av lib/laft/.** `spor.ts` → `lib/plater.ts` og
+prismenettet → `lib/platemesh.ts`. Ingen av dei visste kva dei teikna;
+begge vert no lesne av to motorar, og øyreklippinga, hòlbrua og
+veggnormalane skal skrivast éin gong. `reinsk()` fylgde med, og VIKING
+trong henne straks: utan henne hadde skalet 82 kantar som ikkje lukka seg.
+
+**Etter:** alle seks motorane held kontrakten, alle fem posane held alle
+reglane, terningen gjev 96,5 % på dei harde, og VIKING står 0,573 frå den
+næraste naboen sin mot ein bar på 0,635.
+
+**Att.** Ein av dei tre framlegga i verkstaden foreslo noko betre enn det
+som er bygd: å frese LANDET med fall, so borda ligg heilt inntil kvarandre
+og glipa forsvinn heilt. Det krev eit skrått kutt og ikkje eit flatt, og
+det er eit anna produksjonsvedtak enn resten av sandkassen gjer — men det
+er den rette løysinga på klemfaren, og ho står att. Det same gjer SAUM:
+fasettar butta kant i kant og SYDDE saman, utan spant og utan spor.
+
+---
+
 ---
 
 ## 6 Kva som skal målast
@@ -1485,3 +1571,4 @@ kjem frå éin stad.
 | `scripts/laft-sveip.ts` | same prøva over kvar pose og eit sveip av terningkast |
 | `scripts/laft-avstand.ts` | kor ulike posane er, målt i dei parametrane som formar |
 | `scripts/laft-gods.ts` | om kvart hòl ligg inne i den delen det er skore i, og har gods kring seg |
+| `scripts/typologi-avstand.ts` | om to motorar er same krakken: skugge på tre sider pluss deleliste |
