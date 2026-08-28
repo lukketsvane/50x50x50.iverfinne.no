@@ -6,33 +6,41 @@
  * kontur i sitt eige plan pluss ei plassering i rommet, og det er alt eit
  * flatpakka møbel ER.
  *
- * DEI FIRE PLATENE OG KILEN:
+ * UNDERSTELLET ER EIN X. To blad står i kvar sitt loddrette plan, og dei
+ * to plana kryssar kvarandre i ei loddrett line midt under setet. Kvart
+ * blad ber to føter, og av di plana spriker, hamnar dei fire føtene i
+ * kvar sin kvadrant. Leddet er ei krysshalving: det eine bladet har eit
+ * ope hakk ned frå overkanten, det andre eit ope hakk opp frå bogen, og
+ * summen av dei to er nøyaktig overlappet. Dette er den einaste
+ * samanføyinga i heile understellet.
  *
- *   sete   ligg vassrett, vippa bakover kring framkanten. To gjennomgåande
- *          spor tek tappane på bladene; eitt spor på tvers tek tunga til
- *          ryggen.
- *   bein   to blad som står i sideplana, med tappar opp gjennom setet og
- *          eit skrått spor i toppkanten der ryggen lafter seg ned i dei.
- *   rygg   ei plate som lener seg bakover og går NED gjennom setet. Under
- *          setet har tunga to hakk som femner om bladene, og eit spor for
- *          kilen. Bereholet er det einaste hòlet som ikkje er eit ledd.
- *   kile   står i sideplanet som bladene, vert slegen ned gjennom sporet i
- *          tunga, og bér opp mot undersida av setet. Skuldra på ryggen
- *          ligg over setet, kilen under: plata er klemd mellom dei to, og
- *          då sit heile møbelet. Han er den einaste delen som er RETT å
- *          kutte i eit anna treslag — han skal vera synleg.
+ *   sete   ligg vassrett, vippa bakover. To spor tek tappane frå blada.
+ *          Eitt hakk midt i bakkanten tek ryggen.
+ *   bein   to blad, kryssa. Boge kutta ut mellom føtene, og eit hòl i
+ *          kvar halvdel som glir frå trekant gjennom drope til boge.
+ *   rygg   ei plate — eller to stavar — som lener seg bakover og går NED
+ *          gjennom hakket i setet. Bereholet er det einaste hòlet som
+ *          ikkje er eit ledd.
+ *   kile   vert driven fram gjennom tunga under setet. Skuldra til ryggen
+ *          ligg over setet, kilen under: plata er klemd mellom dei to.
  *
- * INGEN LIM, INGEN SKRUAR. Rekkjefylgja er: reis bladene, slepp setet ned
- * på tappane, slepp ryggen ned gjennom setet, slå kilen.
+ * INGEN LIM, INGEN SKRUAR. Rekkjefylgja er: kryss dei to blada, senk
+ * setet ned over toppen, skyv ryggen ned gjennom setet, slå kilen.
+ *
+ * INGEN SPOR VERT TEIKNA. Kvart spor er SKUGGEN av den delen som skal
+ * gjennom, rekna av `spor.ts`. Ei plate som lener seg femten grader
+ * flyttar seg fire millimeter sidelengs medan ho passerer eit sete på
+ * femten — eit spor rekna av tjukna åleine er fire millimeter for smalt,
+ * og det ser ein ikkje på skjermen.
  */
-import { bbox, shoelace, type Pt, type Vec3 } from "../core"
+import { shoelace, type Pt, type Vec3 } from "../core"
 import { materialet, type Params } from "./params"
+import { rekt, sporRing, tilPlan, tilVerda, type Plass } from "./spor"
 
 const RAD = Math.PI / 180
 
-/** Plasseringa av ei plate: origo og to aksar i planet. Tjukna går langs
- *  normalen, og konturen er FRAMSIDA — baksida ligg ei tjukn bak. */
-export type Plass = { o: Vec3; u: Vec3; v: Vec3; n: Vec3 }
+export type { Plass }
+export { tilVerda, tilPlan }
 
 export type DelKind = "sete" | "bein" | "rygg" | "kile"
 
@@ -50,7 +58,7 @@ export type Del = {
 // =============================================================================
 // SMÅVERKTØY
 // =============================================================================
-const kryss = (a: Vec3, b: Vec3): Vec3 => [
+const kryssV = (a: Vec3, b: Vec3): Vec3 => [
   a[1] * b[2] - a[2] * b[1],
   a[2] * b[0] - a[0] * b[2],
   a[0] * b[1] - a[1] * b[0],
@@ -61,20 +69,49 @@ const motKlokka = (ring: Pt[]): Pt[] => (shoelace(ring) < 0 ? ring.slice().rever
 /** eit hòl går motsett veg av konturen */
 const medKlokka = (ring: Pt[]): Pt[] => (shoelace(ring) > 0 ? ring.slice().reverse() : ring)
 
-/** rektangel som ring */
-function rekt(cx: number, cy: number, w: number, h: number): Pt[] {
-  const a = w / 2
-  const b = h / 2
-  return [
-    [cx - a, cy - b],
-    [cx + a, cy - b],
-    [cx + a, cy + b],
-    [cx - a, cy + b],
-  ]
+/**
+ * Reinsk ein ring: kast punkt som ligg oppå kvarandre, og punkt som
+ * ligg på lina mellom naboane sine.
+ *
+ * Dette er ikkje pynt. Nettet byggjer LOKKET med øyreklipping og VEGGEN
+ * ved å gå kanten, og øyreklippinga må kaste kollineære punkt — ein
+ * trekant utan areal er ikkje ein trekant. Gjer ho det på eiga hand,
+ * har lokket og veggen ulike hjørne, og skalet får hòl akkurat der dei
+ * er usamde. Difor vert ringen reinsa ÉIN gong, her, og båe les same
+ * lista.
+ */
+function reinsk(ring: Pt[], eps = 0.02): Pt[] {
+  let ut: Pt[] = []
+  for (const q of ring) {
+    const f = ut[ut.length - 1]
+    if (f && Math.hypot(q[0] - f[0], q[1] - f[1]) < eps) continue
+    ut.push(q)
+  }
+  while (ut.length > 3) {
+    const a = ut[0]
+    const b = ut[ut.length - 1]
+    if (Math.hypot(a[0] - b[0], a[1] - b[1]) >= eps) break
+    ut.pop()
+  }
+  // kollineære punkt, til det ikkje er fleire att
+  for (let runde = 0; runde < 4; runde++) {
+    const inn = ut
+    ut = []
+    for (let i = 0; i < inn.length; i++) {
+      const a = inn[(i + inn.length - 1) % inn.length]
+      const b = inn[i]
+      const c = inn[(i + 1) % inn.length]
+      const cc = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+      if (inn.length > 3 && Math.abs(cc) < 1e-5) continue
+      ut.push(b)
+    }
+    if (ut.length === inn.length) break
+  }
+  return ut
 }
 
-/** kapselen: eit langhòl med halvrunde endar — bereholet og spora */
-function kapsel(cx: number, cy: number, len: number, r: number, n = 10): Pt[] {
+/** kapselen: eit langhòl med halvrunde endar — bereholet */
+function kapsel(cx: number, cy: number, len: number, r: number, n = 12): Pt[] {
   const L = Math.max(0, len / 2 - r)
   const ut: Pt[] = []
   for (let i = 0; i <= n; i++) {
@@ -89,73 +126,130 @@ function kapsel(cx: number, cy: number, len: number, r: number, n = 10): Pt[] {
 }
 
 /**
- * Runda hjørne. Kvart hjørne vert bytt med ein bogé av radien, klemd av
- * dei to kantane som møtest — eit hjørne mellom to stutte kantar kan ikkje
- * runde meir enn kantane held. Det er den einaste staden i motoren
- * geometrien mjuknar; alt anna er rette snitt og spor.
+ * Avlastinga i eit indre hjørne. Ein fres har ein radius og kan ikkje
+ * skjera skarpt; utan eit lite hòl i hjørnet vert sporet trongare enn
+ * teikninga heilt ute i endane, og delen går ikkje ned. Referansefotoa
+ * viser dei same små kvadratiske utvidingane i kvar sporende.
  */
-function rundHjorne(ring: Pt[], r: number, n = 5): Pt[] {
-  const m = ring.length
-  if (r < 0.5 || m < 3) return ring
-  const ut: Pt[] = []
-  for (let i = 0; i < m; i++) {
-    const p0 = ring[(i + m - 1) % m]
-    const p1 = ring[i]
-    const p2 = ring[(i + 1) % m]
-    let ax = p0[0] - p1[0]
-    let ay = p0[1] - p1[1]
-    let bx = p2[0] - p1[0]
-    let by = p2[1] - p1[1]
-    const la = Math.hypot(ax, ay)
-    const lb = Math.hypot(bx, by)
-    if (la < 1e-6 || lb < 1e-6) {
-      ut.push(p1)
-      continue
-    }
-    ax /= la
-    ay /= la
-    bx /= lb
-    by /= lb
-    const cosv = Math.max(-1, Math.min(1, ax * bx + ay * by))
-    const v = Math.acos(cosv)
-    // nesten rett line: ingenting å runde
-    if (v > Math.PI - 0.12 || v < 0.12) {
-      ut.push(p1)
-      continue
-    }
-    const t = Math.min(r / Math.tan(v / 2), la * 0.48, lb * 0.48)
-    const A: Pt = [p1[0] + ax * t, p1[1] + ay * t]
-    const B: Pt = [p1[0] + bx * t, p1[1] + by * t]
-    // sirkelsenteret ligg langs halveringslina
-    let mx = ax + bx
-    let my = ay + by
-    const lm = Math.hypot(mx, my) || 1
-    mx /= lm
-    my /= lm
-    const d = t / Math.cos(v / 2)
-    const c: Pt = [p1[0] + mx * d, p1[1] + my * d]
-    const rr = Math.abs(t * Math.tan(v / 2))
-    let a0 = Math.atan2(A[1] - c[1], A[0] - c[0])
-    let a1 = Math.atan2(B[1] - c[1], B[0] - c[0])
-    let dA = a1 - a0
-    while (dA > Math.PI) dA -= 2 * Math.PI
-    while (dA < -Math.PI) dA += 2 * Math.PI
-    for (let k = 0; k <= n; k++) {
-      const a = a0 + (dA * k) / n
-      ut.push([c[0] + rr * Math.cos(a), c[1] + rr * Math.sin(a)])
-    }
-  }
-  return ut
-}
-
-/** avlastinga i eit indre hjørne: fresen kan ikkje skjera skarpt, so
- *  hjørnet får eit hòl av fresediameteren. Utan det passar ikkje sporet. */
 function avlasting(x: number, y: number, d: number): Pt[] {
   const r = d / 2
   const ut: Pt[] = []
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2
     ut.push([x + r * Math.cos(a), y + r * Math.sin(a)])
+  }
+  return ut
+}
+
+/**
+ * Eit spor med avlasting i kvart hjørne — som ÉIN kuttbane.
+ *
+ * Fresen har ein radius og kan ikkje skjera skarpt. Utan avlasting vert
+ * sporet trongare enn teikninga heilt ute i hjørna, og delen går ikkje
+ * ned. Referansefotoa viser dei same små firkanta utvidingane i kvar
+ * sporende.
+ *
+ * Men avlastingane må vera DEL AV RINGEN og ikkje fem ringar til. Setet
+ * har fire tappespor og eitt ryggspor; med fire lause avlastingar kvar
+ * vert det tjuefem hòl i éi plate, og hòl vert sydde inn i ytterkanten
+ * med null-breie bruer før dei kan trianguleras. Tjuefem bruer i eitt
+ * omriss kryssar kvarandre, øyreklippinga gjev opp, og plata vert full
+ * av trekantar som vender feil veg. På skjermen ser det ut som setet er
+ * borte. Difor: eitt spor, ein ring, hjørna innebygde.
+ */
+function sporMedAvlasting(ring: Pt[], d: number): Pt[][] {
+  const r = d / 2
+  const n = ring.length
+  const ut: Pt[] = []
+  for (let i = 0; i < n; i++) {
+    const p0 = ring[(i + n - 1) % n]
+    const p1 = ring[i]
+    const p2 = ring[(i + 1) % n]
+    let ax = p0[0] - p1[0]
+    let ay = p0[1] - p1[1]
+    let bx = p2[0] - p1[0]
+    let by = p2[1] - p1[1]
+    const la = Math.hypot(ax, ay) || 1
+    const lb = Math.hypot(bx, by) || 1
+    ax /= la; ay /= la; bx /= lb; by /= lb
+    let mx = ax + bx
+    let my = ay + by
+    const lm = Math.hypot(mx, my)
+    if (lm < 1e-6 || la < 3 * r || lb < 3 * r) {
+      ut.push(p1)
+      continue
+    }
+    // ut frå hjørnet, langs den motsette halveringslina
+    mx = -mx / lm
+    my = -my / lm
+    const w = r * 0.72
+    const L = r * 0.95
+    ut.push([p1[0] + ax * w, p1[1] + ay * w])
+    ut.push([p1[0] + ax * w + mx * L, p1[1] + ay * w + my * L])
+    ut.push([p1[0] + bx * w + mx * L, p1[1] + by * w + my * L])
+    ut.push([p1[0] + bx * w, p1[1] + by * w])
+  }
+  return [medKlokka(ut)]
+}
+
+// =============================================================================
+// SETEPLANET — éi likning over tre formspråk
+// =============================================================================
+/**
+ * Superellipsen gjev hjørna: eksponenten to er ellipsen, tolv er
+ * rektangelet, og alt imellom er dei runda hjørna. Kilen gjer framkanten
+ * breiare enn bakkanten. Nasen skyv framkanten fram på midten, og BUKTA
+ * skyv bakkanten fram — det er halvmånen, og det er den einaste
+ * skilnaden mellom eit skjold og ein sigd.
+ *
+ * Kurva vert gått gjennom på TVERS og ikkje kring ein vinkel. Ein
+ * vinkelsveip hoppar over bakkanten når eksponenten er høg: der er kurva
+ * nesten loddrett i y, og to steg i vinkel kan vera eit halvt sete. Då
+ * vert bukta ein spiss i staden for ein boge.
+ */
+export function setePlan(p: Params, N = 132): Pt[] {
+  const A = p.djup / 2
+  const B = p.breidd / 2
+  const n = 2 + 10 * (1 - p.hjorne) ** 2
+  const pkt = (s: number, fram: boolean): Pt => {
+    const yn = Math.sin((Math.PI * s) / 2)
+    const x0 = (fram ? A : -A) * Math.max(0, 1 - Math.abs(yn) ** n) ** (1 / n)
+    const q = x0 / A
+    const kile = 1 + p.setekile * q
+    const y = B * yn * kile
+    const midt = 0.5 * (1 + Math.cos(Math.PI * Math.min(1, Math.abs(yn))))
+    const x = x0 + p.nase * Math.max(0, q) * midt + p.bakbukt * Math.max(0, -q) * midt
+    return [x, y]
+  }
+  const ut: Pt[] = []
+  for (let i = 0; i <= N; i++) ut.push(pkt(-1 + (2 * i) / N, true))
+  for (let i = 1; i < N; i++) ut.push(pkt(1 - (2 * i) / N, false))
+  return ut
+}
+
+// =============================================================================
+// HÒLET I BLADET — trekant gjennom drope til boge
+// =============================================================================
+/**
+ * Éi kurve, tre språk. Eksponenten opnar frå ein romb til eit runda
+ * rektangel, og fallet gjer det eine hjørnet spisst — ein romb med fall
+ * er ein trekant, ein ellipse med fall er ein drope, og ein runda
+ * firkant utan fall er bogen. Ingen av dei tre er eit særtilfelle i
+ * koden; dei ligg på same linja gjennom holform.
+ */
+function bladhol(cx: number, cy: number, bw: number, bh: number, holform: number, N = 64): Pt[] {
+  const nH = 1.35 + holform * 1.75
+  const fall = 0.62 * (1 - holform)
+  const ut: Pt[] = []
+  for (let i = 0; i < N; i++) {
+    const th = (i / N) * Math.PI * 2
+    const c = Math.cos(th)
+    const s = Math.sin(th)
+    const x0 = Math.sign(c) * Math.abs(c) ** (2 / nH)
+    const y0 = Math.sign(s) * Math.abs(s) ** (2 / nH)
+    // fallet smalnar den eine enden: spissen i trekanten og i dropen
+    const k = 1 - fall * (0.5 + y0 / 2)
+    ut.push([cx + (bw / 2) * x0 * k, cy + (bh / 2) * y0])
   }
   return ut
 }
@@ -170,20 +264,27 @@ export type Bygg = {
   a: number
   /** ryggleninga i radianar */
   rv: number
-  /** setet si overside i høgd z ved vassrett x */
+  /** halve vinkelen mellom dei to bladplana, radianar */
+  phi: number
+  /** setet si over- og underside i høgd z ved vassrett x */
   seteTopp(x: number): number
-  /** setet si underside i høgd z ved vassrett x */
   seteUnder(x: number): number
-  /** vassrett utstrekning av setet, fram og bak */
+  /** vassrett utstrekning av setet, fram og bak, på midtlina */
   xF: number
   xB: number
-  /** føtene sine x, og bladet si halve tjukn i y */
-  fotF: number
-  fotB: number
-  /** fri spennvidd setet har mellom bladene, mm */
-  spennFri: number
-  /** overhenget setet har utanfor bladet på kvar side, mm */
+  /** føtene sin avstand frå midten, i bladet sitt plan */
+  R: number
+  /** høgda på krysset: bladet sin topp og bogen sin topp midt under setet */
+  kryssTopp: number
+  kryssBotn: number
+  /** største avstand frå ein setekant til næraste bladline, mm */
   overheng: number
+  /** kor langt setet ligg PÅ ei bladline — berebreidda i bøyinga */
+  stotteB: number
+  /** avstanden frå eit setepunkt i verda til næraste bladline */
+  tilBlad(x: number, y: number): number
+  /** ryggen sin x der han går gjennom setet */
+  xRygg: number
 }
 
 export function bygg(p: Params): Bygg {
@@ -192,306 +293,409 @@ export function bygg(p: Params): Bygg {
   const t = p.plyT
   const fit = p.pressfit
   const ca = Math.cos(a)
+  const sa = Math.sin(a)
+  const A = p.djup / 2
 
-  // setet er ei PLATE: `djup` er det ein kuttar, og den vassrette
-  // utstrekninga er difor litt mindre når plata vippar
-  const xF = (p.djup / 2) * ca
-  const xB = -xF
-  const seteTopp = (x: number) => p.hogd - (xF - x) * Math.tan(a)
-  const seteUnder = (x: number) => seteTopp(x) - t / ca
-
-  const fotF = xF + p.framspark
-  const fotB = xB - p.bakspark
-
-  // --- kvar ryggen står ---------------------------------------------------
-  // Ryggplata lener seg bakover og går ned gjennom setet. Ho kryssar
-  // setet ved xR; over setet stig ho bakover, under setet går tunga ned.
-  const xR = xB + p.djup * 0.10 * ca + t
-  const zR = seteTopp(xR)
-  /** eit punkt i ryggplanet: w langs plata frå setekryssinga, u på tvers */
-  const ryggPunkt = (w: number): [number, number] => [xR - w * Math.sin(rv), zR + w * Math.cos(rv)]
-
-  // --- SETET --------------------------------------------------------------
-  // Konturen i planet: u langs djupna, v på tvers. Fram- og bakkanten
-  // bognar med `svai`, og bakkanten bognar INN so han ikkje kolliderer
-  // med ryggen som lener seg over han.
-  const NU = 16
-  const halvD = p.djup / 2
-  const halvB = p.breidd / 2
-  // sidekantane smalnar litt bakover — det er det som gjer at auget les
-  // ein SETEFLATE og ikkje eit brett
-  const breiddVed = (u: number) => halvB * (1 - 0.06 * (0.5 - u / p.djup))
-  const seteRing: Pt[] = []
-  for (let i = 0; i <= NU; i++) {
-    const s = i / NU
-    const v = -1 + 2 * s
-    seteRing.push([halvD + p.svai * p.djup * (1 - v * v) * 0.5, v * breiddVed(halvD)])
-  }
-  for (let i = 0; i <= NU; i++) {
-    const s = i / NU
-    const v = 1 - 2 * s
-    seteRing.push([-halvD + p.svai * p.djup * (1 - v * v) * 0.5, v * breiddVed(-halvD)])
-  }
-  const seteOut = motKlokka(rundHjorne(seteRing, p.nase, 6))
-
-  // tappane frå bladene, som gjennomgåande spor. Sporet er så breitt som
-  // plata pluss klaringa, og så langt som halsen.
-  const seteHol: Pt[][] = []
-  const uTapp = 0
-  for (const sgn of [-1, 1]) {
-    seteHol.push(medKlokka(rekt(uTapp, (sgn * p.spenn) / 2, p.hals, t + fit)))
-  }
-  // tunga til ryggen: eit spor på tvers. Ei skrå plate skjer BREIARE
-  // gjennom ei vassrett plate enn ho er tjukk — difor cosinusen.
-  const uR = (xR - 0) / ca
-  const sporB = (t + fit) / Math.cos(rv)
-  seteHol.push(medKlokka(rekt(uR, 0, sporB, p.ryggF)))
-  for (const sv of [-1, 1]) {
-    for (const su of [-1, 1]) {
-      seteHol.push(
-        medKlokka(avlasting(uR + (su * sporB) / 2, (sv * p.ryggF) / 2, p.fresD)),
-      )
-    }
-  }
-
+  // --- setet sitt plan ------------------------------------------------------
+  const seteU: Vec3 = [ca, 0, sa]
+  const seteV: Vec3 = [0, 1, 0]
+  const seteN = kryssV(seteU, seteV)
   const setePlass: Plass = {
-    // Konturen ligg i UNDERSIDA og materialet veks opp: `seteTopp` er den
-    // flata ein sit PÅ, og då må plata slutte der og ikkje byrje der.
-    o: [0, 0, seteTopp(0) - t / ca],
-    u: [ca, 0, Math.sin(a)],
-    v: [0, 1, 0],
-    n: [-Math.sin(a), 0, ca],
+    o: [t * sa, 0, p.hogd - A * sa - t * ca],
+    u: seteU,
+    v: seteV,
+    n: seteN,
+  }
+  const seteTopp = (x: number) => p.hogd - (A - x / ca) * sa
+  const seteUnder = (x: number) => seteTopp(x) - t / ca
+  const xF = (A + p.nase) * ca
+  const xB = (-A + p.bakbukt) * ca
+  // Ryggen står så langt bak som godset i setet toler: bakkanten pluss
+  // ei heil tjukn pluss litt. Med sigdsete ligg bakkanten langt fram, og
+  // då følgjer ryggen med — det er sigden som flyttar han, ikkje eit tal.
+  const xRygg = xB + t + 26
+
+  // --- bladplana ------------------------------------------------------------
+  const phi = Math.atan2(p.fotY, p.fotX)
+  const R = Math.hypot(p.fotX, p.fotY)
+  const bladPlass = (teikn: number): Plass => {
+    const u: Vec3 = [Math.cos(phi), teikn * Math.sin(phi), 0]
+    const v: Vec3 = [0, 0, 1]
+    const n = kryssV(u, v)
+    return { o: [(-n[0] * t) / 2, (-n[1] * t) / 2, (-n[2] * t) / 2], u, v, n }
   }
 
-  // --- BLADENE ------------------------------------------------------------
-  // Profilen i (u, w) = (x, z). Toppkanten fylgjer undersida av setet;
-  // framme og bak sparkar bladet ut i føter, og imellom står ein boge.
-  const wF = seteUnder(xF)
-  const wB = seteUnder(xB)
-  const fotL = 46 + 40 * (1 - p.beinsvai)
-  const beinRing: Pt[] = []
-  beinRing.push([fotF, 0])
-  beinRing.push([fotF - fotL, 0])
-  // bogen mellom føtene: `beinsvai` gjer han spissare, so beina vert
-  // smalare og bladet lettare
-  const NB = 30
-  const n2 = 2 - 1.35 * p.beinsvai
-  const bA = fotF - fotL
-  const bB = fotB + fotL
-  // Bogen er ein DEL av bladhøgda: han skal la beina bli SLANKE, og eit
-  // fast millimetertal gjer berre eit hakk i underkanten på eit høgt blad.
-  const bogeH = p.fotboge * Math.min(wF, wB)
-  for (let i = 1; i < NB; i++) {
-    const s = i / NB
-    const x = bA + (bB - bA) * s
-    const w = bogeH * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(2 * s - 1), n2)), 1 / n2)
-    beinRing.push([x, w])
+  // --- kor langt setet rekk langs ei kryssarm ------------------------------
+  // Bladet skal vera så høgt setet treng, og ikkje ein millimeter høgare.
+  // Difor vert det målt kvar setet SLUTTAR langs armen, og utanfor det
+  // punktet fell overkanten av. Det er heile skilnaden mellom eit bein og
+  // ein sidevegg, og det er ikkje eit tal nokon set — det er setet sitt
+  // eige omriss lese langs armen.
+  const setering = motKlokka(setePlan(p))
+  const iSete = (u: number, v: number) => {
+    let inne = false
+    for (let i = 0, j = setering.length - 1; i < setering.length; j = i++) {
+      const [xi, yi] = setering[i]
+      const [xj, yj] = setering[j]
+      if (yi > v !== yj > v && u < ((xj - xi) * (v - yi)) / (yj - yi) + xi) inne = !inne
+    }
+    return inne
   }
-  beinRing.push([fotB + fotL, 0])
-  beinRing.push([fotB, 0])
-  beinRing.push([xB, wB])
-  // TAPPEN: toppkanten stig gjennom setet og endar i flukt med oversida.
-  // Han er ikkje eit påheng — han er sjølve konturen, og det er han som
-  // held bladet fast i setet. Halve halsen vert målt i PLANET til setet,
-  // so tapp og spor har same lengd når plata vippar.
-  const halvTapp = (p.hals / 2) * ca
-  beinRing.push([-halvTapp, seteUnder(-halvTapp)])
-  beinRing.push([-halvTapp, seteTopp(-halvTapp)])
-  beinRing.push([halvTapp, seteTopp(halvTapp)])
-  beinRing.push([halvTapp, seteUnder(halvTapp)])
-  beinRing.push([xF, wF])
-  // liten radius: tappen skal passe eit spor, og eit rundt hjørne som et
-  // av skuldra er verre enn eit skarpt som fresen uansett rundar
-  const beinOut = motKlokka(rundHjorne(beinRing, Math.min(7, p.nase), 4))
+  let sSete = 0
+  for (let sv = 4; sv <= R; sv += 3) {
+    if (iSete((sv * Math.cos(phi)) / ca, -sv * Math.sin(phi))) sSete = sv
+  }
+  sSete = Math.max(40, Math.min(R - 24, sSete))
 
-  // sporet der ryggen lafter seg ned i bladet: ei skrå renne frå
-  // toppkanten og ned, halve kryssinga djup
-  const laftDjup = 34
-  const beinHol: Pt[][] = []
-  // Kvar ryggplanet FAKTISK kryssar toppkanten: plata lener seg, so
-  // krysspunktet ligg eit stykke bak der ho skjer setet si overside.
-  // Rekna, ikkje gissa — eit spor på feil stad er eit møbel som ikkje
-  // let seg setje saman.
-  const sKryss = -(t / ca) / (Math.cos(rv) + Math.sin(rv) * Math.tan(a))
-  const beinSporSenter = xR - sKryss * Math.sin(rv)
-  {
-    const halvS = (t + fit) / 2
-    const dx = -Math.sin(rv)
-    const dz = Math.cos(rv)
-    // toppen av sporet ligg i toppkanten av bladet, botnen `laftDjup` ned
-    const topp: Pt = [beinSporSenter, seteUnder(beinSporSenter)]
-    const botn: Pt = [topp[0] + dx * -laftDjup, topp[1] + dz * -laftDjup]
-    const px = dz
-    const pz = -dx
-    beinHol.push(
-      medKlokka([
-        [topp[0] + px * halvS, topp[1] + pz * halvS],
-        [botn[0] + px * halvS, botn[1] + pz * halvS],
-        [botn[0] - px * halvS, botn[1] - pz * halvS],
-        [topp[0] - px * halvS, topp[1] - pz * halvS],
-      ]),
-    )
-    beinHol.push(medKlokka(avlasting(botn[0], botn[1], p.fresD)))
+  /**
+   * Bladet sin topp: full høgd ut til SKULDRA, og fall derifrå ut til
+   * foten.
+   *
+   * Utan skulder er bladet ein sidevegg — ei plate i full høgd frå fot
+   * til fot, og då er det ikkje eit bein, det er ein vegg med eit hòl i.
+   * Skuldra er kor langt ut setet faktisk vert bore; utanfor henne har
+   * plata ingen jobb, og då skal ho vekk. Referansane gjer nettopp det,
+   * og det er difor dei les som bein.
+   *
+   * Prisen er ærleg og står i lastmodellen: kortare skulder gjev større
+   * overheng, og overhenget er heile bøyemomentet i setet.
+   */
+  const sSkulder = Math.min(sSete, Math.max(60, p.hals * R))
+  const fotTopp = 0.34
+  const bladTopp = (s: number) => {
+    const a2 = Math.abs(s)
+    if (a2 <= sSkulder) return seteUnder(s * Math.cos(phi))
+    const zSk = seteUnder(Math.sign(s) * sSkulder * Math.cos(phi))
+    const tau = Math.min(1, (a2 - sSkulder) / Math.max(1, R - sSkulder))
+    // heva cosinus: flat ved skuldra, flat ved foten, alt fallet imellom
+    const f = 0.5 * (1 + Math.cos(Math.PI * tau))
+    return zSk * (fotTopp + (1 - fotTopp) * f)
+  }
+  const kryssTopp = bladTopp(0)
+  // bogen mellom føtene: høgast på midten, og det er DENNE høgda som
+  // gjer bladet smalt i midja — ein eigen midjeparameter ville berre
+  // seie det same ein gong til
+  const sInn = Math.max(30, R - p.fotbreidd)
+  const kryssBotn = p.bogeH * kryssTopp
+  const bogeK = 2.2
+  const bogeZ = (s: number) =>
+    Math.abs(s) >= sInn ? 0 : kryssBotn * (1 - (Math.abs(s) / sInn) ** bogeK)
+
+  // --- bladomrisset ---------------------------------------------------------
+  // Tappane går OPP gjennom setet. Dei sit der bladet er breiast under
+  // setet, altså midt mellom krysset og foten.
+  const sTapp = Math.min(sInn * 0.52, sSkulder * 0.62)
+  const tappB = Math.min(96, sInn * 0.42)
+  const tappH = t / ca + 1.2
+
+  // Den BAKRE tappen og ryggplata vil begge stå i setet på same staden:
+  // tappen kjem bakover langs armen, ryggen ned gjennom bakkanten, og
+  // dei to sporene skjer kvarandre inne i plata. Ryggen vinn — han ber
+  // lasta ein lener på — so tappen vert kappa framfor han. Grensa er
+  // rekna av kvar ryggen faktisk står, ikkje sett med eit tal.
+  const bakGrense = (xRygg + t + 12) / Math.cos(phi)
+  const tappSpenn = [-sTapp, sTapp].map((c) => {
+    const lo = Math.max(c - tappB / 2, c < 0 ? bakGrense : -Infinity)
+    return [lo, c + tappB / 2] as const
+  })
+  const iTapp = (s: number) => tappSpenn.some(([lo, hi]) => s > lo && s < hi)
+
+  function bladOmriss(): Pt[] {
+    const ut: Pt[] = []
+    const N = 64
+    // Overkanten frå bak til fram. Han følgjer undersida av setet, bortsett
+    // frå der tappane stig gjennom plata — dei vert sette inn som fire
+    // punkt kvar, og prøvepunkt inne i ein tapp vert hoppa over, elles
+    // fell kanten ned att midt i tappen.
+    for (let i = 0; i <= N; i++) {
+      const s = -R + (2 * R * i) / N
+      const s2 = -R + (2 * R * (i + 1)) / N
+      if (!iTapp(s)) ut.push([s, bladTopp(s)])
+      for (const [lo, hi] of tappSpenn) {
+        if (s < lo && s2 >= lo) {
+          ut.push([lo, bladTopp(lo)])
+          ut.push([lo, bladTopp((lo + hi) / 2) + tappH])
+          ut.push([hi, bladTopp((lo + hi) / 2) + tappH])
+          ut.push([hi, bladTopp(hi)])
+        }
+      }
+    }
+    // framre fot ned, bogen tilbake, bakre fot opp
+    ut.push([R, 0])
+    for (let i = 0; i <= 60; i++) {
+      const s = sInn - (2 * sInn * i) / 60
+      ut.push([s, bogeZ(s)])
+    }
+    ut.push([-R, 0])
+    return ut
   }
 
-  const beinPlass = (sgn: number): Plass => ({
-    o: [0, (sgn * p.spenn) / 2 - t / 2, 0],
-    u: [1, 0, 0],
-    v: [0, 0, 1],
-    n: [0, 1, 0],
+  // --- delane ---------------------------------------------------------------
+  const delar: Del[] = []
+
+  const blad: Del[] = [1, -1].map((teikn, i) => ({
+    id: "B" + (i + 1),
+    kind: "bein" as const,
+    outline: motKlokka(bladOmriss()),
+    holes: [],
+    plass: bladPlass(teikn),
+    t,
+  }))
+
+  // KRYSSHALVINGA, rekna eksakt.
+  //
+  // Her er skuggen feil verktøy: naboen kastar skugge langs HEILE si eiga
+  // høgd, frå foten til tappen, og eit hakk skore etter den skuggen hamnar
+  // både for høgt og for langt. Det som gjeld er overlappet mellom dei to
+  // — frå bogen sin topp til bladet sin topp — delt på midten.
+  //
+  // Breidda er naboen si TILSYNELATANDE tjukn i dette planet. Dei to
+  // plana står ikkje vinkelrett på kvarandre; dei står i vinkelen 2φ, og
+  // ei plate på femten millimeter sedd på skrå er femten delt på sinus
+  // til den vinkelen. Ved seksti grader er det sytten, ved tretti er det
+  // tretti. Eit hakk kutta til femten ville aldri gått ned.
+  const overlapp = kryssTopp - kryssBotn
+  const midt = (kryssTopp + kryssBotn) / 2
+  // Og tjukna til DENNE plata sveipar òg: eit punkt som ligg ute ved si
+  // eiga bakside er alt eit stykke inn i naboen. Difor står det (1 +
+  // |cos 2φ|) i teljaren og ikkje berre ein — utan det leddet vert hakket
+  // eit par millimeter for smalt, og dei to blada deler ei tynn flis
+  // materiale heile overlappet gjennom.
+  const hakkB = (t * (1 + Math.abs(Math.cos(2 * phi)))) / Math.max(0.2, Math.sin(2 * phi)) + fit
+  blad.forEach((d, i) => {
+    const h =
+      i === 0
+        ? rekt(-hakkB / 2, midt, hakkB / 2, kryssTopp + 4)
+        : rekt(-hakkB / 2, kryssBotn - 4, hakkB / 2, midt)
+    d.holes.push(...sporMedAvlasting(h, p.fresD))
   })
 
-  // --- RYGGEN -------------------------------------------------------------
-  // Planet: u på tvers (y), w langs plata frå setekryssinga og opp.
-  // Under setet går tunga ned; over setet stig ryggen med skuldrer.
-  const tunge = 96 + p.plyT * 2
-  const wTopp = p.ryggH / Math.cos(rv)
-  const NR = 14
-  const ryggRing: Pt[] = []
-  // tunga, nedanfrå og opp på framsida
-  ryggRing.push([-p.ryggF / 2, -tunge])
-  ryggRing.push([p.ryggF / 2, -tunge])
-  // skuldra rett over setet: her ligg plata OPPÅ setet, og det er skuldra
-  // som tek lasta når kilen dreg
-  ryggRing.push([p.ryggF / 2, 26])
-  for (let i = 1; i <= NR; i++) {
-    const s = i / NR
-    const w = 26 + (wTopp - 26) * s
-    const b = p.ryggF / 2 + (p.ryggT / 2 - p.ryggF / 2) * s
-    ryggRing.push([b + p.ryggsvai * p.ryggT * Math.sin(Math.PI * s) * 0.5, w])
-  }
-  for (let i = NR; i >= 1; i--) {
-    const s = i / NR
-    const w = 26 + (wTopp - 26) * s
-    const b = p.ryggF / 2 + (p.ryggT / 2 - p.ryggF / 2) * s
-    ryggRing.push([-(b + p.ryggsvai * p.ryggT * Math.sin(Math.PI * s) * 0.5), w])
-  }
-  ryggRing.push([-p.ryggF / 2, 26])
-  const ryggOut = motKlokka(rundHjorne(ryggRing, p.nase * 0.8, 5))
-
-  const ryggHol: Pt[][] = []
-  // bereholet — det einaste hòlet som ikkje er eit ledd
-  if (p.grep >= 60) {
-    ryggHol.push(medKlokka(kapsel(0, wTopp - p.grepZ, p.grep, 17, 12)))
-  }
-  // hakka som femner om bladene: opne spor frå botnkanten av tunga og opp
-  for (const sgn of [-1, 1]) {
-    const cy = (sgn * p.spenn) / 2
-    const halv = (t + fit) / 2
-    const opp = -tunge + laftDjup + 12
-    ryggHol.push(
-      medKlokka([
-        [cy - halv, -tunge - 1],
-        [cy + halv, -tunge - 1],
-        [cy + halv, opp],
-        [cy - halv, opp],
-      ]),
-    )
-    ryggHol.push(medKlokka(avlasting(cy, opp, p.fresD)))
-  }
-  // Sporet til kilen. Eit hòl i tunga går langs NORMALEN hennar — altså
-  // fram og bak — so kilen står i sideplanet som bladene og vert driven
-  // FRAM. Hòlet er difor tynt som ei plate på tvers og høgt som kilen er
-  // der han står. (Fyrste utkastet hadde hòlet lagt andre vegen, og då
-  // kunne kilen ikkje koma gjennom det i det heile.)
-  const kileH = 26
-  const kileW = -(t / ca) / Math.cos(rv) - 3 - kileH / 2
-  ryggHol.push(medKlokka(rekt(0, kileW, t + fit, kileH + fit)))
-  for (const su of [-1, 1]) {
-    for (const sw of [-1, 1]) {
-      ryggHol.push(
-        medKlokka(avlasting((su * (t + fit)) / 2, kileW + (sw * (kileH + fit)) / 2, p.fresD)),
-      )
+  // hòlet i kvar halvdel av bladet
+  if (p.holstorleik > 0.04) {
+    for (const d of blad) {
+      for (const teikn of [-1, 1]) {
+        const cs = teikn * sInn * 0.55
+        const romH = bladTopp(cs) - bogeZ(cs)
+        const bw = sInn * 0.62 * p.holstorleik
+        const bh = romH * 0.72 * p.holstorleik
+        if (bw < 24 || bh < 24) continue
+        d.holes.push(medKlokka(bladhol(cs, bogeZ(cs) + romH * 0.52, bw, bh, p.holform)))
+      }
     }
   }
+  delar.push(...blad)
 
-  const ryggPlass: Plass = (() => {
-    const bp = ryggPunkt(0)
-    const nn = kryss([0, 1, 0], [-Math.sin(rv), 0, Math.cos(rv)])
-    return {
-      // Sentrert i sporet sitt: konturen er MIDT i plata. Ei plate som
-      // ligg inntil den eine sida av sporet, står skeivt i møbelet.
-      o: [bp[0] - (nn[0] * t) / 2, -(nn[1] * t) / 2, bp[1] - (nn[2] * t) / 2],
-      u: [0, 1, 0],
-      v: [-Math.sin(rv), 0, Math.cos(rv)],
-      n: nn,
+  // --- ryggen ---------------------------------------------------------------
+  const zSete = seteTopp(xRygg)
+  const ryggU: Vec3 = [0, 1, 0]
+  const ryggV3: Vec3 = [-Math.sin(rv), 0, Math.cos(rv)]
+  const ryggN = kryssV(ryggU, ryggV3)
+  const ryggPlass: Plass = {
+    o: [xRygg - (ryggN[0] * t) / 2, -(ryggN[1] * t) / 2, zSete - (ryggN[2] * t) / 2],
+    u: ryggU,
+    v: ryggV3,
+    n: ryggN,
+  }
+
+  const ryggTal = p.ryggdel >= 1.5 ? 2 : 1
+  const glipe = ryggTal === 2 ? p.ryggglipe : 0
+  const staveB = (p.ryggT - glipe) / ryggTal
+  const rygg: Del[] = []
+  for (let k = 0; k < ryggTal; k++) {
+    const cy = ryggTal === 1 ? 0 : (k - 0.5) * (staveB + glipe)
+    const y0 = cy - staveB / 2
+    const y1 = cy + staveB / 2
+    const vTopp = p.ryggH
+    const vBotn = -p.tunge
+    // TUNGA MÅ IGJENNOM KILEN MELLOM ARMANE. Under setet konvergerer dei
+    // to bladplana mot midtlina — di lenger ned tunga kjem, di mindre
+    // rom er det. Difor er tunga smalare enn ryggen, og ho er plassert
+    // inn mot midten: med to stavar ligg dei to tungene side om side der
+    // det framleis er plass, ikkje ute under kvar sin stav der det ikkje
+    // er det. Breidda er rekna av det trongaste punktet, ikkje gissa.
+    const xNed = xRygg - vBotn * Math.sin(rv)
+    const kilerom = Math.abs(xNed) * Math.tan(phi) - t
+    const tungeB = Math.max(34, Math.min(staveB, (2 * kilerom) / ryggTal - 10))
+    const cyT = ryggTal === 1 ? 0 : (k - 0.5) * (tungeB + 8)
+    const t0 = cyT - tungeB / 2
+    const t1 = cyT + tungeB / 2
+    // toppen: rett kant som opnar seg mot ein halvsirkel
+    const rTopp = (p.ryggtopp * staveB) / 2
+    // Skuldra SKRÅR. Ei vassrett skulder gjev fire punkt på same lina, og
+    // då vert øyreklippinga og veggen usamde om kvar kantane går: klippet
+    // kastar det midtre punktet, veggen går innom det, og skalet får eit
+    // hòl nøyaktig der. Ei skrå skulder har ikkje det problemet — og ho er
+    // dessutan rett konstruksjon, av di eit skarpt innvendig hjørne i ei
+    // finérplate er der ho sprekk.
+    const skulder = Math.min(16, staveB / 8)
+    const ring: Pt[] = [
+      [t0, vBotn],
+      [t1, vBotn],
+      [t1, 0],
+      [y1, skulder],
+      [y1, vTopp - rTopp],
+    ]
+    for (let i = 0; i <= 14 && rTopp > 0.5; i++) {
+      const th = (i / 14) * Math.PI
+      ring.push([cy + (staveB / 2) * Math.cos(th), vTopp - rTopp + rTopp * Math.sin(th)])
     }
-  })()
+    ring.push([y0, vTopp - rTopp])
+    ring.push([y0, skulder])
+    ring.push([t0, 0])
+    const d: Del = {
+      id: "R" + (k + 1),
+      kind: "rygg",
+      // Er tunga like brei som staven, fell skuldra bort og to punkt
+      // hamnar oppå kvarandre. Ein null-lang kant er ikkje ein kant: han
+      // gjev ein trekant utan areal, og eit skal med hòl i.
+      outline: motKlokka(reinsk(ring)),
+      holes: [],
+      plass: ryggPlass,
+      t,
+    }
+    // bereholet
+    const gl = Math.min(p.grep, staveB - 76)
+    if (gl >= 84) d.holes.push(medKlokka(kapsel(cy, vTopp - p.grepZ, gl, 17)))
+    rygg.push(d)
+  }
+  delar.push(...rygg)
 
-  // --- KILEN --------------------------------------------------------------
-  // Han vert slegen FRAM gjennom tunga, og skråkanten er heile mekanikken:
-  // di lenger inn han går, di høgare vert snittet i hòlet, og til slutt
-  // pressar overkanten opp mot undersida av setet. Skuldra til ryggen ligg
-  // OVER setet og kilen UNDER — plata er klemd mellom dei to, og då sit
-  // møbelet. Hovudet stoggar han: det står høgare enn hòlet.
-  const kL = p.kileB
-  const kileOut = motKlokka(
-    rundHjorne(
-      [
-        [-kL / 2, 0],
-        [kL / 2, 0],
-        [kL / 2, kileH + 15],
-        [kL / 2 - 16, kileH + 15],
-        [kL / 2 - 16, kileH],
-        [-kL / 2, kileH * 0.6],
-      ],
-      3,
-      3,
-    ),
-  )
-  const kilePkt = ryggPunkt(kileW)
+  // --- kilen ----------------------------------------------------------------
+  // Han står i midtplanet og vert driven FRAM gjennom tunga. Skråkanten
+  // er heile mekanikken: di lenger inn han går, di høgare vert snittet i
+  // hòlet, og til slutt pressar overkanten opp mot undersida av setet.
+  const kileZ = zSete - t / ca - 44
+  const kileH0 = 26
+  // Tunga lener seg framover medan ho fell: der ho står i kilehøgda er
+  // ikkje der ho gjekk gjennom setet. Kilen må stå DER.
+  const xTunge = xRygg + (zSete - kileZ) * Math.tan(rv)
   const kilePlass: Plass = {
-    // står i sideplanet som bladene, midt mellom dei, med botnen i botnen
-    // av hòlet — driven frå baksida og fram
-    o: [kilePkt[0] - kL * 0.34, -t / 2, kilePkt[1] - (kileH + fit) / 2],
+    o: [xTunge, t / 2, kileZ],
     u: [1, 0, 0],
     v: [0, 0, 1],
-    n: [0, 1, 0],
+    n: [0, -1, 0],
+  }
+  const kileL = p.kileB
+  const kileRing: Pt[] = [
+    [-kileL * 0.5, -kileH0 / 2],
+    [kileL * 0.22, -kileH0 / 2 + 4],
+    [kileL * 0.34, -kileH0 / 2 + 5],
+    [kileL * 0.34, kileH0 / 2 + 9],
+    [kileL * 0.22, kileH0 / 2 + 9],
+    [kileL * 0.22, kileH0 / 2],
+    [-kileL * 0.5, kileH0 / 2 - 3],
+  ]
+  const kile: Del = {
+    id: "K1",
+    kind: "kile",
+    outline: motKlokka(kileRing),
+    holes: [],
+    plass: kilePlass,
+    t,
+  }
+  delar.push(kile)
+
+  // --- SPORA, rekna av dei som skal gjennom --------------------------------
+  const sete: Del = {
+    id: "S1",
+    kind: "sete",
+    outline: motKlokka(setePlan(p)),
+    holes: [],
+    plass: setePlass,
+    t,
+  }
+  // Tappane frå blada — eitt spor per TAPP. Eit filter som slepper
+  // gjennom begge ville gjeve éin skugge som spente over heile bladet,
+  // og då er sporet ikkje eit spor lenger, men ei kløft.
+  for (const d of blad) {
+    for (const [lo, hi] of tappSpenn) {
+      const s = sporRing(
+        setePlass,
+        t,
+        d,
+        fit,
+        (q) => q[0] > lo - 0.2 && q[0] < hi + 0.2 && q[1] > bladTopp(q[0]) + 0.3,
+      )
+      if (s) sete.holes.push(...sporMedAvlasting(s, p.fresD))
+    }
+  }
+  // hakket til ryggen, opent mot bakkanten
+  for (const d of rygg) {
+    const s = sporRing(setePlass, t, d, fit)
+    if (s) sete.holes.push(...sporMedAvlasting(s, p.fresD))
+  }
+  delar.unshift(sete)
+
+  // hòlet i tunga som kilen går gjennom
+  for (const d of rygg) {
+    const s = sporRing(d.plass, d.t, kile, fit)
+    if (s) d.holes.push(...sporMedAvlasting(s, p.fresD))
   }
 
-  const delar: Del[] = [
-    { id: "S1", kind: "sete", outline: seteOut, holes: seteHol, plass: setePlass, t },
-    { id: "B1", kind: "bein", outline: beinOut, holes: beinHol, plass: beinPlass(-1), t },
-    { id: "B2", kind: "bein", outline: beinOut, holes: beinHol, plass: beinPlass(1), t },
-    { id: "R1", kind: "rygg", outline: ryggOut, holes: ryggHol, plass: ryggPlass, t },
-    { id: "K1", kind: "kile", outline: kileOut, holes: [], plass: kilePlass, t },
-  ]
+  // --- kor setet ligg i høve til krysset -----------------------------------
+  // Med eit kryss er setet ikkje ein bjelke mellom to opplegg; det er
+  // fire trekantar som kvar ligg på to linjer og er fri ute i hjørnet.
+  // Då er det EIN avstand som styrer alt: kor langt eit punkt er frå
+  // næraste bladline. Overhenget er den største av dei.
+  const tilBlad = (x: number, y: number) =>
+    Math.min(
+      Math.abs(x * Math.sin(phi) - y * Math.cos(phi)),
+      Math.abs(x * Math.sin(phi) + y * Math.cos(phi)),
+    )
+  let overheng = 0
+  for (const q of sete.outline) overheng = Math.max(overheng, tilBlad(q[0] * ca, q[1]))
+  // berebreidda: korda setet har langs ei bladline
+  let korda = 0
+  {
+    const inne = (x: number, y: number) => {
+      // strålekast i setet sitt eige plan
+      const u = x / ca
+      let n = 0
+      const ring = sete.outline
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i]
+        const [xj, yj] = ring[j]
+        if (yi > y !== yj > y && u < ((xj - xi) * (y - yi)) / (yj - yi) + xi) n++
+      }
+      return n % 2 === 1
+    }
+    const steg = 4
+    for (let s2 = -R * 1.6; s2 <= R * 1.6; s2 += steg) {
+      if (inne(s2 * Math.cos(phi), -s2 * Math.sin(phi))) korda += steg
+    }
+  }
+  const stotteB = Math.max(40, korda)
+
+  for (const d of delar) {
+    d.outline = reinsk(d.outline)
+    d.holes = d.holes.map((h) => reinsk(h)).filter((h) => h.length >= 3)
+  }
 
   return {
     p,
     delar,
     a,
     rv,
+    phi,
     seteTopp,
     seteUnder,
     xF,
     xB,
-    fotF,
-    fotB,
-    spennFri: p.spenn - t,
-    overheng: Math.max(0, p.breidd / 2 - p.spenn / 2),
+    R,
+    kryssTopp,
+    kryssBotn,
+    overheng,
+    stotteB,
+    tilBlad,
+    xRygg,
   }
 }
 
-/** eit punkt i planet ut i verda */
-export function tilVerda(pl: Plass, q: Pt, w = 0): Vec3 {
-  return [
-    pl.o[0] + pl.u[0] * q[0] + pl.v[0] * q[1] + pl.n[0] * w,
-    pl.o[1] + pl.u[1] * q[0] + pl.v[1] * q[1] + pl.n[1] * w,
-    pl.o[2] + pl.u[2] * q[0] + pl.v[2] * q[1] + pl.n[2] * w,
-  ]
-}
-
-/** netto areal av ein del: konturen minus hòla */
+/** arealet av ein del: konturen minus hòla */
 export function delAreal(d: Del): number {
-  return (
-    Math.abs(shoelace(d.outline)) - d.holes.reduce((s, h) => s + Math.abs(shoelace(h)), 0)
-  )
-}
-
-/** boksen delen tek på plata */
-export function delBoks(d: Del) {
-  return bbox(d.outline)
+  let s = Math.abs(shoelace(d.outline))
+  for (const h of d.holes) s -= Math.abs(shoelace(h))
+  return Math.max(0, s)
 }
 
 export { materialet }

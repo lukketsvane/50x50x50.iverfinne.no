@@ -14,7 +14,7 @@ NEKTAR spørsmålet — og difor står han her.
 | **SKIVE** | parallelle skiver med luft imellom, tredde på stavar | stav og skive |
 | **STRAUM** | éin kropp skoren i skrå skiveplan, finnar sette i spor | gjennomspor |
 | **RIBBE** | radiale blad og vassrette band | kryssholdt |
-| **LAFT** | fire heile plater og ein kile, lafta i kvarandre | tapp, spor og kile |
+| **LAFT** | to kryssande blad, eit sete og ei list | krysshalving, tapp og kile |
 
 Fire er talet av di kvart svar må svare på SPØRSMÅLET. FLETT (vevne band)
 og KARVE (limt blokk, frest ned) svara på andre spørsmål — band er ikkje
@@ -27,9 +27,11 @@ men kjelda står att for dokumentpipelinen.
 **VAFFEL er svaret prosjektet landar på.** Dei andre står som argumentet
 kring valet — og LAFT er den andre enden av det: han seier at ei plate er
 ei plate, at komforten kjem av vinklar og ikkje av krumming, og han
-betaler for det med ei flat sitjeflate. Til gjengjeld kjem han ut av EITT
-band plate, har FIRE delar og ein kile, og kan reisast utan lim og utan
-skruar. Prisen og vinsten står i tavla hans, side om side. Reiskapen er bygd for å lage ÉIN krakk som passar
+betaler for det med ei flat sitjeflate. Til gjengjeld er han FEM delar,
+kjem ut av eitt band plate, og kan reisast utan lim og utan skruar.
+Understellet hans er ein X — to blad i kvar sitt loddrette plan, kryssa
+midt under setet — og det gjev fire føter i fire hjørne med berre eitt
+ledd. Prisen og vinsten står i tavla hans, side om side. Reiskapen er bygd for å lage ÉIN krakk som passar
 brukaren sin: still høgd, plan og sete etter kroppen (posane, hovuddraga,
 gestane), sjå kva lasta gjer med objektet — lesemåten **last** målar
 utnyttinga under NS-EN 1728-lasta på sjølve flata, med same modell og

@@ -16,15 +16,25 @@
  *
  * Bryt éin av dei, ligg det fire plater på golvet og ikkje ein stol.
  */
-import { CUBE, MATERIALS, nn, type Metrics, type Rule } from "../core"
+import { bbox, CUBE, MATERIALS, nn, type Metrics, type Rule } from "../core"
 import { bygg } from "./profil"
 import type { Params } from "./params"
 
 const mm1 = (v: number) => nn(v, 1) + " mm"
 
 /** NS-EN 1729 for vaksne: setet skal liggje i dette bandet. */
-const SIT_LO = 380
+/**
+ * NS-EN 1729 set 380 mm som botn for ei ARBEIDSHØGD. Denne typologien er
+ * ein lounge — referansane hans er golvnære stolar — og i ein kube på
+ * femhundre er kvar millimeter under arbeidshøgd ein millimeter rygg. Det
+ * harde bandet går difor ned til 330, som er der ein framleis kjem seg
+ * opp av stolen, og arbeidshøgda står att som ein MJUK regel som seier
+ * frå kva ein har byta bort.
+ */
+const SIT_LO = 330
 const SIT_HI = 500
+const ARBEID_LO = 380
+const ARBEID_HI = 470
 /** Ei opning mellom fem og tjuefem millimeter tek ein finger. */
 const TRAP_LO = 5
 const TRAP_HI = 25
@@ -46,7 +56,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: big <= CUBE,
     value: `${mm1(big)} av ${CUBE}`,
     why: "Oppgåva er ein kube på 500 mm. LAFT er den einaste typologien som kan sprengje han med eit einaste tal, av di rygghøgda og setehøgda legg seg rett oppå kvarandre.",
-    peikar: ["ryggH", "hogd", "framspark", "bakspark"],
+    peikar: ["ryggH", "hogd", "fotX", "fotY"],
   })
 
   // --- 2 sitjehøgda (hard) ------------------------------------------------
@@ -56,8 +66,23 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     hard: true,
     ok: m.sitZ >= SIT_LO && m.sitZ <= SIT_HI,
     value: mm1(m.sitZ),
-    why: `NS-EN 1729 set setehøgda for vaksne til ${SIT_LO}–${SIT_HI} mm. Talet er midt på den brukbare flata, ikkje framkanten — vippen gjer dei to ulike.`,
+    why: `Under ${SIT_LO} mm er det ikkje ein stol lenger — det er ei pute på golvet, og ein kjem seg ikkje opp av henne. Talet er midt på den brukbare flata, ikkje framkanten: vippen gjer dei to ulike.`,
     peikar: ["hogd", "setevipp"],
+  })
+
+  // --- 2b arbeidshøgda (mjuk) ---------------------------------------------
+  add({
+    id: "arbeidshogd",
+    label: "arbeidshøgd",
+    hard: false,
+    // Regelen spør ikkje om sitjehøgda er låg. Han spør om ho er låg TIL
+    // INGEN NYTTE. I ein kube på femhundre er kvar millimeter under
+    // arbeidshøgd ein millimeter som kan bli rygg, og det er ein god
+    // handel — men berre om ryggen faktisk fekk plassen.
+    ok: (m.sitZ >= ARBEID_LO && m.sitZ <= ARBEID_HI) || p.ryggH >= 150,
+    value: `${mm1(m.sitZ)} sete · ${nn(p.ryggH, 0)} mm rygg`,
+    why: `NS-EN 1729 set ${ARBEID_LO}–${ARBEID_HI} mm for ein stol ein arbeider i. Under det er stolen ein lounge, og det er eit VAL — men eit val som skal betalast for: i ein halvmeters kube er kvar millimeter under arbeidshøgd ein millimeter rygg. Er setet lågt OG ryggen kort, er ingen ting vunne, og det er berre ein liten stol.`,
+    peikar: ["hogd", "ryggH", "setevipp"],
   })
 
   // --- 3 sitjeflata (hard) ------------------------------------------------
@@ -79,7 +104,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.util <= 1,
     value: `${nn(m.util * 100, 0)} % av kapasiteten`,
     why: "NS-EN 1728 på kontraktnivå. Setet er rekna som bjelke mellom bladene med utkraging, og det verste av «sit midt på» og «sit på kanten» gjeld. Over 100 % bøyer plata seg varig.",
-    peikar: ["spenn", "plyT", "djup"],
+    peikar: ["fotY", "plyT", "djup"],
   })
 
   // --- 5 veltevinkelen (hard) ---------------------------------------------
@@ -89,12 +114,38 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     hard: true,
     ok: m.tipAngle >= 15,
     value: `${nn(m.tipAngle, 1)}°`,
-    why: "Under femten grader vippar stolen når nokon lener seg. Sparket fram og bak er heile svaret — bladene er det einaste som står på golvet.",
-    peikar: ["framspark", "bakspark"],
+    why: "Under femten grader vippar stolen når nokon lener seg. Fotavtrykket er heile svaret — dei fire føtene på kryssarmane er det einaste som står på golvet.",
+    peikar: ["fotX", "fotY"],
   })
 
   // --- 6 gods kring tappesporet (hard, typologisk) ------------------------
-  const kantGods = p.breidd / 2 - p.spenn / 2 - (t + p.pressfit) / 2
+  // Med kryss under kan ikkje dette reknast av eit spenn: tappane sit
+  // ute på kvar sin arm, og kor mykje finér som står att utanfor dei er
+  // eit reint AVSTANDSSPØRSMÅL i seteplata. Difor vert det målt, ikkje
+  // rekna: minste avstand frå eit tappespor til kanten av setet.
+  const sete = b.delar.find((d) => d.kind === "sete")!
+  const tappHol = sete.holes.filter((h) => {
+    const q = bbox(h)
+    return q.x1 - q.x0 > t && q.y1 - q.y0 > t && Math.abs((q.y0 + q.y1) / 2) > 20
+  })
+  let kantGods = Infinity
+  for (const h of tappHol) {
+    for (const q of h) {
+      let d = Infinity
+      const ring = sete.outline
+      for (let i = 0; i < ring.length; i++) {
+        const a2 = ring[i]
+        const c2 = ring[(i + 1) % ring.length]
+        const vx = c2[0] - a2[0]
+        const vy = c2[1] - a2[1]
+        const L2 = vx * vx + vy * vy || 1
+        const tt = Math.max(0, Math.min(1, ((q[0] - a2[0]) * vx + (q[1] - a2[1]) * vy) / L2))
+        d = Math.min(d, Math.hypot(q[0] - a2[0] - vx * tt, q[1] - a2[1] - vy * tt))
+      }
+      kantGods = Math.min(kantGods, d)
+    }
+  }
+  if (!Number.isFinite(kantGods)) kantGods = 0
   add({
     id: "tappgods",
     label: "gods kring tappesporet",
@@ -102,50 +153,55 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: kantGods >= 18,
     value: mm1(kantGods),
     why: "Sporet som tek tappen ligg i setet, og lasta går tvers gjennom det. Med under atten millimeter finér mellom sporet og plata sin eigen kant, riv tappen seg ut fyrste gongen nokon sit på kanten.",
-    peikar: ["breidd", "spenn"],
+    peikar: ["breidd", "fotY", "djup"],
   })
 
   // --- 7 tunga (hard, typologisk) -----------------------------------------
-  const tungeGods = (p.ryggF - p.spenn - 2 * t) / 2
+  const staveB = (p.ryggT - (p.ryggdel >= 1.5 ? p.ryggglipe : 0)) / (p.ryggdel >= 1.5 ? 2 : 1)
+  const tungeGods = (staveB - t - p.pressfit) / 2
   add({
     id: "tunge",
-    label: "tunga ber hakka",
+    label: "tunga ber kilehòlet",
     hard: true,
-    ok: tungeGods >= 14,
+    ok: tungeGods >= 40,
     value: mm1(tungeGods),
-    why: "Tunga under setet har eit hakk for kvart blad. Er ho ikkje brei nok til å ha gods UTANFOR begge hakka, er det ikkje ei tunge lenger — det er tre fingrar som knekk kvar for seg.",
-    peikar: ["ryggF", "spenn"],
+    why: "Tunga under setet er perforert av kilehòlet nøyaktig der heile klemkrafta går gjennom henne. Er det under førti millimeter finér på kvar side av hòlet, er tunga to smale stavar som knekk kvar for seg.",
+    peikar: ["ryggT", "ryggdel", "ryggglipe"],
   })
 
-  // --- 8 kilen (hard, typologisk) -----------------------------------------
-  const kileGods = p.spenn / 2 - t / 2 - (t + p.pressfit) / 2
+  // --- 8 kilen skal ikkje treffe bladene (hard, typologisk) ---------------
+  // Kilen står i midtplanet; bladene ligg på armane og er difor lenger
+  // og lenger frå midten di lenger fram ein kjem. Det som avgjer er kor
+  // langt kilen står frå næraste arm.
+  const kile = b.delar.find((d) => d.kind === "kile")!
+  const kileGods = b.tilBlad(kile.plass.o[0], 0) - t
   add({
     id: "kilerom",
-    label: "gods kring kilehòlet",
+    label: "kilen klar av armane",
     hard: true,
-    ok: kileGods >= 24,
+    ok: kileGods >= 16,
     value: mm1(kileGods),
-    why: "Kilehòlet står midt i tunga, hakka til bladene står ute ved kanten, og imellom må det vera finér. Kjem dei to for nær kvarandre, er tunga perforert på tvers akkurat der lasta går gjennom henne.",
-    peikar: ["spenn"],
+    why: "Kilen vert driven fram gjennom tunga i midtplanet, og kryssarmane skjer same rommet på skrå. Møtest dei, kan ikkje kilen slåast inn — og det oppdagar ein fyrst med delane i handa.",
+    peikar: ["fotY", "ryggV", "djup"],
   })
 
-  // --- 9 laftet (hard, typologisk) ----------------------------------------
-  const bladHogd = b.seteUnder(b.delar.find((d) => d.kind === "rygg")!.plass.o[0])
+  // --- 9 krysshalvinga (hard, typologisk) ---------------------------------
+  const overlapp = b.kryssTopp - b.kryssBotn
   add({
     id: "laft",
-    label: "laftet har botn",
+    label: "krysshalvinga har botn",
     hard: true,
-    ok: bladHogd > LAFT_DJUP + 40,
-    value: `${mm1(bladHogd)} bladhøgd mot ${LAFT_DJUP} mm spor`,
-    why: "Sporet ryggen lafter seg ned i er 34 mm djupt. Er bladet ikkje monaleg høgare enn det der ryggen kryssar, skjer sporet bladet av på tvers.",
-    peikar: ["hogd", "bakspark"],
+    ok: overlapp >= 44,
+    value: `${mm1(overlapp)} overlapp`,
+    why: "Dei to blada deler overlappet mellom seg: halve hakket i kvar. Er overlappet mindre enn førtifire millimeter, står kvart blad att med under tjueto — og eit hakk som er djupare enn godset er eit brot, ikkje eit ledd.",
+    peikar: ["bogeH", "hogd"],
   })
 
   // --- 10 klemfare mellom rygg og sete (mjuk) -----------------------------
   // Ryggen lener seg bakover og opnar ei kile mot setet sin bakkant. Er
   // ho i fingerbandet, er ho ei felle; er ho vid, er ho eit hòl ein ser
   // gjennom, og det er greitt.
-  const bakGap = Math.abs(b.xB - b.delar.find((d) => d.kind === "rygg")!.plass.o[0]) - t
+  const bakGap = Math.abs(b.xB - b.xRygg) - t
   add({
     id: "klemfare",
     label: "opning bak setet",
@@ -161,10 +217,13 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     id: "berehol",
     label: "bereholet",
     hard: false,
-    ok: p.grep === 0 || (p.grep >= 90 && p.ryggT - p.grep >= 84),
-    value: p.grep === 0 ? "ikkje noko hòl" : `${nn(p.grep, 0)} mm i ${nn(p.ryggT, 0)} mm plate`,
-    why: "Ei hand treng nitti millimeter. Og hòlet må ha gods kring seg: er det breiare enn plata minus åtti, er ryggen to smale stavar over eit hòl.",
-    peikar: ["grep", "ryggT"],
+    ok: p.grep === 0 || (p.grep >= 88 && staveB - p.grep >= 40),
+    value:
+      p.grep === 0
+        ? "ikkje noko hòl"
+        : `${nn(p.grep, 0)} mm i ${nn(staveB, 0)} mm ${p.ryggdel >= 1.5 ? "stav" : "plate"}`,
+    why: "Ei hand treng åttiåtte millimeter. Målet er mot STAVEN og ikkje mot heile ryggen: med to stavar har kvar sitt hòl, og det er staven som må ha gods kring sitt. Under tjue millimeter på kvar side er det ikkje ein bere, det er to fingrar som knekk.",
+    peikar: ["grep", "ryggT", "ryggdel"],
   })
 
   // --- 12 plateutnyttinga (mjuk) ------------------------------------------
@@ -172,10 +231,10 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     id: "plate",
     label: "plateutnytting",
     hard: false,
-    ok: m.sheetUtil >= 0.4,
+    ok: m.sheetUtil >= 0.37,
     value: `${nn(m.sheetUtil * 100, 0)} % · ${m.sheets} ${m.sheets === 1 ? "plate" : "plater"}`,
-    why: "Prosenten er låg med vilje, og det er ikkje pakkaren sin skuld: fem delar fyller ikkje ei plate som er 2500 mm brei på tvers, og bandet vert betalt i full breidd same kor få delar som står i det. Det LAFT vinn er talet under — EITT band på kring ein kvadratmeter, mot to og tre plater hjå dei andre. Kjem han under 40 %, spriker forma so bandet vert høgare enn den høgaste delen treng.",
-    peikar: ["djup", "breidd", "framspark"],
+    why: "Prosenten er låg med vilje, og det er ikkje pakkaren sin skuld: fem delar fyller ikkje ei plate som er 2500 mm brei på tvers, og bandet vert betalt i full breidd same kor få delar som står i det. Det LAFT vinn er talet under — EITT band på kring ein kvadratmeter, mot to og tre plater hjå dei andre. Målt over rommet ligg han på 37 nedst, 41 i midten og 50 på det beste; under 37 spriker forma so bandet vert høgare enn den høgaste delen treng.",
+    peikar: ["djup", "breidd", "hjorne"],
   })
 
   // --- 13 talet på delar (mjuk) -------------------------------------------
@@ -183,9 +242,9 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     id: "delar",
     label: "delar i alt",
     hard: false,
-    ok: m.parts <= 5,
+    ok: m.parts <= 6,
     value: `${m.parts} stk`,
-    why: "Heile argumentet til typologien er at ein stol kan vera fire plater og ein kile. Går talet opp, er det ein annan typologi som svarar betre.",
+    why: "Heile argumentet til typologien er at ein stol kan vera fire plater og ein kile. Delt rygg gjer det til seks, og det er eit VAL med ein grunn — to smale stavar toler fiberretninga betre enn éi brei plate med eit hòl i. Går talet over seks, er det ein annan typologi som svarar betre.",
   })
 
   // --- 14 foten (mjuk) -----------------------------------------------------
@@ -196,7 +255,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.contacts >= 4,
     value: `${m.contacts} stk`,
     why: "Med fotboge har kvart blad to føter, og stolen står på fire punkt som eit møbel skal. Utan bogen står han på to lange kantar — det er stødig, men det vaggar på eit ujamnt golv.",
-    peikar: ["fotboge"],
+    peikar: ["bogeH"],
   })
 
   // --- 15 slankleiken i ryggen (mjuk) --------------------------------------

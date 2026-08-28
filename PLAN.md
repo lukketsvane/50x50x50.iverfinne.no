@@ -56,7 +56,7 @@ dokumentpipelinen.)
 
 | motor | produksjonsveg | skyvarar | reglar (harde) | masse | utnytting | bygg + mål |
 |---|---|---|---|---|---|---|
-| `laft` | fire heile plater og ein kile, lafta i kvarandre | 23 | 16 (9) | 4,27 kg | 50 % | 5 ms |
+| `laft` | to kryssande blad, eit sete og ei list | 28 | 17 (9) | 4,0 kg | 58 % | 5 ms |
 | `straum` | éin kropp skoren i skrå skiveplan, finnar sette i spor | 30 | 17 (5) | 5,05 kg | 8 % | 350 ms |
 | `ribbe` | radiale blad og vassrette band, kryssholdte i kvarandre | 33 | 16 (9) | 10,24 kg | 15 % | 100 ms |
 | `vaffel` | kryssholdte ribber i to retningar, utan lim og utan skruar | 21 | 16 (8) | 5,56 kg | 18 % | 585 ms |
@@ -1036,6 +1036,87 @@ altså den nedre kvartilen regelen er sett til å merke). Posane: alle fem
 refunderte mot ein søkjar med mjuk skråning på dei to geometriske harde
 reglane — lenestolen, pinnen, benken, spriket, tavla, frå 3,3 til 5,5 kg,
 alle innanfor kuben og alle med lovleg sitjehøgd.
+
+### 22 · LAFT bygd om: krysset, og spor som vert REKNA — GJORD
+
+**Kvifor.** Referansefotoa vart lesne på nytt, og av tre uavhengige
+lesingar sa alle tre det same: understellet i desse stolane er ikkje to
+sidevegger. Det er to blad i kvar sitt loddrette plan som KRYSSAR
+kvarandre midt under setet. Provet står i fotoa: fire føter i fire
+kvadrantar og ikkje parvis langs to sider, ein utvitydig X i silhuetten,
+det eine bladet som forsvinn bak det andre i krysset og kjem ut att på
+andre sida, og to eksploderte beindelar som ikkje er spegelbilete av
+kvarandre. Fyrste utkastet hadde to parallelle sidevegger. Det er ein
+annan stol.
+
+**Og so var det ikkje eit møbel.** Ei ny prøve — `scripts/laft-ledd.ts`,
+som legg eit punktskyv gjennom godset i kvar plate og spør om to plater
+deler eitt einaste punkt — felte fyrste utkastet fullstendig:
+
+| ledd | delt materiale |
+|---|---|
+| sete × rygg | 17,8 cm³ |
+| bein × rygg | 13,6 cm³ × 2 |
+| sete × kile | 3,9 cm³ |
+| rygg × kile | 2,2 cm³ |
+| sete × bein | 0,8 cm³ × 2 |
+
+Setet og beinblada skar tvers gjennom kvarandre i 356 millimeter. Dei låg
+ikkje oppå kvarandre; dei var inne i kvarandre. På skjermen såg det heilt
+fint ut — overlappande faste legeme rendrar utmerkt — og det er heile
+grunnen til at prøva måtte skrivast.
+
+**Rota: spor som vert TEIKNA.** Eit spor er ikkje eit rektangel ein
+skriv opp av platetjukna. Det er SKUGGEN av den delen som skal gjennom,
+kasta ned i verten sitt plan og sveipa gjennom heile tjukna hans. Ei
+plate som lener seg tjueto grader gjennom eit sete på femten millimeter
+flyttar seg seks millimeter sidelengs medan ho passerer; eit spor rekna
+som «tjukn pluss klaring» er då seks millimeter for smalt. `lib/laft/spor.ts`
+reknar no kvart einaste spor av gjesten, og ramma ligg langs
+SKJERINGSLINA mellom dei to plana — ein akseparallell boks kring ein tapp
+som står i trettini grader vert fem gonger så stor som leddet treng, midt
+i den flata ein sit på.
+
+Same feilen dukka opp att i krysshalvinga med eit ekstra ledd: naboen si
+tilsynelatande tjukn i eit skrått plan er ikkje t/sin(2φ), men
+t·(1 + |cos 2φ|)/sin(2φ) — plata si eiga tjukn sveipar òg. Utan det leddet
+delte dei to blada ei flis materiale heile overlappet gjennom.
+
+**Etter.** Null delt materiale mellom alle fem platene, målt med 1,4 mm
+rutenett og 0,35 mm kontaktmargin — og kvart ledd grip verkeleg: prøva
+stadfester at kvar del går TVERS GJENNOM den ho skal gripe i.
+
+**Fire ting til som auget ikkje ser.** Trekantar utan areal i
+øyreklippinga gav dobbelt gjennomgåtte kantar; tjuefem lause hòl-ringar
+sydde inn i eitt omriss fekk trianguleringa til å kollapse, so setet vart
+fullt av trekantar som vende feil veg (spor og avlasting er no ÉIN
+kuttbane); ei vassrett skulder på ryggen gav fire punkt på line, og der
+vart lokket og veggen usamde om kvar kanten går; og bladet sin overkant
+gjekk i full høgd heilt ut til foten, so han las som ein vegg og ikkje som
+eit bein — no fell han frå SKULDRA, og skuldra er ein skyvar med ein pris
+lastmodellen tel.
+
+**Variasjonen.** Seteplanet er éi likning over tre formspråk:
+superellipsen gjev hjørna (eksponent to er ellipsen, tolv er rektangelet),
+kilen gjer framkanten breiare enn bakkanten, og BUKTA skyv bakkanten fram
+— det er halvmånen, og det er den einaste skilnaden mellom eit skjold og
+ein sigd. Hòlet i bladet glir frå trekant gjennom drope til boge på same
+viset. Parameterrommet er 28 skyvarar; kvart av dei tre formspråka i
+referansane er eitt punkt i det.
+
+**Lastmodellen skifta form med konstruksjonen.** Eit kryss under setet
+gjer bjelkemodellen feil: setet ligg ikkje på to opplegg med noko
+imellom, det ligg på to LINJER som skjer kvarandre og deler flata i fire
+trekantar, kvar fri ute i hjørnet sitt. Då er det éin storleik som styrer
+alt — avstanden frå lastpunktet til næraste arm — og lastkartet fargar
+etter den avstanden.
+
+**Kuben, ærleg.** Referansane er kring åtte hundre millimeter høge. Med
+lovleg sitjehøgd er det knapt hundre og førti millimeter att til rygg i
+ein halvmeterskube, og då er ryggen ei LIST og ikkje ein rygg. Det harde
+bandet for sitjehøgda går no ned til 330 — loungehøgd — so rommet HAR den
+låge, høgryggja stolen i seg; arbeidshøgda står att som ein mjuk regel som
+seier kva ein har byta bort. Standardobjektet ligg i arbeidsbandet.
 
 ---
 

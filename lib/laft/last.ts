@@ -2,20 +2,19 @@
  * LAFT — lasta.
  *
  * Vegen lasta går er kort nok til å teiknast med ord: 1600 N på setet →
- * setplata bøyer seg mellom dei to bladene → bladene tek det i trykk ned
- * til golvet. Det er heile kjeda, og det er difor typologien har berre
- * dei to tala som betyr noko: SPENNET mellom bladene og OVERHENGET
- * utanfor dei.
+ * setplata bøyer seg ut frå kryssarmane → bladene tek det i trykk ned til
+ * golvet. Det er heile kjeda.
  *
- * Setet er rekna som ein bjelke på to opplegg med utkraging i begge
- * endar, og modellen les to lastfall og tek det verste:
+ * Kryss under sete gjer bjelkemodellen feil. Setet ligg ikkje på to
+ * opplegg med noko imellom; det ligg på to LINJER som skjer kvarandre,
+ * og dei deler flata i fire trekantar som kvar er fri ute i hjørnet
+ * sitt. Då er det éin storleik som styrer alt: avstanden frå lastpunktet
+ * til næraste arm. Momentet er P gonger den avstanden, og det verste
+ * punktet er ytterkanten — OVERHENGET.
  *
- *   MIDT   ein sit midt på: M = P·L/4. Snittet ved v = 0 har mist sporet
- *          til ryggtunga, so berebreidda er djupna MINUS sporet.
- *   KANT   ein sit på ytterkanten: M = P·a der a er overhenget. Snittet
- *          ligg ved bladet, og DER har plata mist tappesporet — det er
- *          det verste snittet i heile møbelet, og det er ingen tilfeldig
- *          plass: ein bit alltid der lasta og hòlet møtest.
+ * Berebreidda er korda setet har langs armen, minus sporet ryggtunga
+ * skjer i han. Det snittet er det verste i heile møbelet, og det er ingen
+ * tilfeldig plass: ein bit alltid der lasta og hòlet møtest.
  *
  * Bladene tek P/2 kvar i trykk gjennom sitt smalaste snitt, funne ved å
  * skanne profilen — ikkje gissa.
@@ -40,8 +39,8 @@ export type Verste = {
 
 export type Modell = {
   verste: Verste
-  /** utnytting i setet som funksjon av avstanden frå midten, mm */
-  sete(yAbs: number): number
+  /** utnytting i setet som funksjon av avstanden til næraste kryssarm */
+  sete(dArm: number): number
   /** utnytting i bladet i høgd z */
   bein(z: number): number
   capC: number
@@ -71,20 +70,22 @@ export function lastModell(b: Bygg): Modell {
   const t = p.plyT
   const P = SEAT_LOAD
 
-  // --- setet som bjelke ---------------------------------------------------
-  const L = Math.max(1, p.spenn)
+  // --- setet som utkraging frå kryssarmane --------------------------------
+  // Med eit kryss under er setet aldri ein bjelke mellom to opplegg. Det
+  // er fire trekantar, kvar liggjande på to armar og fri ute i hjørnet,
+  // og då er det éin storleik som styrer: avstanden frå lastpunktet til
+  // næraste arm. Verste tilfellet er ytterkanten, altså overhenget.
   const a = Math.max(0, b.overheng)
-  // berebreiddene: djupna minus det hòlet som skjer snittet
+  // Berebreidda er korda setet har langs armen — MINUS sporet ryggtunga
+  // skjer i han. Det er det verste snittet i heile møbelet, og det er
+  // ingen tilfeldig plass: ein bit alltid der lasta og hòlet møtest.
   const sporB = (t + p.pressfit) / Math.cos(b.rv)
-  const bMidt = Math.max(10, p.djup - sporB)
-  const bStotte = Math.max(10, p.djup - p.hals)
+  const bStotte = Math.max(10, b.stotteB - sporB)
   const W = (bredd: number) => (bredd * t * t) / 6
 
-  const mMidt = (P * L) / 4
   const mKant = P * a
-  const smMidt = mMidt / W(bMidt)
   const smKant = mKant / W(bStotte)
-  const sm = Math.max(smMidt, smKant)
+  const sm = smKant
 
   // --- bladene i trykk ----------------------------------------------------
   // Smalaste snitt frå golvet opp til undersida av setet. Tappen er ikkje
@@ -102,7 +103,7 @@ export function lastModell(b: Bygg): Modell {
       minZ = z
     }
   }
-  if (!Number.isFinite(minW)) minW = Math.max(10, p.hals)
+  if (!Number.isFinite(minW)) minW = 40
   const A = minW * t
   const sc = P / 2 / A
 
@@ -112,19 +113,10 @@ export function lastModell(b: Bygg): Modell {
     verste: { sc, sm, util, A, z: minZ },
     // Momentet i setet fell lineært frå opplegget: midt imellom er det
     // størst under midtlasta, og ute i utkraginga størst ved bladet.
-    sete: (yAbs: number) => {
-      const uMidt =
-        yAbs <= L / 2
-          ? (smMidt * (1 - (2 * yAbs) / L)) / capM
-          : 0
-      const uKant =
-        yAbs >= L / 2 && a > 0.5
-          ? (smKant * Math.min(1, (yAbs - L / 2) / Math.max(1, a))) / capM
-          : 0
-      // ved opplegget møtest dei to lastfalla; det verste av dei gjeld
-      const uOppl = yAbs > L / 2 - 20 && yAbs < L / 2 + 20 ? Math.max(smMidt, smKant) / capM : 0
-      return Math.max(uMidt, uKant, uOppl)
-    },
+    // Momentet veks lineært med avstanden frå armen: null oppå henne,
+    // størst ute i hjørnet mellom to armar.
+    sete: (dArm: number) =>
+      a > 0.5 ? (smKant * Math.min(1, Math.max(0, dArm) / a)) / capM : 0,
     bein: (z: number) => {
       if (z >= zTopp) return sc / capC
       const w = snittBreidd(blad.outline, blad.holes, Math.max(0.5, z))
@@ -160,7 +152,7 @@ function narmasteDel(b: Bygg, x: number, y: number, z: number): Del | null {
 
 /**
  * Feltet lagt på nettet. Kvart hjørne finn plata si, og får utnyttinga
- * modellen gjev DER: setet etter avstanden frå midten, bladet etter
+ * modellen gjev DER: setet etter avstanden til næraste kryssarm, bladet etter
  * snittet i si eiga høgd, ryggen og kilen kaldt.
  */
 export function feltPaMesh(b: Bygg, positions: Float32Array): Float32Array {
@@ -173,7 +165,7 @@ export function feltPaMesh(b: Bygg, positions: Float32Array): Float32Array {
     const z = positions[i * 3 + 2]
     const d = narmasteDel(b, x, y, z)
     if (!d) continue
-    if (d.kind === "sete") ut[i] = m.sete(Math.abs(y))
+    if (d.kind === "sete") ut[i] = m.sete(b.tilBlad(x, y))
     else if (d.kind === "bein") ut[i] = m.bein(z)
     else ut[i] = 0
   }

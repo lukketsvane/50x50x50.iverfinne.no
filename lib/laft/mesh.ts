@@ -98,8 +98,10 @@ function earClip(poly: Pt[]): [Pt, Pt, Pt][] {
       const ic = idx[(i + 1) % idx.length]
       const a = poly[ia], b = poly[ib], c = poly[ic]
       const cc = cross(a, b, c)
-      if (cc === 0) {
-        if (!same(a, b) && !same(b, c)) out.push([a, b, c])
+      // Tre punkt på line er ikkje ein trekant. Slepp ein slik gjennom,
+      // og skalet får ein flate utan areal: kvar kant vert gått to
+      // gonger same veg, og lukkeprøva finn både dobbel og hòl.
+      if (Math.abs(cc) < 1e-9) {
         idx.splice(i, 1)
         cut = true
         break
@@ -118,7 +120,15 @@ function earClip(poly: Pt[]): [Pt, Pt, Pt][] {
     }
     if (!cut) break
   }
-  if (idx.length === 3) out.push([poly[idx[0]], poly[idx[1]], poly[idx[2]]])
+  // Same prøva på den SISTE trekanten. Vert han sleppt gjennom utan
+  // arealprøve, er det nettopp der eit flatt øyre hamnar — det siste som
+  // står att av eit omriss med ei rett line i seg er ofte tre punkt på
+  // rekkje, og då er hòlet i skalet på den eine plata som har ei slik
+  // line: skuldra på ryggen.
+  if (idx.length === 3) {
+    const [a, b, c] = [poly[idx[0]], poly[idx[1]], poly[idx[2]]]
+    if (Math.abs(cross(a, b, c)) > 1e-9) out.push([a, b, c])
+  }
   return out
 }
 
