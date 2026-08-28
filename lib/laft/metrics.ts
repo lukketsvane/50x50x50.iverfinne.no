@@ -25,6 +25,7 @@ import {
   type Pt,
 } from "../core"
 import { nest, usedArea } from "../vaffel/nest"
+import { hank, pakke } from "./pakke"
 import { bygg, delAreal, materialet, tilVerda } from "./profil"
 import { lastVerste } from "./last"
 import { buildParts } from "./parts"
@@ -167,6 +168,13 @@ export function measure(p: Params): Metrics {
   const sheetArea = sArea
   const sheetUtil = sheetArea > 0 ? pl.area / sheetArea : 0
 
+  // --- pakken --------------------------------------------------------------
+  // Eit flatpakka møbel har to former, og dette er den andre: brettet han
+  // kjem som. Kuttarket seier kor mange plater jobben krev; pakken seier
+  // kor stor bunt det vert, og om ein kan bera han.
+  const pk = pakke(pl.parts)
+  const hk = hank(pk)
+
   const mm = (q: number) => nn(q, 0)
   const mm1 = (q: number) => nn(q, 1)
   const cm2 = (q: number) => nn(q / 100, 0) + " cm²"
@@ -209,6 +217,11 @@ export function measure(p: Params): Metrics {
     ["spenn", "kryssvinkel", (2 * b.phi * 180) / Math.PI, "°", mm],
     ["overheng", "setet utanfor kryssarmen", b.overheng, "mm", mm],
     ["parts", "delar", pl.parts.length, "stk", mm],
+    ["pakkeW", "pakken brei", pk.w, "mm", mm],
+    ["pakkeH", "pakken høg", pk.h, "mm", mm],
+    ["pakkeUtil", "pakken utnytta", pk.util, "", pct],
+    ["pakkeHank", "hank i pakken", hk ? hk.len : 0, "mm", mm],
+
     ["sheets", "plater", ns.sheets.length, "stk", mm],
     ["sheetArea", "plate medgått", sheetArea, "mm²", m2],
     ["sheetUtil", "plateutnytting", sheetUtil, "", pct],

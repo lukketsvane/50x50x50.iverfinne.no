@@ -1182,6 +1182,75 @@ Det nye settet ligg på **0,408**, og det er fem stolar:
 Sitjehøgda spenner no 336–443 mot 380–381 før, og kvar av dei fem brukar
 kuben heilt ut: 488 til 497 millimeter i den bindande retninga.
 
+### 24 · Pakken som objekt, og bladet som fekk ei midje — GJORD
+
+**Kvifor.** Referansane syner noko dei tre fyrste etappane ikkje hadde
+teke inn over seg: eit flatpakka møbel har TO former. Den eine er stolen.
+Den andre er brettet han kjem som — alle delane nesta inne i eitt
+rektangel med runda hjørne, med eit hòl å bera i. Det brettet er
+designa, og det var ikkje teikna nokon stad i denne reiskapen.
+
+**Pakken.** `lib/laft/pakke.ts` søkjer fram det minste brettet som tek
+alle delane på eitt ark: rasterpakkaren i `lib/nestraster.ts` svarar på om
+eit gjeve rektangel held, og resten er binærsøk på arealet. Kortet i
+panelet — `arksyn` — syner no PAKKEN og ikkje kuttarket. Kuttarket svarar
+på kor mange plater jobben krev, og det talet står framleis i tavla; men
+det ein vil SJÅ av eit flatpakka møbel er brettet.
+
+Målt over åtti terningkast: lengste sida mellom 857 og 1068 mm,
+utnyttinga mellom 34 og 59 prosent, median 51.
+
+**Hanken vert ikkje teikna, ho vert funnen.** Referansen legg bereholet i
+ryggen øvst i pakken, so ein ber pakken etter det same hòlet ein seinare
+ber stolen etter. Det krev at pakkaren veit kva ein rygg er, og det gjer
+han ikkje. I staden får brettet sitt eige hòl, skore i AVKAPPET: eit
+ledig stykke plate nær overkanten, stort nok til ei hand. Det kostar
+ingen ting — plata der er skrot same kva. Finn han ikkje eit slikt
+stykke, får pakken ingen hank, og den nye mjuke regelen `pakke` seier
+frå. Det skjer i elleve av åtti kast: pakkingar so tette at det ikkje er
+skrot att å ta i.
+
+**Eit gir, ikkje to.** Fyrste utgåva hadde eit grovt søk til tavla og eit
+fint til eksporten, av di det fine kosta to sekund per punkt. Det gav to
+ulike svar på same spørsmålet — talet ved sida av biletet skildra eit
+anna brett enn biletet, opp mot ein fjerdedel i areal. Ei tavle som ikkje
+skildrar biletet ved sida av seg er verre enn ei grov tavle. No er det
+eitt søk med fast sideforhold, brukt av begge, og delane vert pakka ein
+siste gong TETT inne i brettet som er funne: biletet syner ein bunt og
+ikkje eit sprei, og målet er det same i begge endar. Ein pakke som
+skifter proporsjon frå skyv til skyv er heller ikkje eit produkt, det er
+eit søkeresultat.
+
+**Og so var det pris på det.** Søket er det dyraste i heile motoren, og
+måltavla vert rekna på nytt for kvart skyvarslepp. Fyrste målinga:
+**143 ms per punkt**, mot fem i etappe 21. To steg minne tok det ned til
+**61**: eitt i pakkaren, og eitt i `bygg`, som eit skyvarslepp elles ville
+kalla fire gonger — tavla, delelista, reglane og pakkaren spør alle om det
+same objektet.
+
+**Midja.** Referansebladene er ikkje A-rammer. Dei er breie under setet,
+smale over foten og breie att heilt nede, so auget les to lemmer og ikkje
+éi plate. `midje` er eit søkk midt på strekket mellom skuldra og foten,
+null i begge endar. Målt på standardobjektet fell godset frå 325 mm på
+det breiaste til 97 mm i ankelen og opp att til 129 ved foten; utan midje
+går same strekket monotont ned til 129 og har inga innsving i det heile.
+Søkket kan aldri eta seg ned i bogen — eit blad som er kutta av på midten
+er ikkje ei midje, det er to delar.
+
+Kvar pose fekk si eiga: **steinen 0** — han skal vera ei flate med ein
+port i, og det står i forteljinga hans; **dvalen 0,62** — den djupaste,
+so beina spriker som på eit insekt; månen 0,5, staken 0,18, tofta 0,12.
+
+**Prisen står i tavla.** Eit blad med innsving tek same bandhøgda og
+mindre av bandet, so plateutnyttinga fell fire prosentpoeng: 30 nedst, 37
+i midten, 46 på det beste, mot 37/41/50 før. Terskelen i regelen er flytta
+frå 37 til 34 og teksta hans seier kvifor.
+
+**Etter:** alle 46 punkta held framleis ledda, terningen gjev 97,5 % på
+dei harde, og minsteavstanden mellom posane står i 0,397.
+
+---
+
 ---
 
 ## 6 Kva som skal målast

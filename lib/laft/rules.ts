@@ -17,6 +17,8 @@
  * Bryt éin av dei, ligg det fire plater på golvet og ikkje ein stol.
  */
 import { bbox, CUBE, MATERIALS, nn, type Metrics, type Rule } from "../core"
+import { hank, pakke } from "./pakke"
+import { buildParts } from "./parts"
 import { bygg } from "./profil"
 import type { Params } from "./params"
 
@@ -43,6 +45,9 @@ const LAFT_DJUP = 34
 
 export function checkRules(p: Params, m: Metrics): Rule[] {
   const b = bygg(p)
+  // pakkaren har eitt steg minne, so dette er same brettet tavla synte
+  const pk0 = pakke(buildParts(p).parts)
+  const pk = { w: pk0.w, h: pk0.h, hank: hank(pk0) }
   const out: Rule[] = []
   const add = (r: Rule) => out.push(r)
   const t = p.plyT
@@ -237,9 +242,9 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     id: "plate",
     label: "plateutnytting",
     hard: false,
-    ok: m.sheetUtil >= 0.37,
+    ok: m.sheetUtil >= 0.34,
     value: `${nn(m.sheetUtil * 100, 0)} % · ${m.sheets} ${m.sheets === 1 ? "plate" : "plater"}`,
-    why: "Prosenten er låg med vilje, og det er ikkje pakkaren sin skuld: fem delar fyller ikkje ei plate som er 2500 mm brei på tvers, og bandet vert betalt i full breidd same kor få delar som står i det. Det LAFT vinn er talet under — EITT band på kring ein kvadratmeter, mot to og tre plater hjå dei andre. Målt over rommet ligg han på 37 nedst, 41 i midten og 50 på det beste; under 37 spriker forma so bandet vert høgare enn den høgaste delen treng.",
+    why: "Prosenten er låg med vilje, og det er ikkje pakkaren sin skuld: fem delar fyller ikkje ei plate som er 2500 mm brei på tvers, og bandet vert betalt i full breidd same kor få delar som står i det. Det LAFT vinn er talet under — EITT band på kring ein kvadratmeter, mot to og tre plater hjå dei andre. Målt over rommet ligg han på 30 nedst, 37 i midten og 46 på det beste — fire prosentpoeng lågare enn før midja, av di eit blad med innsving tek same bandhøgda og mindre av bandet. Under 34 spriker forma so bandet vert høgare enn den høgaste delen treng.",
     peikar: ["djup", "breidd", "hjorne"],
   })
 
@@ -253,7 +258,22 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     why: "Heile argumentet til typologien er at ein stol kan vera fire plater og ein kile. Delt rygg gjer det til sju — to stavar og ein kile til kvar, og det er eit VAL med ein grunn — to smale stavar toler fiberretninga betre enn éi brei plate med eit hòl i. Går talet over sju, er det ein annan typologi som svarar betre.",
   })
 
-  // --- 14 foten (mjuk) -----------------------------------------------------
+  // --- 14 pakken (mjuk) ----------------------------------------------------
+  // Eit flatpakka møbel har to former, og pakken er den andre. Regelen
+  // spør ikkje om han er liten — han vert aldri liten, delane ligg flatt
+  // og kuben gjeld den ferdige stolen — han spør om EIN person kan bera
+  // han: eitt brett, ikkje ein stabel, og eit hòl å ta i.
+  add({
+    id: "pakke",
+    label: "pakken å bera",
+    hard: false,
+    ok: !!pk.hank,
+    value: `${nn(pk.w, 0)} × ${nn(pk.h, 0)} mm${pk.hank ? "" : " · utan hank"}`,
+    why: "Hanken vert ikkje teikna, ho vert FUNNEN: pakkaren leitar etter ein fri flekk i avkappet nær overkanten, og finn han ingen, er brettet så tett at det ikkje er hòl att å ta i. Då må det berast med to hender under. Storleiken står det ingen grense på, av di rommet ikkje treng ei: over åtti terningkast ligg den lengste sida mellom 857 og 1068 mm, godt innanfor den korte sida av ei standard plate.",
+    peikar: ["djup", "breidd", "ryggT"],
+  })
+
+  // --- 15 foten (mjuk) -----------------------------------------------------
   add({
     id: "fot",
     label: "føter mot golvet",
@@ -264,7 +284,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     peikar: ["bogeH"],
   })
 
-  // --- 15 slankleiken i ryggen (mjuk) --------------------------------------
+  // --- 16 slankleiken i ryggen (mjuk) --------------------------------------
   const slank = p.ryggH / t
   add({
     id: "slank",
@@ -276,7 +296,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     peikar: ["ryggH", "plyT"],
   })
 
-  // --- 16 materialet (mjuk) ------------------------------------------------
+  // --- 17 materialet (mjuk) ------------------------------------------------
   add({
     id: "material",
     label: "materialet",

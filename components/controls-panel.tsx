@@ -165,6 +165,7 @@ const R_MASSE = ["masse"]
 const R_DELAR = ["lagtal", "finnetal", "plater", "plate", "platetal", "unike"]
 const R_UTN = ["utnytting", "styrke"]
 const R_PLATE = ["plateutnytting"]
+const R_PAKKE = ["pakke"]
 
 function tableRows(m: Metrics | null): TableRow[] {
   if (!m) {
@@ -732,6 +733,22 @@ export function ControlsPanel(props: {
 
   const rows = useMemo(() => tableRows(metrics), [metrics])
 
+  /** Pakken er ikkje i den delte Metrics-typen — han er rader i lista, og
+   *  berre motorar som pakkar flatt legg dei der. Finst dei, er biletet
+   *  over ein pakke og ikkje eit kuttark. */
+  const pakken = useMemo(() => {
+    const f = (id: string) => metrics?.list.find((q) => q.id === id)
+    const w = f("pakkeW")
+    const h = f("pakkeH")
+    if (!w || !h) return null
+    return {
+      w: n0(w.value),
+      h: n0(h.value),
+      util: n0((f("pakkeUtil")?.value ?? 0) * 100),
+      hank: (f("pakkeHank")?.value ?? 0) > 0,
+    }
+  }, [metrics])
+
   const setParam = useCallback(
     (k: string, raw: string) =>
       onChange({ ...params, [k]: snap(Number(raw), eng.ranges[k]) }),
@@ -1277,31 +1294,51 @@ export function ControlsPanel(props: {
                 className="my-1.5 overflow-hidden rounded-2xl border p-2"
                 style={{ ...HAIR, background: "#ffffff" }}
               >
-                {/* Arket ber talet sitt sjølv: kor stor del av den medgåtte
-                    plata som vert delar, og kor mange plater det tek. Det
-                    er den eine aksen i avfallsrekninga, rett på biletet av
-                    henne. */}
-                <div className="flex items-baseline justify-between px-1 pb-1 text-[10px]">
-                  <span className="uppercase tracking-[0.24em] opacity-35">arket</span>
-                  {metrics && (
+                {/* Biletet ber talet sitt sjølv. For dei fleste motorane er
+                    biletet KUTTARKET, og talet er kor stor del av den
+                    medgåtte plata som vert delar. Ein motor som pakkar
+                    flatt syner PAKKEN i staden, og då er det pakken sine
+                    mål som høyrer til biletet — same rekninga, men den
+                    andre av dei. */}
+                {pakken ? (
+                  <div className="flex items-baseline justify-between px-1 pb-1 text-[10px]">
+                    <span className="uppercase tracking-[0.24em] opacity-35">pakken</span>
                     <span
                       className="tab"
                       style={{
-                        color: isHard(R_PLATE) ? "var(--warn)" : "var(--ink)",
-                        opacity: isHard(R_PLATE) ? 1 : 0.6,
-                        textDecoration: isSoft(R_PLATE) ? "underline dotted" : undefined,
+                        color: isHard(R_PAKKE) ? "var(--warn)" : "var(--ink)",
+                        opacity: isHard(R_PAKKE) ? 1 : 0.6,
+                        textDecoration: isSoft(R_PAKKE) ? "underline dotted" : undefined,
                         textUnderlineOffset: 3,
                       }}
                     >
-                      {n0(metrics.sheetUtil * 100)} % · {n0(metrics.sheets)}{" "}
-                      {metrics.sheets === 1 ? "plate" : "plater"}
+                      {pakken.w} × {pakken.h} mm · {pakken.util} %
+                      {pakken.hank ? "" : " · utan hank"}
                     </span>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="flex items-baseline justify-between px-1 pb-1 text-[10px]">
+                    <span className="uppercase tracking-[0.24em] opacity-35">arket</span>
+                    {metrics && (
+                      <span
+                        className="tab"
+                        style={{
+                          color: isHard(R_PLATE) ? "var(--warn)" : "var(--ink)",
+                          opacity: isHard(R_PLATE) ? 1 : 0.6,
+                          textDecoration: isSoft(R_PLATE) ? "underline dotted" : undefined,
+                          textUnderlineOffset: 3,
+                        }}
+                      >
+                        {n0(metrics.sheetUtil * 100)} % · {n0(metrics.sheets)}{" "}
+                        {metrics.sheets === 1 ? "plate" : "plater"}
+                      </span>
+                    )}
+                  </div>
+                )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={synPng ?? `data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
-                  alt="alle flatene, slik dei ligg på plata"
+                  alt={pakken ? "pakken: alle delane nesta i eitt brett, med hank" : "alle flatene, slik dei ligg på plata"}
                   className="max-h-40 w-full object-contain"
                   style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
                 />

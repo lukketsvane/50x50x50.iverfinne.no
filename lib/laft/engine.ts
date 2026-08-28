@@ -16,9 +16,11 @@
  * som klappar saman den vegen ingen ser.
  *
  * Prisen er ærleg og står i tavla: flata er flat, og i ein kube på
- * femhundre vert ryggen ei LIST og ikkje ein rygg. Vinsten er dei to tala
- * ingen annan motor er i nærleiken av — FEM delar, og fem millisekund frå
- * skyvar til måltal, av di det ikkje er noko å byggje.
+ * femhundre vert ryggen ei LIST og ikkje ein rygg. Vinsten er talet ingen
+ * annan motor er i nærleiken av — FEM delar. Sjølve bygginga er nesten
+ * gratis av di det ikkje er noko å byggje; det som kostar er PAKKEN, som
+ * vert søkt fram og ikkje rekna, og det er difor både han og bygginga har
+ * eitt steg minne.
  *
  * Kilen er den einaste delen som SKAL kuttast i eit anna treslag. Han er
  * det som held møbelet saman, og då skal ein sjå kvar han sit.
@@ -47,6 +49,7 @@ import { lastForm } from "./lastform"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
 import { buildParts } from "./parts"
+import { hank, pakke, pakkeSvg } from "./pakke"
 import { profileSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
@@ -156,8 +159,13 @@ export const LAFT: EngineDef = {
     // dei to bladene er same emnet, men BEGGE skal kuttast
     const pl = buildParts(p)
     if (what === "arksyn") {
-      // biletet i panelet: same pakking som measure las — sjå ExportKind
-      return { name: "laft-ark.svg", mime: "image/svg+xml", text: alleArkSvg(nest(pl.parts)) }
+      // Biletet i panelet er PAKKEN og ikkje kuttarket. Kuttarket svarar
+      // på kor mange plater jobben krev, og det talet står i tavla; men
+      // det ein vil SJÅ av eit flatpakka møbel er brettet han kjem som.
+      // Måla på pakken står i tavla ved sida av biletet, so kortet og
+      // talet er framleis same rekninga — berre ei anna av dei.
+      const k = pakke(pl.parts)
+      return { name: "laft-pakke.svg", mime: "image/svg+xml", text: pakkeSvg(k, hank(k)) }
     }
     const laser = maskin?.id === "laser" ? maskin : null
     const s = laser ? laser.tjukn / p.plyT : 1
