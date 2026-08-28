@@ -41,6 +41,7 @@ import {
   type Pose,
   type Range,
 } from "../core"
+import { ryggPlass } from "./seteplan"
 
 /** Params må vera tildelbar til ParamBag, difor eit type-alias. */
 export type Params = {
@@ -238,7 +239,7 @@ export const POSES: readonly Partial<Params>[] = [
   {
     hogd: 380, djup: 430, breidd: 384, setevipp: 8, setekile: 0.07, nase: 35,
     bakbukt: 102, hjorne: 0.06, ryggH: 158, ryggV: 11, ryggT: 290, ryggtopp: 0,
-    grep: 120, grepZ: 56, fotY: 235, bogeH: 0.68, fotbreidd: 86, hals: 0.4,
+    grep: 120, grepZ: 56, fotX: 212, fotY: 233, bogeH: 0.68, fotbreidd: 86, hals: 0.4,
     holform: 0, holstorleik: 0.3, kileB: 88, tunge: 104, midje: 0.5,
   },
   // STEINEN — ellipsestol med veggblad. Alt som kan vera rundt er rundt:
@@ -250,7 +251,7 @@ export const POSES: readonly Partial<Params>[] = [
   // ikkje flytta.
   {
     hogd: 404, djup: 396, breidd: 372, setevipp: 5.5, setekile: 0, nase: 12,
-    bakbukt: -28, hjorne: 0.98, ryggH: 128, ryggV: 6, ryggT: 330, ryggtopp: 0.9,
+    bakbukt: -28, hjorne: 0.98, ryggH: 125, ryggV: 6, ryggT: 330, ryggtopp: 0.9,
     grep: 0, fotX: 240, fotY: 146, bogeH: 0.42, fotbreidd: 110, hals: 0.92,
     holform: 1, holstorleik: 0.62, kileB: 92, tunge: 140, midje: 0,
   },
@@ -275,7 +276,7 @@ export const POSES: readonly Partial<Params>[] = [
   {
     hogd: 392, djup: 410, breidd: 470, setevipp: 1.5, setekile: -0.08, nase: 0,
     bakbukt: 22, hjorne: 0, ryggH: 107, ryggV: 16, ryggT: 404, ryggdel: 2,
-    ryggglipe: 56, ryggtopp: 0.15, grep: 90, grepZ: 60, fotX: 234, fotY: 235,
+    ryggglipe: 56, ryggtopp: 0.15, grep: 90, grepZ: 60, fotX: 212, fotY: 213,
     bogeH: 0.3, fotbreidd: 77, hals: 0.5, holform: 0.53, holstorleik: 0.88,
     kileB: 50, tunge: 110, midje: 0.12,
   },
@@ -351,7 +352,11 @@ function eittPass(q: Params, laast: ReadonlySet<string>): Params {
     const A = q.djup / 2
     const framX = (A + q.nase) * ca
     const bakX = (A - q.bakbukt) * ca
-    const xRygg = (-A + q.bakbukt) * ca + q.plyT + 26
+    // Ryggen står ikkje lenger på bakkanten lese på midtlina — han vert
+    // LØYST mot setekurva, og reparasjonen må rekne det same som
+    // geometrien. Reknar ho på den gamle likninga, klipper ho mot ein
+    // stol som ikkje finst, og tunga renn tom utan at nokon seier frå.
+    const { xRygg, ryggB } = ryggPlass(q as Params)
     const zSete = q.hogd - (A - xRygg / ca) * Math.sin(a)
     const phi = Math.atan2(q.fotY, q.fotX)
     // kilen står der tunga er i kilehøgda, ikkje der ho gjekk gjennom setet
@@ -363,7 +368,7 @@ function eittPass(q: Params, laast: ReadonlySet<string>): Params {
       sitZ: q.hogd - (A - (framX + xRygg) / 2 / ca) * Math.sin(a),
       seteD: Math.max(0, framX - xRygg),
       seteB: q.breidd * (1 - Math.abs(q.setekile) * 0.5),
-      stave: (q.ryggT - (q.ryggdel >= 1.5 ? q.ryggglipe : 0)) / (q.ryggdel >= 1.5 ? 2 : 1),
+      stave: (ryggB - (q.ryggdel >= 1.5 ? q.ryggglipe : 0)) / (q.ryggdel >= 1.5 ? 2 : 1),
       // kilerommet: kor langt kilen står frå næraste kryssarm
       kile: Math.abs(xTunge) * Math.sin(phi) - q.plyT,
       // rommet tunga har 56 mm nede — den djupna ho MÅ nå
@@ -416,6 +421,27 @@ function eittPass(q: Params, laast: ReadonlySet<string>): Params {
     set("fotY", Math.min(q.fotY, 247))
     set("breidd", Math.min(q.breidd, 494 / (1 + Math.abs(q.setekile))))
     set("ryggT", Math.min(q.ryggT, 494))
+  }
+  // 4b PAKKEN i kuben. Kuberegelen over måler den samansette stolen, og
+  //    slepp difor gjennom eit einskilt emne som er mykje lenger enn
+  //    kuben: krysshalvinga gjer bladet til heile DIAGONALEN i
+  //    fotavtrykket, 2·√(fotX² + fotY²), og fotX og fotY vert klipte kvar
+  //    for seg. Stabelen får plass på skrå når lengd + tjukn ≤ 500·√2, og
+  //    det er kryssvinkelen som skal gje seg — ikkje setet, som ikkje er
+  //    skuld i noko her. Begge føtene vert skalerte likt, so vinkelen
+  //    står og berre spennet minkar.
+  {
+    const nDel = q.ryggdel >= 1.5 ? 7 : 5
+    // åtte millimeter slakk: emnet er ikkje eit reint rektangel på 2R —
+    // føtene stikk eit hår forbi — og ein reparasjon som siktar på
+    // millimeteren treffer feil side av grensa halve tida
+    const tak = 500 * Math.SQRT2 - nDel * q.plyT - 8
+    const R = Math.hypot(q.fotX, q.fotY)
+    if (2 * R > tak) {
+      const k = tak / (2 * R)
+      set("fotX", q.fotX * k)
+      set("fotY", q.fotY * k)
+    }
   }
   // 5 ryggen må stå PÅ setet, med gods på kvar side
   g = geo()

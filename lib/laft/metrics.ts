@@ -25,7 +25,7 @@ import {
   type Pt,
 } from "../core"
 import { nest, usedArea } from "../vaffel/nest"
-import { hank, pakke } from "./pakke"
+import { iKuben, stabel } from "./pakke"
 import { bygg, delAreal, materialet, tilVerda } from "./profil"
 import { lastVerste } from "./last"
 import { buildParts } from "./parts"
@@ -169,11 +169,12 @@ export function measure(p: Params): Metrics {
   const sheetUtil = sheetArea > 0 ? pl.area / sheetArea : 0
 
   // --- pakken --------------------------------------------------------------
-  // Eit flatpakka møbel har to former, og dette er den andre: brettet han
+  // Eit flatpakka møbel har to former, og dette er den andre: bunten han
   // kjem som. Kuttarket seier kor mange plater jobben krev; pakken seier
-  // kor stor bunt det vert, og om ein kan bera han.
-  const pk = pakke(pl.parts)
-  const hk = hank(pk)
+  // kor stor stabelen vert, om han står i den same kuben som stolen, og
+  // om det er eit hòl å bera han etter.
+  const st = stabel(pl.parts)
+  const kube = iKuben(st)
 
   const mm = (q: number) => nn(q, 0)
   const mm1 = (q: number) => nn(q, 1)
@@ -217,10 +218,13 @@ export function measure(p: Params): Metrics {
     ["spenn", "kryssvinkel", (2 * b.phi * 180) / Math.PI, "°", mm],
     ["overheng", "setet utanfor kryssarmen", b.overheng, "mm", mm],
     ["parts", "delar", pl.parts.length, "stk", mm],
-    ["pakkeW", "pakken brei", pk.w, "mm", mm],
-    ["pakkeH", "pakken høg", pk.h, "mm", mm],
-    ["pakkeUtil", "pakken utnytta", pk.util, "", pct],
-    ["pakkeHank", "hank i pakken", hk ? hk.len : 0, "mm", mm],
+    ["pakkeL", "pakken lang", st.L, "mm", mm],
+    ["pakkeB", "pakken brei", st.B, "mm", mm],
+    ["pakkeD", "pakken tjukk", st.D, "mm", mm],
+    // 0 nei · 1 på skrå · 2 beint — eitt tal, av di tavla berre tek tal
+    ["pakkeKube", "pakken i kuben", kube === "beint" ? 2 : kube === "på skrå" ? 1 : 0, "", mm],
+    ["pakkeHank", "hank i pakken", st.hank ? 1 : 0, "", mm],
+    ["pakkeInni", "delar inne i omslaget", st.inni, "stk", mm],
 
     ["sheets", "plater", ns.sheets.length, "stk", mm],
     ["sheetArea", "plate medgått", sheetArea, "mm²", m2],

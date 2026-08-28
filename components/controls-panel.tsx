@@ -738,13 +738,17 @@ export function ControlsPanel(props: {
    *  over ein pakke og ikkje eit kuttark. */
   const pakken = useMemo(() => {
     const f = (id: string) => metrics?.list.find((q) => q.id === id)
-    const w = f("pakkeW")
-    const h = f("pakkeH")
-    if (!w || !h) return null
+    const L = f("pakkeL")
+    const B = f("pakkeB")
+    const D = f("pakkeD")
+    if (!L || !B || !D) return null
+    const kube = f("pakkeKube")?.value ?? 0
     return {
-      w: n0(w.value),
-      h: n0(h.value),
-      util: n0((f("pakkeUtil")?.value ?? 0) * 100),
+      L: n0(L.value),
+      B: n0(B.value),
+      D: n0(D.value),
+      // 2 beint · 1 på skrå · 0 utanfor
+      kube: kube >= 2 ? "" : kube >= 1 ? " · på skrå" : " · utanfor kuben",
       hank: (f("pakkeHank")?.value ?? 0) > 0,
     }
   }, [metrics])
@@ -1297,9 +1301,9 @@ export function ControlsPanel(props: {
                 {/* Biletet ber talet sitt sjølv. For dei fleste motorane er
                     biletet KUTTARKET, og talet er kor stor del av den
                     medgåtte plata som vert delar. Ein motor som pakkar
-                    flatt syner PAKKEN i staden, og då er det pakken sine
-                    mål som høyrer til biletet — same rekninga, men den
-                    andre av dei. */}
+                    flatt syner PAKKEN i staden — delane stabla, med den
+                    største som omslag — og då er det stabelen sine tre mål
+                    som høyrer til biletet, og om han står i kuben. */}
                 {pakken ? (
                   <div className="flex items-baseline justify-between px-1 pb-1 text-[10px]">
                     <span className="uppercase tracking-[0.24em] opacity-35">pakken</span>
@@ -1312,7 +1316,7 @@ export function ControlsPanel(props: {
                         textUnderlineOffset: 3,
                       }}
                     >
-                      {pakken.w} × {pakken.h} mm · {pakken.util} %
+                      {pakken.L} × {pakken.B} × {pakken.D} mm{pakken.kube}
                       {pakken.hank ? "" : " · utan hank"}
                     </span>
                   </div>
@@ -1338,7 +1342,7 @@ export function ControlsPanel(props: {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={synPng ?? `data:image/svg+xml;utf8,${encodeURIComponent(syn)}`}
-                  alt={pakken ? "pakken: alle delane nesta i eitt brett, med hank" : "alle flatene, slik dei ligg på plata"}
+                  alt={pakken ? "pakken: delane stabla flatt, med den største som omslag" : "alle flatene, slik dei ligg på plata"}
                   className="max-h-40 w-full object-contain"
                   style={{ opacity: busy ? 0.5 : 1, transition: "opacity 200ms ease" }}
                 />
