@@ -3,9 +3,10 @@
 Ein parametrisk sandkasse for sitjemøbel, bygd til AHO-oppgåva
 **50 × 50 × 50**: eit møbel som skal stå inne i ein kube på 500 millimeter.
 
-Sandkassen har fire typologiar, og dei er ikkje fire former. Dei er fire
-svar på det same spørsmålet: **korleis byggjer ein ei krum sitjeflate av
-flate plater?**
+Sandkassen har fem typologiar, og dei er ikkje fem former. Dei fire fyrste
+er fire svar på det same spørsmålet: **korleis byggjer ein ei krum
+sitjeflate av flate plater?** Den femte, LAFT, er det einaste svaret som
+NEKTAR spørsmålet — og difor står han her.
 
 | typologi | produksjonsveg | leddet |
 |---|---|---|
@@ -13,6 +14,7 @@ flate plater?**
 | **SKIVE** | parallelle skiver med luft imellom, tredde på stavar | stav og skive |
 | **STRAUM** | éin kropp skoren i skrå skiveplan, finnar sette i spor | gjennomspor |
 | **RIBBE** | radiale blad og vassrette band | kryssholdt |
+| **LAFT** | fire heile plater og ein kile, lafta i kvarandre | tapp, spor og kile |
 
 Fire er talet av di kvart svar må svare på SPØRSMÅLET. FLETT (vevne band)
 og KARVE (limt blokk, frest ned) svara på andre spørsmål — band er ikkje
@@ -22,8 +24,12 @@ er tekne heilt ut. BØYG (pressbøygde skal) står på stillaset og er ikkje i
 nedtrekket enno; SKAL (dei stabla lamellane) er teken ut av registeret,
 men kjelda står att for dokumentpipelinen.
 
-**VAFFEL er svaret prosjektet landar på.** Dei tre andre står som
-argumentet kring valet. Reiskapen er bygd for å lage ÉIN krakk som passar
+**VAFFEL er svaret prosjektet landar på.** Dei andre står som argumentet
+kring valet — og LAFT er den andre enden av det: han seier at ei plate er
+ei plate, at komforten kjem av vinklar og ikkje av krumming, og han
+betaler for det med ei flat sitjeflate. Til gjengjeld kjem han ut av EITT
+band plate, har FIRE delar og ein kile, og kan reisast utan lim og utan
+skruar. Prisen og vinsten står i tavla hans, side om side. Reiskapen er bygd for å lage ÉIN krakk som passar
 brukaren sin: still høgd, plan og sete etter kroppen (posane, hovuddraga,
 gestane), sjå kva lasta gjer med objektet — lesemåten **last** målar
 utnyttinga under NS-EN 1728-lasta på sjølve flata, med same modell og

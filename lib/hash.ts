@@ -39,6 +39,7 @@ const MOTOR_BOKSTAV: Record<string, string> = {
   ribbe: "r",
   boyg: "b",
   skal: "l",
+  laft: "f",
 }
 const BOKSTAV_MOTOR: Record<string, EngineId> = Object.fromEntries(
   Object.entries(MOTOR_BOKSTAV).map(([m, b]) => [b, m as EngineId]),
@@ -49,7 +50,9 @@ const BOKSTAV_MOTOR: Record<string, EngineId> = Object.fromEntries(
  *  tillegg aldri flytter eit einaste bit. */
 const VIEWS: readonly View[] = ["flate", "lag", "kontur", "last"]
 const VIEW_RADIX = 8
-const MATERIAL: readonly string[] = ["bjork", "bok", "poppel"]
+// Nye ledd bakarst, aldri i midten: radiksen har rom, so MDF og akryl
+// kunne leggjast til utan at eit einaste bit i ei gammal lenkje flytte seg.
+const MATERIAL: readonly string[] = ["bjork", "bok", "poppel", "mdf", "akryl"]
 const MATERIAL_RADIX = 8
 const BEIS: readonly string[] = [
   "natur", "aho", "kvit", "petrol", "marine", "gron", "rust", "svart",

@@ -38,23 +38,25 @@ reiskap, og ærleg nok til at det han seier kan stolast på.**
 
 ## 2 Kva som står i dag
 
-Sandkassen er ikkje éin generator lenger. Han er eit register med fire, og
+Sandkassen er ikkje éin generator lenger. Han er eit register med fem, og
 skalet veit ingenting om kva som ligg under nedtrekket.
 
 | lag | fil | status |
 |---|---|---|
 | kontrakt | `lib/core.ts` | `EngineDef`: parameterrom, tre lesemåtar, måltavle, reglar, fire eksportformat. Pluss geometrien alle fire treng: hylster, superellipse, meshvolum, kapasitetar |
-| register | `lib/engines.ts` | fire motorar, nedtrekk, per-motor tilstand |
+| register | `lib/engines.ts` | fem motorar, nedtrekk, per-motor tilstand |
 | tråd | `lib/worker.ts` | motoruavhengig; rutar på `req.engine` |
-| grensesnitt | `studio.tsx`, `viewer.tsx`, `controls-panel.tsx` | skriven éin gong, tener alle fire |
+| grensesnitt | `studio.tsx`, `viewer.tsx`, `controls-panel.tsx` | skriven éin gong, tener alle fem |
 | prøve | `scripts/typologies.ts` | kontraktprøva: nøklar, terning, lukka nett, NaN, kuben, reglar, tid |
 | mappe | `doc/render.py` | 16 sider, eigen rasterisator utan GPU |
 
-Og dei fire motorane, med tala frå `scripts/typologies.ts`:
+Og motorane i registeret, med tala frå `scripts/typologies.ts`. (`skal` er
+teken UT av registeret og står ikkje lenger her; kjelda hans er att for
+dokumentpipelinen.)
 
 | motor | produksjonsveg | skyvarar | reglar (harde) | masse | utnytting | bygg + mål |
 |---|---|---|---|---|---|---|
-| `skal` | vassrette lamellar, stabla og slipte ned til éi flate | 45 | 14 (4) | 3,82 kg | 5 % | 1526 ms |
+| `laft` | fire heile plater og ein kile, lafta i kvarandre | 23 | 16 (9) | 4,27 kg | 50 % | 5 ms |
 | `straum` | éin kropp skoren i skrå skiveplan, finnar sette i spor | 30 | 17 (5) | 5,05 kg | 8 % | 350 ms |
 | `ribbe` | radiale blad og vassrette band, kryssholdte i kvarandre | 33 | 16 (9) | 10,24 kg | 15 % | 100 ms |
 | `vaffel` | kryssholdte ribber i to retningar, utan lim og utan skruar | 21 | 16 (8) | 5,56 kg | 18 % | 585 ms |
@@ -962,6 +964,78 @@ der vaffelen alt leier med 8,4. To ting vart likevel henta: laserlufta
 ned frå 2 til 1,2 mm (målt: +3 poeng, 54 → 57 %; under 1,2 kom
 ingenting att), og lærdomen står her. Avkappet frå bogane er dessutan
 store, reine stykke — plate ein har, ikkje flis.
+
+### 21 · LAFT: typologien som nektar spørsmålet — GJORD
+
+**Kvifor.** Dei fire motorane var fire svar på det same: korleis byggje ei
+KRUM sitjeflate av flate plater. Fire svar på eitt spørsmål er ein
+metode; dei viser kva krumminga kostar, men ingen av dei viser kva ho er
+VERD, av di ingen av dei står utan henne. Referansane som sette dette i
+gang — flatpakka kryssfinérstolar med ei ryggplate med berehol, ei
+seteplate, to beinblad og ein kile i kontrastfarge — svarar ikkje på
+spørsmålet i det heile. Dei seier at ei plate er ei plate, at komforten
+kjem av VINKLAR, og at flata får vera flat. Det er den andre enden av
+rommet, og eit argument treng begge endane.
+
+**Kva han er.** Fire heile plater og ein kile: seteplate med to
+gjennomgåande spor, to beinblad med tapp opp gjennom setet og ein boge
+kutta ut under, ei rygglist som går NED gjennom setet, og ein kile som
+vert slegen gjennom tunga under. Skuldra ligg over setet, kilen under —
+plata er klemd mellom dei to, og då sit møbelet. Ingen lim, ingen skruar.
+Rekkjefylgja er: reis bladene, slepp setet ned, slepp lista ned, slå
+kilen. Kilen er den einaste delen som er RETT å kutte i eit anna treslag,
+av di han er det som held alt saman og då skal ein sjå kvar han sit.
+
+**Ryggen vart ei LIST, og det er kuben sin skuld.** Referansestolane er
+kring åtte hundre millimeter høge. Oppgåva er fem hundre, og
+NS-EN 1729 sin botn for setet er tre hundre og åtti. Rekninga går ikkje
+opp: er setet lovleg, er det knapt hundre millimeter att til ryggen. Så
+ryggen er ikkje ein rygg — han er ei list ein lener korsryggen mot, og
+det er den SAME lista ein ber stolen etter. Bereholet er det einaste
+hòlet i heile møbelet som ikkje er eit ledd.
+
+**Tre feil i ledda, funne med tal og ikkje med auge.** Ein numerisk
+leddsjekk (kvar del sitt hylster i verda, mot kvart spor) tok tre ting
+teikninga aldri ville vist: setet var bygd OPP frå oversida si og stod
+difor ei heil tjukn for høgt (framkanten på 416 i ein kube på 500);
+lista stod ikkje midt i sporet sitt; og kilen kunne ikkje gå gjennom sitt
+eige hòl — eit hòl i tunga går langs tunga sin normal, altså fram og
+attende, so kilen MÅTTE vera ei plate i x–z-planet som vert driven
+framover, ikkje ei som vert slegen ned.
+
+**Viklinga og handa til planet.** Halve platene rendra kolsvarte. Grunnen
+var at plana ikkje har same hand: setet og lista har eit høgrehendt
+(u, v, n), bladene og kilen eit venstrehendt, og same viklingsrekkja gjev
+då motsett geometrisk normal. Målt: 348 av 1848 trekantar i «lag» og 232
+av 472 i «flate» var vrangt vikla. `tri()` rettar no viklinga etter
+normalen, og veggene får utovernormalen rekna i PLANET — der utsida
+alltid ligg til høgre for gangretninga, same kva hand planet har. Etter:
+null vrange.
+
+**Konturen bryt lina.** Dei andre motorane legg profilane sine på éi
+line, som går bra når delane er mange og små. Fem store delar vart to
+meter breie og ti centimeter høge, og innramminga — som reknar avstand av
+halvdiagonalen og har eit tak på femten einingar — kutta teikninga i
+begge endar. LAFT bryt difor lina i rader mot ei om lag kvadratisk
+teikning.
+
+**Plateutnyttinga, ærleg.** Fyrste utkast lova at «fire store, enkle
+former pakkar tettast», og målinga sa nei: 42 %, mot vaffelen sine 53.
+Grunnen er ikkje pakkaren — han finn alt det einaste bandet som finst
+(bandhøgda er den høgaste delen, 399 mm, og lågare går det ikkje) — det
+er at fem delar ikkje fyller ei plate som er 2500 mm brei på TVERS, og
+bandet vert betalt i full breidd. Regelen seier no dette, og terskelen
+står på 40 %, som er nedre kvartil i rommet. Det LAFT faktisk vinn står
+under: EITT band, 14,9 dm³ plate inn, 4,3 kg, og fem ms frå skyvar til
+måltal — tolv gonger raskare enn den nest raskaste motoren, av di det
+ikkje er noko å byggje.
+
+**Prøvd.** Kontraktprøva: alle held kontrakten. Terningen over 200 kast
+(`scripts/terning.ts`): 100 % av kasta held dei harde reglane, 84 % held alle (resten er `plate` under 40 %,
+altså den nedre kvartilen regelen er sett til å merke). Posane: alle fem
+refunderte mot ein søkjar med mjuk skråning på dei to geometriske harde
+reglane — lenestolen, pinnen, benken, spriket, tavla, frå 3,3 til 5,5 kg,
+alle innanfor kuben og alle med lovleg sitjehøgd.
 
 ---
 
