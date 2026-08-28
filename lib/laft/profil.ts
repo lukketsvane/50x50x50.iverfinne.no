@@ -362,7 +362,15 @@ function byggja(p: Params): Bygg {
   // — og dermed golvet som midja aldri får eta seg ned i.
   const sInn = Math.max(30, R - p.fotbreidd)
   const kryssBotn = p.bogeH * kryssTopp
-  const bogeK = 2.2
+  /**
+   * PORTEN. Bogen mellom føtene er den lengste samanhengande kurva i heile
+   * silhuetten, og han stod på eit hardkoda tal. Eksponenten er heile
+   * formspråket: éin er ein rein V med spissen i taket, to og eit halvt er
+   * ein romansk boge, og fem er gotisk — smal og høg, med beina som to
+   * skaft. Referansane spenner over alle tre, og skilnaden les ein frå
+   * fire meter; `holstorleik` under setet gjer ein ikkje.
+   */
+  const bogeK = p.port
   const bogeZ = (s: number) =>
     Math.abs(s) >= sInn ? 0 : kryssBotn * (1 - (Math.abs(s) / sInn) ** bogeK)
   const bladTopp = (s: number) => {
@@ -477,11 +485,18 @@ function byggja(p: Params): Bygg {
   // eit par millimeter for smalt, og dei to blada deler ei tynn flis
   // materiale heile overlappet gjennom.
   const hakkB = hakkGrov
+  // Hakket skal OPNE seg gjennom kanten, og då må det stikke forbi kanten
+  // DER HAKKET ER BREITT — ikkje forbi toppunktet hennar. Bogen er ein
+  // spiss når porten står på V: fire millimeter under toppen er framleis
+  // godt over kanten ute ved hakkekanten, og då vert det opne hakket eit
+  // lukka hòl tre millimeter frå kanten. Overskotet vert difor rekna av
+  // bogen si eiga høgd i hakket sin ytterkant.
+  const botnKant = Math.min(bogeZ(-hakkB / 2), bogeZ(hakkB / 2)) - 4
   blad.forEach((d, i) => {
     const h =
       i === 0
         ? rekt(-hakkB / 2, midt, hakkB / 2, kryssTopp + 4)
-        : rekt(-hakkB / 2, kryssBotn - 4, hakkB / 2, midt)
+        : rekt(-hakkB / 2, botnKant, hakkB / 2, midt)
     d.holes.push(...sporMedAvlasting(h, p.fresD))
   })
 

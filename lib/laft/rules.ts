@@ -241,9 +241,9 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     id: "plate",
     label: "plateutnytting",
     hard: false,
-    ok: m.sheetUtil >= 0.34,
+    ok: m.sheetUtil >= 0.31,
     value: `${nn(m.sheetUtil * 100, 0)} % · ${m.sheets} ${m.sheets === 1 ? "plate" : "plater"}`,
-    why: "Prosenten er låg med vilje, og det er ikkje pakkaren sin skuld: fem delar fyller ikkje ei plate som er 2500 mm brei på tvers, og bandet vert betalt i full breidd same kor få delar som står i det. Det LAFT vinn er talet under — EITT band på kring ein kvadratmeter, mot to og tre plater hjå dei andre. Målt over rommet ligg han på 30 nedst, 37 i midten og 46 på det beste — fire prosentpoeng lågare enn før midja, av di eit blad med innsving tek same bandhøgda og mindre av bandet. Under 34 spriker forma so bandet vert høgare enn den høgaste delen treng.",
+    why: "Prosenten er låg med vilje, og det er ikkje pakkaren sin skuld: fem delar fyller ikkje ei plate som er 2500 mm brei på tvers, og bandet vert betalt i full breidd same kor få delar som står i det. Det LAFT vinn er talet under — EITT band på kring ein kvadratmeter, mot to og tre plater hjå dei andre. Målt over rommet ligg han på 30 nedst, 36 i midten og 44 på det beste. Talet fell kvar gong bladet får eit nytt formledd — midja tok fire prosentpoeng, porten eitt til — av di eit utskore blad tek same bandhøgda og mindre av bandet. Det er den ærlege prisen på silhuetten, og han står her og ikkje gøymd. Under 31 spriker forma so bandet vert høgare enn den høgaste delen treng.",
     peikar: ["djup", "breidd", "hjorne"],
   })
 

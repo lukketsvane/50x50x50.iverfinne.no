@@ -94,6 +94,8 @@ export type Params = {
   hals: number
   /** midja: eit søkk i overkanten mellom skuldra og foten */
   midje: number
+  /** porten: forma på bogen mellom føtene, 1 er V og 5 er gotisk */
+  port: number
   /** utskjeringa: 0 trekant, 0,5 drope, 1 boge */
   holform: number
   /** utskjeringa si storleik, 0 er inkje hòl */
@@ -139,6 +141,7 @@ export const PARAM_RANGES: Record<string, Range> = {
   fotbreidd: { min: 40, max: 120, step: 1, label: "fotbreidd" },
   hals: { min: 0.3, max: 0.92, step: 0.01, label: "skulder" },
   midje: { min: 0, max: 0.62, step: 0.01, label: "midje" },
+  port: { min: 0.9, max: 5, step: 0.1, label: "port" },
   holform: { min: 0, max: 1, step: 0.01, label: "hòlform" },
   holstorleik: { min: 0, max: 0.9, step: 0.01, label: "hòlstorleik" },
 
@@ -163,7 +166,7 @@ export const GROUPS: Group[] = [
   {
     id: "bein",
     label: "bein",
-    keys: ["fotX", "fotY", "bogeH", "fotbreidd", "hals", "midje", "holform", "holstorleik"],
+    keys: ["fotX", "fotY", "bogeH", "port", "fotbreidd", "hals", "midje", "holform", "holstorleik"],
   },
   { id: "ledd", label: "ledd", keys: ["plyT", "pressfit", "fresD", "kileB", "tunge"] },
 ]
@@ -200,6 +203,7 @@ export const DEFAULT_PARAMS: Params = {
   fotbreidd: 74,
   hals: 0.6,
   midje: 0.3,
+  port: 2.2,
   holform: 0.15,
   holstorleik: 0.7,
 
@@ -240,7 +244,7 @@ export const POSES: readonly Partial<Params>[] = [
     hogd: 380, djup: 430, breidd: 384, setevipp: 8, setekile: 0.07, nase: 35,
     bakbukt: 102, hjorne: 0.06, ryggH: 158, ryggV: 11, ryggT: 290, ryggtopp: 0,
     grep: 120, grepZ: 56, fotX: 212, fotY: 233, bogeH: 0.68, fotbreidd: 86, hals: 0.4,
-    holform: 0, holstorleik: 0.3, kileB: 88, tunge: 104, midje: 0.5,
+    holform: 0, holstorleik: 0.3, kileB: 88, tunge: 104, midje: 0.5, port: 4.4,
   },
   // STEINEN — ellipsestol med veggblad. Alt som kan vera rundt er rundt:
   // setet buar utover heile vegen (hjørne 0,98, bukt −28), hòlet i
@@ -253,7 +257,7 @@ export const POSES: readonly Partial<Params>[] = [
     hogd: 404, djup: 396, breidd: 372, setevipp: 5.5, setekile: 0, nase: 12,
     bakbukt: -28, hjorne: 0.98, ryggH: 125, ryggV: 6, ryggT: 330, ryggtopp: 0.9,
     grep: 0, fotX: 240, fotY: 146, bogeH: 0.42, fotbreidd: 110, hals: 0.92,
-    holform: 1, holstorleik: 0.62, kileB: 92, tunge: 140, midje: 0,
+    holform: 1, holstorleik: 0.62, kileB: 92, tunge: 140, midje: 0, port: 2.6,
   },
   // STAKEN — arbeidskrakken, den einaste i arbeidsbandet: 443 mm
   // sitjehøgd mot 336–387 hjå dei fire andre, og ryggen redusert til ei
@@ -265,7 +269,7 @@ export const POSES: readonly Partial<Params>[] = [
     hogd: 450, djup: 336, breidd: 372, setevipp: 4, setekile: 0.3, nase: 58,
     bakbukt: 45, hjorne: 0.42, ryggH: 66, ryggV: 24, ryggT: 230, ryggtopp: 0.35,
     grep: 0, fotX: 196, fotY: 186, bogeH: 0.52, fotbreidd: 100, hals: 0.65,
-    holform: 0.78, holstorleik: 0.48, kileB: 96, tunge: 110, midje: 0.18,
+    holform: 0.78, holstorleik: 0.48, kileB: 96, tunge: 110, midje: 0.18, port: 1.0,
   },
   // TOFTA — benken til to, og den einaste med DELT rygg: to stavar med
   // vid glipe, kvar med sitt berehol og sin eigen kile, so møbelet er
@@ -278,7 +282,7 @@ export const POSES: readonly Partial<Params>[] = [
     bakbukt: 22, hjorne: 0, ryggH: 107, ryggV: 16, ryggT: 404, ryggdel: 2,
     ryggglipe: 56, ryggtopp: 0.15, grep: 90, grepZ: 60, fotX: 212, fotY: 213,
     bogeH: 0.3, fotbreidd: 77, hals: 0.5, holform: 0.53, holstorleik: 0.88,
-    kileB: 50, tunge: 110, midje: 0.12,
+    kileB: 50, tunge: 110, midje: 0.12, port: 1.6,
   },
   // DVALEN — golvnær lesestol. Setet ligg på 336 og vippar ti grader, og
   // heile resten av kuben er gjeven til ryggen: 220 mm, taket i bandet,
@@ -292,7 +296,7 @@ export const POSES: readonly Partial<Params>[] = [
     bakbukt: 0, hjorne: 0.66, ryggH: 220, ryggV: 34, ryggT: 260, ryggtopp: 0.6,
     grep: 104, grepZ: 35, fotX: 206, fotY: 198, bogeH: 0.62, fotbreidd: 65,
     hals: 0.78, holform: 0.3, holstorleik: 0.75, kileB: 79, tunge: 69,
-    midje: 0.62,
+    midje: 0.62, port: 3.4,
   },
 ]
 

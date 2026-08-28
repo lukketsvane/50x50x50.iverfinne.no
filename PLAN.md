@@ -1251,6 +1251,107 @@ dei harde, og minsteavstanden mellom posane står i 0,397.
 
 ---
 
+### 25 · Pakken er ein stabel, og to spor som låg i lufta — GJORD
+
+**Kvifor.** Fem nye referansebilete. Tre av dei syner den flatpakka
+tilstanden, og alle tre syner det same: platene ligg flate mot kvarandre i
+ein STABEL som står oppreist på sine eigne føter, med den største delen som
+heile silhuetten. Ikkje eitt av bileta syner eit brett med delane nesta ved
+sida av kvarandre — som er nettopp det `pakke.ts` frå etappe 24 søkte fram.
+Han svara godt på eit spørsmål ingen av referansane stiller.
+
+**Pakken, om att.** Skilnaden er tre ting, og ingen av dei er kosmetisk.
+
+| | brettet (etappe 24) | stabelen (no) |
+|---|---|---|
+| forma | eit runda rektangel søkt fram kring delane | ingen eiga form — omrisset ER den største delen |
+| talet | 925 × 841 mm, 49 % utnytta | 554 × 390 × 75 mm, 100 % utnytta |
+| vekta ein ber | 3,9 kg stol + 4,0 kg skrot | 3,9 kg stol |
+| grensa | ingen | den SAME kuben som stolen |
+
+**Og då fann pakken noko ingen annan regel såg.** Krysshalvinga gjer det
+lengste emnet til heile diagonalen i fotavtrykket — 2·√(fotX² + fotY²) — og
+han er per definisjon lenger enn sida i fotavtrykket. Kuberegelen måler den
+SAMANSETTE stolen, og `fiks()` klipte fotX og fotY kvar for seg: eit blad på
+sju hundre millimeter gjekk rett gjennom. Alle fem posane hadde blad over
+500. Ein stol som står i kuben kan altså ha ein pakke som ikkje gjer det, og
+motoren sa ikkje frå.
+
+No er det ein hard regel. Ei plate får plass anten beint fram, eller lagd på
+skrå: eit rektangel på lengd × tjukn står i eit kvadrat på 500 når lengd +
+tjukn ≤ 707. Månen og tofta måtte trekkje føtene inn for å koma i hus, og
+det er kryssvinkelen som gjev seg — ikkje setet, som ikkje er skuld i noko
+her.
+
+**Hanken var eit hòl for mykje.** Den førre pakkaren skar ei ny hank i
+avkappet, endå ryggen alt har ei; eksporten hadde TO. I bileta er hòlet ein
+ber pakken etter nøyaktig det same hòlet ein seinare ber stolen etter — same
+form, same plass, same del. No vert ho funnen i møbelet og ikkje i skrotet.
+
+**Ei ting stabelen ikkje kan love.** I bileta står kilen driven gjennom heile
+bunten og låser han. LAFT sine spor møtest ikkje når platene ligg oppå
+kvarandre, so ein slik lås måtte peikast ut og ikkje reknast fram. Han er
+ikkje her, og det står i fila.
+
+---
+
+**GODSPRØVA.** `scripts/laft-gods.ts` spør om noko ingen annan prøve fanga:
+om eit hòl i det heile ligg inne i den delen det er skore i. Eit spor vert
+rekna av gjesten sin skugge, og rekninga bryr seg ikkje om verten har
+materiale der. **Elleve av 46 punkt braut.**
+
+To årsaker, båe med same rot: ein KANT vart lesen som eit TAL.
+
+1. *Ryggen stod på bakkanten lese på MIDTLINA.* Bakkanten er ei kurve som
+   bøyer seg framover ut mot sidene, og ryggen er brei. På eit ellipseforma
+   sete stod sporet hundre millimeter bak sin eigen kant, med 55 prosent av
+   seg utanfor plata — ein rygg som ikkje er festa i noko. Stillinga og
+   breidda vert no LØYSTE mot kurva. Fyrste forsøket las ytterkanten og
+   braut sigden, som har hornene bak og bukta tom imellom; no vert det
+   samanhengande godset kring midtlina målt, eit heilt gods bak sporet si
+   eiga bakkant.
+2. *Bereholet stod på eit tal ned frå toppen.* Er toppen runda, smalnar plata
+   nettopp der, og kapselen braut ut gjennom hjørnet — verst med kanten éin
+   millimeter UTANFOR plata. Både høgda og lengda vert no løyste mot den same
+   toppkurva plata er teikna med.
+
+Terskelane i prøva er **målte og ikkje sette**: alt som er meint å vera der
+ligg mellom 91 og 100 prosent inne, og den trongaste staden i heile
+konstruksjonen er kilesporet mot enden av tunga — 7,6 mm, som fell ut av to
+reglar som alt finst.
+
+**`lib/laft/seteplan.ts`** er skild ut av éin grunn: reparasjonen i
+`params.ts` må rekne det same som geometrien. Gjorde ho ikkje det, klipte ho
+mot ein stol som ikkje finst — og det var akkurat det som hende fyrst, då
+tunga rann tom på tre prosent av terningen utan at nokon sa frå.
+
+---
+
+**PORTEN.** Bogen mellom føtene er den lengste samanhengande kurva i heile
+silhuetten, og eksponenten hans stod på eit hardkoda tal. Han er heile
+formspråket: éin er ein rein V med spissen i taket, to og eit halvt er ein
+romansk boge, fem er gotisk — smal og høg, med beina som to skaft.
+Referansane spenner over alle tre.
+
+Posane fekk kvar sin: staken 1,0 (V), tofta 1,6, standard 2,2, steinen 2,6
+(halvsirkelen), dvalen 3,4, månen 4,4 (gotisk). Prisen står i tavla som
+alltid — plateutnyttinga fell eitt prosentpoeng til, av di eit meir utskore
+blad tek same bandhøgda og mindre av bandet — og terskelen er flytta med
+etter måling, ikkje etter skjøn.
+
+**Etter:** 46 av 46 punkt har gods kring kvart hòl, alle 46 held ledda,
+terningen gjev 98,5 % på dei harde og 95 % på alle (mot 97,5 og 74 før
+etappen), og minsteavstanden mellom posane står i 0,389.
+
+**Att, og medvite ikkje gjort.** Referansane har tre ting til som ikkje er
+skyvarar men ANDRE STOLAR, og som difor står som val og ikkje som manglar:
+klemleddet (ein tapp tvers gjennom med kile på utsida som DREG, i staden for
+spor som losjerer), ryggen-som-bakbein (som fjernar krysshalvinga heilt), og
+det delte bladet som møtest ende mot ende på midten — den einaste av
+referansane som får pakken inn i kuben utan å ofre fotavtrykket.
+
+---
+
 ---
 
 ## 6 Kva som skal målast
@@ -1383,3 +1484,4 @@ kjem frå éin stad.
 | `scripts/laft-ledd.ts` | om to plater deler materiale, og om kvart ledd faktisk grip — i eitt punkt |
 | `scripts/laft-sveip.ts` | same prøva over kvar pose og eit sveip av terningkast |
 | `scripts/laft-avstand.ts` | kor ulike posane er, målt i dei parametrane som formar |
+| `scripts/laft-gods.ts` | om kvart hòl ligg inne i den delen det er skore i, og har gods kring seg |
