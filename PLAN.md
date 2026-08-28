@@ -56,7 +56,7 @@ dokumentpipelinen.)
 
 | motor | produksjonsveg | skyvarar | reglar (harde) | masse | utnytting | bygg + mål |
 |---|---|---|---|---|---|---|
-| `laft` | to kryssande blad, eit sete og ei list | 28 | 17 (9) | 4,0 kg | 58 % | 5 ms |
+| `laft` | to kryssande blad, eit sete og ei list | 28 | 18 (9) | 4,0 kg | 58 % | 5 ms |
 | `straum` | éin kropp skoren i skrå skiveplan, finnar sette i spor | 30 | 17 (5) | 5,05 kg | 8 % | 350 ms |
 | `ribbe` | radiale blad og vassrette band, kryssholdte i kvarandre | 33 | 16 (9) | 10,24 kg | 15 % | 100 ms |
 | `vaffel` | kryssholdte ribber i to retningar, utan lim og utan skruar | 21 | 16 (8) | 5,56 kg | 18 % | 585 ms |
@@ -1118,6 +1118,70 @@ bandet for sitjehøgda går no ned til 330 — loungehøgd — so rommet HAR den
 låge, høgryggja stolen i seg; arbeidshøgda står att som ein mjuk regel som
 seier kva ein har byta bort. Standardobjektet ligg i arbeidsbandet.
 
+### 23 · Leddprøva over HEILE rommet, og fem posar som er fem stolar — GJORD
+
+**Kvifor.** Leddprøva i etappe 22 målte eitt punkt: standardobjektet.
+Eit ledd som held der seier ingen ting om dei andre, av di sporet er
+rekna av gjesten og difor følgjer geometrien når ho endrar seg — men kva
+som RØRER kva endrar seg òg. `scripts/laft-sveip.ts` køyrer same prøva på
+kvar kuratert pose og eit sveip av terningkast. Fyrste køyringa: **elleve
+av trettiseks punkt hadde brote geometri**, verste med 77 cm³ delt
+materiale. Standardobjektet var eitt av dei fem som heldt.
+
+**Fem feil, kvar med si årsak.**
+
+1. *Tunga rekna med tangens.* Avstanden frå midtlina til eit bladplan er
+   |x|·SIN(φ), den vinkelrette avstanden — ikkje |x|·tan(φ), som måler
+   langs ein akse. Tangenten gjev tretti prosent for mykje rom, og med
+   delt rygg gjorde han det dobbelt.
+2. *Tunga gjekk dit det ikkje var rom.* Kryssarmane konvergerer mot
+   midtlina, og ei tunge som lener seg framover medan ho fell rekk til
+   slutt inn til krysset der rommet er null. Tunga følgjer no ARMANE med
+   fast klaring, og djupna vert LØYST og ikkje bede om — `tunge` er eit
+   ønske, geometrien har siste ordet, og regelen melder kva ho vart.
+3. *Halveringa gjekk feil veg.* Løysinga av djupna starta markøren på den
+   djupe sida i staden for den grunne, so han krøyp mot null uansett kor
+   mykje rom det var: kvar einaste tunge vart seks millimeter.
+4. *Ein kile i midtplanet med delt rygg.* To tunger står kvar for seg i
+   kilerommet med ei glipe imellom, og éin kile i midten går gjennom
+   glipa og ikkje gjennom nokon av dei. Kvar tunge har no sin eigen kile
+   — kontrastkilen er ikkje eitt merke i møbelet, men to.
+5. *Ein tapp som snudde seg.* Den bakre tappen vert kappa framfor ryggen
+   so dei to ikkje deler rom i setet. Gjekk grensa forbi tappen si fremre
+   ende, vart lo større enn hi: ein baklengs firkant i omrisset, som
+   filteret som lagar sporet slepte gjennom null punkt av — plata full av
+   materiale ingen hadde bedt om, og det såg ut som ein tapp.
+
+**Og ei sjette som ikkje var i geometrien.** Ei tidlegare redigering i
+same fila hadde fjerna heile den runda toppen på ryggen. `ryggtopp` gjorde
+ingen ting, kvar rygg var flat, og ingen prøve fanga det opp, av di ei
+flat plate er like lovleg som ei runda. Han er attende — og då sprengde to
+posar kuben, av di dei no vart så høge som tala deira sa.
+
+**Etter: alle 46 punkta held ledda.** Fem posar, førti terningkast og
+standarden, null delt materiale, og kvar del i inngrep med den ho skal
+gripe i.
+
+**Posane var fem variantar av same stol.** `scripts/laft-avstand.ts` måler
+avstanden mellom to posar i dei sytten parametrane som verkeleg formar,
+kvar normalisert mot sitt eige band. Det som tel er MINSTEAVSTANDEN: eit
+sett med fire vidt ulike og to som liknar, er eit sett med fem der to er
+den same. Det gamle settet låg på 0,19 — og fire av dei fem hadde
+sitjehøgd mellom 380 og 381.
+
+Det nye settet ligg på **0,408**, og det er fem stolar:
+
+| pose | kva han er | kva som skil han |
+|---|---|---|
+| **månen** | sigden — bakkanten buar 102 mm FRAM, so plata legg seg kring hoftene | einaste sigden, og han er KANTETE: sigd og rektangel på ein gong. Smalaste bladet, og det einaste fotavtrykket som er breiare enn djupt — krysset står på tvers |
+| **steinen** | ellipsestol med veggblad, den tunge og stille | alt som kan vera rundt er rundt: sete, hòl og ryggskuldrer. Bladet held full høgd nesten ut til foten, so sida er ei FLATE med ein port i. Djupaste og smalaste fotavtrykk |
+| **staken** | arbeidskrakken, 443 mm sitjehøgd | einaste i arbeidsbandet, og einaste som er høgare enn brei. Setet er ein vifte med kilen i taket av bandet. Leninga på 24° er ikkje komfort, ho er BETALING for høgda |
+| **tofta** | benken til to, sju delar | einaste med DELT rygg: to stavar, kvar med sitt berehol og sin eigen kile. Reint rektangulært sete, einaste med negativ kile, lågaste og flataste boge med det største hòlet |
+| **dvalen** | golvnær lesestol, sete på 336 | ryggen er 220 — taket i bandet — lena 34 grader, og SMAL: han les som ein planke og ikkje eit brett. Frå sida ein skrå strek der dei fire andre står oppreiste |
+
+Sitjehøgda spenner no 336–443 mot 380–381 før, og kvar av dei fem brukar
+kuben heilt ut: 488 til 497 millimeter i den bindande retninga.
+
 ---
 
 ## 6 Kva som skal målast
@@ -1247,3 +1311,6 @@ kjem frå éin stad.
 | `scripts/plan-probe.ts` | kvar tida i `measure` går, `buildStack` mot vinkeloppløysing, `buildMesh` mot rutenett |
 | `scripts/plan-hash.ts` | informasjonsgrensa i eit punkt, og kva ei kvantisert koding ville kosta |
 | `scripts/plan-feasible.ts` | kor stor del av parameterrommet som er eit møbel, og kva reglar som fell |
+| `scripts/laft-ledd.ts` | om to plater deler materiale, og om kvart ledd faktisk grip — i eitt punkt |
+| `scripts/laft-sveip.ts` | same prøva over kvar pose og eit sveip av terningkast |
+| `scripts/laft-avstand.ts` | kor ulike posane er, målt i dei parametrane som formar |
