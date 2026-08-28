@@ -289,7 +289,23 @@ export type Bygg = {
   tungeDjup: number[]
 }
 
+/**
+ * Eitt steg minne. Eit skyvarslepp spør om det same objektet fire gonger
+ * — tavla byggjer det, delelista byggjer det, reglane byggjer det, og
+ * pakkaren spør delelista om att — og kvar bygging er tolv millisekund.
+ * Nøkkelen er parametrane, av di det er dei bygginga er ein funksjon av.
+ */
+let sisteBygg: { nokkel: string; b: Bygg } | null = null
+
 export function bygg(p: Params): Bygg {
+  const nokkel = JSON.stringify(p)
+  if (sisteBygg && sisteBygg.nokkel === nokkel) return sisteBygg.b
+  const b = byggja(p)
+  sisteBygg = { nokkel, b }
+  return b
+}
+
+function byggja(p: Params): Bygg {
   const a = p.setevipp * RAD
   const rv = p.ryggV * RAD
   const t = p.plyT
@@ -366,6 +382,18 @@ export function bygg(p: Params): Bygg {
   const hakkGrov = (t * (1 + Math.abs(Math.cos(2 * phi)))) / Math.max(0.2, Math.sin(2 * phi)) + fit
   const sSkulder = Math.min(sSete, Math.max(60, p.hals * R))
   const fotTopp = 0.34
+  // Krysset sit rett under setemidten, so bladet si fulle høgd der er
+  // ikkje anna enn setet si underside i null. At talet kan lesast så
+  // beint er ikkje kosmetikk: bogen mellom føtene er skalert av det, og
+  // overkanten støyter mot bogen, so ei av dei tre må reknast først.
+  const kryssTopp = seteUnder(0)
+  // bogen mellom føtene: høgast på midten. Han set NEDRE kant av bladet
+  // — og dermed golvet som midja aldri får eta seg ned i.
+  const sInn = Math.max(30, R - p.fotbreidd)
+  const kryssBotn = p.bogeH * kryssTopp
+  const bogeK = 2.2
+  const bogeZ = (s: number) =>
+    Math.abs(s) >= sInn ? 0 : kryssBotn * (1 - (Math.abs(s) / sInn) ** bogeK)
   const bladTopp = (s: number) => {
     const a2 = Math.abs(s)
     if (a2 <= sSkulder) return seteUnder(s * Math.cos(phi))
@@ -373,17 +401,16 @@ export function bygg(p: Params): Bygg {
     const tau = Math.min(1, (a2 - sSkulder) / Math.max(1, R - sSkulder))
     // heva cosinus: flat ved skuldra, flat ved foten, alt fallet imellom
     const f = 0.5 * (1 + Math.cos(Math.PI * tau))
-    return zSk * (fotTopp + (1 - fotTopp) * f)
+    const grunn = zSk * (fotTopp + (1 - fotTopp) * f)
+    // MIDJA. Eit søkk midt på strekket mellom skuldra og foten, null i
+    // begge endar, so bladet vert smalt der og breitt att ute. Det er
+    // heile skilnaden på ei A-ramme og figuren i referansane — same
+    // bein, men med ei innsving som gjer at auget les to lemmer og
+    // ikkje éi plate. Søkket kan aldri eta seg ned i bogen: eit blad
+    // som er kutta av på midten er ikkje ei midje, det er to delar.
+    const sokk = p.midje * zSk * 0.46 * Math.sin(Math.PI * tau) ** 1.3
+    return Math.max(grunn - sokk, bogeZ(s) + 34)
   }
-  const kryssTopp = bladTopp(0)
-  // bogen mellom føtene: høgast på midten, og det er DENNE høgda som
-  // gjer bladet smalt i midja — ein eigen midjeparameter ville berre
-  // seie det same ein gong til
-  const sInn = Math.max(30, R - p.fotbreidd)
-  const kryssBotn = p.bogeH * kryssTopp
-  const bogeK = 2.2
-  const bogeZ = (s: number) =>
-    Math.abs(s) >= sInn ? 0 : kryssBotn * (1 - (Math.abs(s) / sInn) ** bogeK)
 
   // --- bladomrisset ---------------------------------------------------------
   // Tappane går OPP gjennom setet. Dei sit der bladet er breiast under

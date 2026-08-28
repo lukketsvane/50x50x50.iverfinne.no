@@ -31,7 +31,11 @@ betaler for det med ei flat sitjeflate. Til gjengjeld er han FEM delar,
 kjem ut av eitt band plate, og kan reisast utan lim og utan skruar.
 Understellet hans er ein X — to blad i kvar sitt loddrette plan, kryssa
 midt under setet — og det gjev fire føter i fire hjørne med berre eitt
-ledd. Prisen og vinsten står i tavla hans, side om side. Reiskapen er bygd for å lage ÉIN krakk som passar
+ledd. Og han er den einaste som har TO former: stolen, og brettet han kjem
+som. Kortet i panelet syner pakken — alle delane nesta inne i eitt
+rektangel med runda hjørne, med ein hank skoren i avkappet — av di det er
+det ein vil sjå av eit flatpakka møbel. Prisen og vinsten står i tavla
+hans, side om side. Reiskapen er bygd for å lage ÉIN krakk som passar
 brukaren sin: still høgd, plan og sete etter kroppen (posane, hovuddraga,
 gestane), sjå kva lasta gjer med objektet — lesemåten **last** målar
 utnyttinga under NS-EN 1728-lasta på sjølve flata, med same modell og
