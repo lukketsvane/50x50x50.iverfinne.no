@@ -18,7 +18,7 @@
  *   npx tsx scripts/laft-ledd.ts          standardobjektet
  *   npx tsx scripts/laft-ledd.ts 2.0      med eiga rutestorleik i mm
  */
-import { DEFAULT_PARAMS } from "../lib/laft/params.ts"
+import { DEFAULT_PARAMS, POSAR, POSES, clampParams } from "../lib/laft/params.ts"
 import { bygg, tilVerda, type Del } from "../lib/laft/profil.ts"
 import type { Pt, Vec3 } from "../lib/core.ts"
 
@@ -102,9 +102,15 @@ function punkt(d: Del, celle: number): Vec3[] {
   return ut
 }
 
-const b = bygg(DEFAULT_PARAMS)
+// tredje argumentet er ein pose: prøva skal kunne peike på KVA punkt
+// som helst, og det er posane som oftast ligg ute mot grensene
+const POSE = process.argv[4]
+const punktet = POSE
+  ? clampParams({ ...DEFAULT_PARAMS, ...POSES[POSAR.findIndex((q) => q.namn === POSE)] }, DEFAULT_PARAMS)
+  : DEFAULT_PARAMS
+const b = bygg(punktet)
 const delar = b.delar
-console.log(`LEDDPRØVA — ${delar.length} delar, rute ${CELLE} mm, kontaktmargin ${TOL} mm\n`)
+console.log(`LEDDPRØVA ${POSE ?? "standard"} — ${delar.length} delar, rute ${CELLE} mm, kontaktmargin ${TOL} mm\n`)
 
 for (const d of delar) {
   const ps = punkt(d, CELLE)

@@ -223,24 +223,71 @@ export { clampBag, poseBag, randomBag }
  * dei tre formspråka i referansane; dei to siste er rommet imellom.
  */
 export const POSES: readonly Partial<Params>[] = [
-  // sigden: halvmånesete med djup konkav bakkant, to smale ryggstavar,
-  // rette og kantete blad — lågast sete og mest rygg
-  { hogd: 403, djup: 395, breidd: 424, setevipp: 10.5, setekile: 0.16, nase: 30, bakbukt: 77, hjorne: 0.3, ryggH: 159, ryggV: 26, ryggT: 331, ryggdel: 2, ryggglipe: 30, ryggtopp: 0.12, grep: 110, fotX: 221, fotY: 186, bogeH: 0.5, hals: 0.52, holform: 0.02, holstorleik: 0.42, tunge: 149 },
-  // skjoldet: referansen sitt midtspråk — runda hjørne, éin brei rygg,
-  // trekanta utskjering
-  { hogd: 398, djup: 369, breidd: 405, setekile: 0.2, bakbukt: 24, hjorne: 0.4, ryggH: 143, ryggV: 22.5, ryggT: 301, ryggtopp: 0.3, grep: 130, holform: 0.14, holstorleik: 0.54 },
-  // stadion: ovalt sete, runda ryggskuldrer, organiske blad med
-  // dropeforma utsparing — det mjukaste språket
-  { hogd: 399, djup: 376, breidd: 383, setevipp: 6, setekile: 0.02, nase: 19, bakbukt: -28, hjorne: 0.95, ryggH: 150, ryggV: 29, ryggT: 269, ryggtopp: 0.92, grep: 123, fotX: 206, fotY: 169, bogeH: 0.62, fotbreidd: 62, hals: 0.75, holform: 0.62, holstorleik: 0.5 },
-  // pinnen: høgast sete, smalast plate, rygg utan hòl — den ein sit på
-  // kanten av og reiser seg frå
-  { hogd: 442, djup: 330, breidd: 336, setevipp: 3.5, setekile: 0.1, nase: 14, bakbukt: 9, hjorne: 0.5, ryggH: 73, ryggV: 9, ryggT: 250, ryggtopp: 0.5, grep: 0, fotX: 176, fotY: 151, bogeH: 0.4, fotbreidd: 75, hals: 0.84, holform: 0.5, holstorleik: 0.3, tunge: 96 },
-  // benken: breiast sete og vidast fotavtrykk — den som vert sitt på av
-  // to og sparka av fleire
-  { hogd: 392, djup: 344, breidd: 442, setevipp: 5, setekile: 0.22, nase: 26, bakbukt: 39, hjorne: 0.37, ryggH: 128, ryggT: 433, ryggdel: 2, ryggglipe: 52, ryggtopp: 0.2, grep: 150, fotX: 230, fotY: 214, bogeH: 0.52, fotbreidd: 92, hals: 0.44, holform: 0.3, holstorleik: 0.6, tunge: 133 },
+  // MÅNEN — sigden. Bakkanten buar 102 mm FRAM, so plata legg seg kring
+  // hoftene i staden for å stikke bak dei. Og sigden er KANTETE: hjørne
+  // 0,06 er rektangel med berre ein antydning av runding, so han er den
+  // einaste som er sigd og firkant på ein gong. Smalaste bladet i
+  // settet — full høgd berre knapt halvvegs ut — so frå sida er
+  // understellet fire bein under ein port. Krysset står på tvers: det
+  // einaste fotavtrykket som er breiare enn djupt.
+  {
+    hogd: 380, djup: 430, breidd: 384, setevipp: 8, setekile: 0.07, nase: 35,
+    bakbukt: 102, hjorne: 0.06, ryggH: 158, ryggV: 11, ryggT: 290, ryggtopp: 0,
+    grep: 120, grepZ: 56, fotY: 235, bogeH: 0.68, fotbreidd: 86, hals: 0.4,
+    holform: 0, holstorleik: 0.3, kileB: 88, tunge: 104,
+  },
+  // STEINEN — ellipsestol med veggblad. Alt som kan vera rundt er rundt:
+  // setet buar utover heile vegen (hjørne 0,98, bukt −28), hòlet i
+  // bladet er ein rein boge, og ryggen har runda skuldrer. Bladet held
+  // full høgd nesten heilt ut til foten, so sidesilhuetten er ei FLATE
+  // med ein port i og ikkje eit bein. Djupaste og smalaste fotavtrykket:
+  // ovanfrå eit langt, smalt skip. Ingen berehol — han vert ikkje flytta.
+  {
+    hogd: 404, djup: 396, breidd: 372, setevipp: 5.5, setekile: 0, nase: 12,
+    bakbukt: -28, hjorne: 0.98, ryggH: 128, ryggV: 6, ryggT: 330, ryggtopp: 0.9,
+    grep: 0, fotX: 240, fotY: 146, bogeH: 0.42, fotbreidd: 110, hals: 0.92,
+    holform: 1, holstorleik: 0.62, kileB: 92, tunge: 140,
+  },
+  // STAKEN — arbeidskrakken, den einaste i arbeidsbandet: 443 mm
+  // sitjehøgd mot 336–387 hjå dei fire andre, og ryggen redusert til ei
+  // list på 66 mm. Setet er ein VIFTE: framkanten tretti prosent breiare
+  // enn bakkanten, kile i taket av bandet, so ein kjem seg av han til
+  // begge sider. Leninga på 24° er ikkje komfort — ho er BETALING: ein
+  // rett rygg på eit sete så høgt ville sprengt kuben.
+  {
+    hogd: 450, djup: 336, breidd: 372, setevipp: 4, setekile: 0.3, nase: 58,
+    bakbukt: 45, hjorne: 0.42, ryggH: 66, ryggV: 24, ryggT: 230, ryggtopp: 0.35,
+    grep: 0, fotX: 196, fotY: 186, bogeH: 0.52, fotbreidd: 100, hals: 0.65,
+    holform: 0.78, holstorleik: 0.48, kileB: 96, tunge: 110,
+  },
+  // TOFTA — benken til to, og den einaste med DELT rygg: to stavar med
+  // vid glipe, kvar med sitt berehol og sin eigen kile, so møbelet er
+  // sju delar og ikkje fem. Bakfrå eit par og ikkje eit punkt. Setet er
+  // reint rektangel, nesten vassrett, og det einaste med NEGATIV kile —
+  // bakkanten er den breie. Lågaste og flataste bogen med det største
+  // hòlet: ein lang, låg port mellom to breie føter.
+  {
+    hogd: 392, djup: 410, breidd: 470, setevipp: 1.5, setekile: -0.08, nase: 0,
+    bakbukt: 22, hjorne: 0, ryggH: 107, ryggV: 16, ryggT: 404, ryggdel: 2,
+    ryggglipe: 56, ryggtopp: 0.15, grep: 90, grepZ: 60, fotX: 234, fotY: 235,
+    bogeH: 0.3, fotbreidd: 77, hals: 0.5, holform: 0.53, holstorleik: 0.88,
+    kileB: 50, tunge: 110,
+  },
+  // DVALEN — golvnær lesestol. Setet ligg på 336 og vippar ti grader, og
+  // heile resten av kuben er gjeven til ryggen: 220 mm, taket i bandet,
+  // lena 34 grader. Frå sida er han ein skrå strek der dei fire andre
+  // står oppreiste. Og ryggen er SMAL — han les som ein planke og ikkje
+  // eit brett. Den eine posen der ein ikkje sit oppreist, men fell
+  // attover og vert verande.
+  {
+    hogd: 366, djup: 390, breidd: 413, setevipp: 10, setekile: 0.2, nase: 12,
+    bakbukt: 0, hjorne: 0.66, ryggH: 220, ryggV: 34, ryggT: 260, ryggtopp: 0.6,
+    grep: 104, grepZ: 35, fotX: 206, fotY: 198, bogeH: 0.62, fotbreidd: 65,
+    hals: 0.78, holform: 0.3, holstorleik: 0.75, kileB: 79, tunge: 69,
+  },
 ]
 
-const POSE_NAMN: readonly string[] = ["sigden", "skjoldet", "stadion", "pinnen", "benken"]
+const POSE_NAMN: readonly string[] = ["månen", "steinen", "staken", "tofta", "dvalen"]
 export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
   namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
   bag: bag as Pose["bag"],
@@ -311,6 +358,9 @@ function eittPass(q: Params, laast: ReadonlySet<string>): Params {
       stave: (q.ryggT - (q.ryggdel >= 1.5 ? q.ryggglipe : 0)) / (q.ryggdel >= 1.5 ? 2 : 1),
       // kilerommet: kor langt kilen står frå næraste kryssarm
       kile: Math.abs(xTunge) * Math.sin(phi) - q.plyT,
+      // rommet tunga har 56 mm nede — den djupna ho MÅ nå
+      tungerom:
+        Math.abs(xRygg + 56 * Math.sin(rv)) * Math.sin(phi) - q.plyT / 2 - 5,
       xRygg,
     }
   }
@@ -397,6 +447,21 @@ function eittPass(q: Params, laast: ReadonlySet<string>): Params {
     if (q.ryggV > PARAM_RANGES.ryggV.min + 0.5) set("ryggV", q.ryggV - 4)
     else if (q.bakbukt > 0) set("bakbukt", q.bakbukt - 20)
     else set("fotY", q.fotY + 14)
+  }
+  // 9b TUNGA MÅ REKKE NED. Kryssarmane konvergerer mot midtlina, og ei
+  //    tunge som lener seg framover medan ho fell renn tom for rom. Ho
+  //    må ha femtiseks millimeter, og med delt rygg må ho dele rommet
+  //    med den andre tunga. Leninga gjev etter fyrst, so bukta — begge
+  //    er komfort — og til slutt vert ryggen samla til éi plate.
+  for (let k = 0; k < 10; k++) {
+    g = geo()
+    const krav = q.ryggdel >= 1.5 ? 7 + 36 : 20
+    if (g.tungerom >= krav) break
+    if (q.ryggV > PARAM_RANGES.ryggV.min + 0.5) set("ryggV", q.ryggV - 6)
+    else if (q.bakbukt > 4) set("bakbukt", q.bakbukt - 30)
+    else if (q.ryggdel >= 1.5) set("ryggdel", 1)
+    else if (q.fotY < PARAM_RANGES.fotY.max - 1) set("fotY", q.fotY + 18)
+    else set("djup", q.djup + 20)
   }
   // 10 stabiliteten: fotavtrykket må stå i høve til høgda. Ein X med
   //    korte armar er ein pidestall, og han vippar når nokon lener seg.

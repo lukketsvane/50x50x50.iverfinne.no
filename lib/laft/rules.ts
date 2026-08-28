@@ -158,23 +158,29 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
 
   // --- 7 tunga (hard, typologisk) -----------------------------------------
   const staveB = (p.ryggT - (p.ryggdel >= 1.5 ? p.ryggglipe : 0)) / (p.ryggdel >= 1.5 ? 2 : 1)
-  const tungeGods = (staveB - t - p.pressfit) / 2
+  // Tunga si djupn er IKKJE parameteren: ho er det geometrien gav.
+  // Kryssarmane konvergerer mot midtlina, og ei tunge som lener seg
+  // framover medan ho fell renn til slutt tom for rom. Difor melder
+  // regelen kva ho faktisk vart, ikkje kva som vart bede om.
+  const djup = Math.min(...b.tungeDjup)
   add({
     id: "tunge",
-    label: "tunga ber kilehòlet",
+    label: "tunga rekk ned",
     hard: true,
-    ok: tungeGods >= 40,
-    value: mm1(tungeGods),
-    why: "Tunga under setet er perforert av kilehòlet nøyaktig der heile klemkrafta går gjennom henne. Er det under førti millimeter finér på kvar side av hòlet, er tunga to smale stavar som knekk kvar for seg.",
-    peikar: ["ryggT", "ryggdel", "ryggglipe"],
+    ok: djup >= 56,
+    value: `${mm1(djup)} av ${nn(p.tunge, 0)} bedne`,
+    why: "Tunga er det einaste som held ryggen, og kilen skal ha gods under setet å klemme mot. Kryssarmane tek rommet frå henne di lenger ned ho kjem — med mykje lening, lang tunge eller delt rygg renn ho tom, og under femtiseks millimeter er det ikkje ei tunge lenger, det er ein stubb som ikkje held nokon ting.",
+    peikar: ["tunge", "ryggV", "ryggdel", "fotY"],
   })
 
   // --- 8 kilen skal ikkje treffe bladene (hard, typologisk) ---------------
   // Kilen står i midtplanet; bladene ligg på armane og er difor lenger
   // og lenger frå midten di lenger fram ein kjem. Det som avgjer er kor
   // langt kilen står frå næraste arm.
-  const kile = b.delar.find((d) => d.kind === "kile")!
-  const kileGods = b.tilBlad(kile.plass.o[0], 0) - t
+  const kilar = b.delar.filter((d) => d.kind === "kile")
+  const kileGods = Math.min(
+    ...kilar.map((k) => b.tilBlad(k.plass.o[0], k.plass.o[1] - t / 2) - t),
+  )
   add({
     id: "kilerom",
     label: "kilen klar av armane",
@@ -242,9 +248,9 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     id: "delar",
     label: "delar i alt",
     hard: false,
-    ok: m.parts <= 6,
+    ok: m.parts <= 7,
     value: `${m.parts} stk`,
-    why: "Heile argumentet til typologien er at ein stol kan vera fire plater og ein kile. Delt rygg gjer det til seks, og det er eit VAL med ein grunn — to smale stavar toler fiberretninga betre enn éi brei plate med eit hòl i. Går talet over seks, er det ein annan typologi som svarar betre.",
+    why: "Heile argumentet til typologien er at ein stol kan vera fire plater og ein kile. Delt rygg gjer det til sju — to stavar og ein kile til kvar, og det er eit VAL med ein grunn — to smale stavar toler fiberretninga betre enn éi brei plate med eit hòl i. Går talet over sju, er det ein annan typologi som svarar betre.",
   })
 
   // --- 14 foten (mjuk) -----------------------------------------------------

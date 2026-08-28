@@ -285,6 +285,8 @@ export type Bygg = {
   tilBlad(x: number, y: number): number
   /** ryggen sin x der han går gjennom setet */
   xRygg: number
+  /** kor djup kvar tunge faktisk vart — geometrien har siste ordet */
+  tungeDjup: number[]
 }
 
 export function bygg(p: Params): Bygg {
@@ -360,6 +362,8 @@ export function bygg(p: Params): Bygg {
    * Prisen er ærleg og står i lastmodellen: kortare skulder gjev større
    * overheng, og overhenget er heile bøyemomentet i setet.
    */
+  // krysshakket si breidd — tappane må halde seg klar av han
+  const hakkGrov = (t * (1 + Math.abs(Math.cos(2 * phi)))) / Math.max(0.2, Math.sin(2 * phi)) + fit
   const sSkulder = Math.min(sSete, Math.max(60, p.hals * R))
   const fotTopp = 0.34
   const bladTopp = (s: number) => {
@@ -394,9 +398,22 @@ export function bygg(p: Params): Bygg {
   // lasta ein lener på — so tappen vert kappa framfor han. Grensa er
   // rekna av kvar ryggen faktisk står, ikkje sett med eit tal.
   const bakGrense = (xRygg + t + 12) / Math.cos(phi)
+  // Kappinga må aldri SNU spennet. Går grensa forbi den fremre enden av
+  // tappen, vert lo større enn hi — og då er tappen ein baklengs firkant
+  // i omrisset som ingen ting kuttar spor til, av di filteret som lagar
+  // sporet slepper gjennom null punkt. Plata er full av materiale ingen
+  // har bedt om, og det ser ut som ein tapp. Difor: kapp bakfrå, men
+  // skuv fram att til tappen har lengd, og stopp klar av krysshakket.
+  const framStopp = -(hakkGrov / 2 + 10)
   const tappSpenn = [-sTapp, sTapp].map((c) => {
-    const lo = Math.max(c - tappB / 2, c < 0 ? bakGrense : -Infinity)
-    return [lo, c + tappB / 2] as const
+    let lo = c - tappB / 2
+    let hi = c + tappB / 2
+    if (c < 0 && lo < bakGrense) {
+      lo = bakGrense
+      if (hi - lo < 34) hi = Math.min(lo + 34, framStopp)
+      if (hi - lo < 18) lo = hi - 18
+    }
+    return [lo, Math.max(hi, lo + 18)] as const
   })
   const iTapp = (s: number) => tappSpenn.some(([lo, hi]) => s > lo && s < hi)
 
@@ -461,7 +478,7 @@ export function bygg(p: Params): Bygg {
   // |cos 2φ|) i teljaren og ikkje berre ein — utan det leddet vert hakket
   // eit par millimeter for smalt, og dei to blada deler ei tynn flis
   // materiale heile overlappet gjennom.
-  const hakkB = (t * (1 + Math.abs(Math.cos(2 * phi)))) / Math.max(0.2, Math.sin(2 * phi)) + fit
+  const hakkB = hakkGrov
   blad.forEach((d, i) => {
     const h =
       i === 0
@@ -501,24 +518,81 @@ export function bygg(p: Params): Bygg {
   const glipe = ryggTal === 2 ? p.ryggglipe : 0
   const staveB = (p.ryggT - glipe) / ryggTal
   const rygg: Del[] = []
+  const tungeMidt: number[] = []
+  const tungeDjup: number[] = []
   for (let k = 0; k < ryggTal; k++) {
     const cy = ryggTal === 1 ? 0 : (k - 0.5) * (staveB + glipe)
     const y0 = cy - staveB / 2
     const y1 = cy + staveB / 2
     const vTopp = p.ryggH
-    const vBotn = -p.tunge
-    // TUNGA MÅ IGJENNOM KILEN MELLOM ARMANE. Under setet konvergerer dei
-    // to bladplana mot midtlina — di lenger ned tunga kjem, di mindre
-    // rom er det. Difor er tunga smalare enn ryggen, og ho er plassert
-    // inn mot midten: med to stavar ligg dei to tungene side om side der
-    // det framleis er plass, ikkje ute under kvar sin stav der det ikkje
-    // er det. Breidda er rekna av det trongaste punktet, ikkje gissa.
-    const xNed = xRygg - vBotn * Math.sin(rv)
-    const kilerom = Math.abs(xNed) * Math.tan(phi) - t
-    const tungeB = Math.max(34, Math.min(staveB, (2 * kilerom) / ryggTal - 10))
-    const cyT = ryggTal === 1 ? 0 : (k - 0.5) * (tungeB + 8)
-    const t0 = cyT - tungeB / 2
-    const t1 = cyT + tungeB / 2
+    // TUNGA FØLGJER ARMANE.
+    //
+    // Under setet konvergerer dei to bladplana mot midtlina, og di lenger
+    // ned tunga kjem, di mindre rom er det. Ei tunge med rett kant må
+    // difor skjerast etter det TRONGASTE punktet — og med mykje lening
+    // rekk ho heilt inn til krysset, der rommet er null, og då finst det
+    // ikkje noko lovleg rett kant i det heile.
+    //
+    // Difor er sidene på tunga ikkje rette. Dei følgjer bladplanet med
+    // fast klaring, heile vegen ned, og tunga vert kutta der ho ikkje er
+    // brei nok til å vera ei tunge lenger. `tunge` er difor eit ØNSKE og
+    // ikkje eit mål: geometrien har siste ordet, og måltavla melder kva
+    // ho enda på.
+    //
+    // Avstanden frå midtlina til eit bladplan er |x|·SIN(φ) — den
+    // vinkelrette avstanden — og ikkje |x|·tan(φ). Tangenten måler langs
+    // ein akse og ikkje på tvers av plata, og gjev tretti prosent for
+    // mykje rom.
+    const glipeT = 14
+    const MINTUNGE = 34
+    /** halve kilerommet i høgda v, målt vinkelrett på bladplanet */
+    const romV = (v: number) => {
+      const x = xRygg - v * Math.sin(rv)
+      return Math.abs(x) * Math.sin(phi) - t / 2 - 5
+    }
+    /** tunga si venstre og høgre kant i høgda v, for denne ryggdelen */
+    const tungeKant = (v: number): [number, number] => {
+      const rom = romV(v)
+      if (ryggTal === 1) {
+        const h = Math.max(1, Math.min(staveB / 2, rom))
+        return [-h, h]
+      }
+      const inn = glipeT / 2
+      // Ytterkanten er ABSOLUTTVERDIEN av staven si ytterkant: for den
+      // venstre staven er cy negativ, og cy + halve breidda er då eit
+      // lite negativt tal — ikkje kor langt ut han rekk.
+      const ut = Math.max(inn + 1, Math.min(Math.abs(cy) + staveB / 2, rom))
+      return k === 1 ? [inn, ut] : [-ut, -inn]
+    }
+    const tungeB0 = (v: number) => {
+      const [a, b2] = tungeKant(v)
+      return b2 - a
+    }
+    // Kor langt ned tunga REKK. Breidda veks monotont oppover — rommet
+    // opnar seg di lenger frå krysset ein kjem — so djupna let seg løyse
+    // med halvering i staden for å prøvast. Å prøve seg fram med ein
+    // faktor er det som gjorde at delt rygg enda med to tunger som
+    // krossa kvarandre: lykkja gav opp på ei grense og lét ei ugyldig
+    // breidd stå.
+    let vBotn = -Math.max(20, p.tunge)
+    if (tungeB0(vBotn) < MINTUNGE) {
+      // Halveringa må gå frå den GRUNNE sida og ned. Rommet opnar seg
+      // oppover, so det grunne punktet held alltid og det djupe aldri;
+      // markøren som skal flyttast er den som held, og han skal krype
+      // NEDOVER mot grensa. Startar han på den djupe sida, kryp han feil
+      // veg og endar på seks millimeter uansett kor mykje rom det er.
+      let god = -6
+      let ille = vBotn
+      for (let n = 0; n < 28; n++) {
+        const mid = (god + ille) / 2
+        if (tungeB0(mid) >= MINTUNGE) god = mid
+        else ille = mid
+      }
+      vBotn = god
+    }
+    const [t0, t1] = tungeKant(vBotn)
+    tungeMidt.push((t0 + t1) / 2)
+    tungeDjup.push(-vBotn)
     // toppen: rett kant som opnar seg mot ein halvsirkel
     const rTopp = (p.ryggtopp * staveB) / 2
     // Skuldra SKRÅR. Ei vassrett skulder gjev fire punkt på same lina, og
@@ -528,20 +602,36 @@ export function bygg(p: Params): Bygg {
     // dessutan rett konstruksjon, av di eit skarpt innvendig hjørne i ei
     // finérplate er der ho sprekk.
     const skulder = Math.min(16, staveB / 8)
-    const ring: Pt[] = [
-      [t0, vBotn],
-      [t1, vBotn],
-      [t1, 0],
-      [y1, skulder],
-      [y1, vTopp - rTopp],
-    ]
-    for (let i = 0; i <= 14 && rTopp > 0.5; i++) {
-      const th = (i / 14) * Math.PI
-      ring.push([cy + (staveB / 2) * Math.cos(th), vTopp - rTopp + rTopp * Math.sin(th)])
+    // høgre side av tunga, nedanfrå og opp — han følgjer armen
+    const NT = 10
+    const ring: Pt[] = [[t0, vBotn], [t1, vBotn]]
+    for (let n = NT - 1; n >= 0; n--) {
+      const v = (vBotn * n) / NT
+      ring.push([tungeKant(v)[1], v])
+    }
+    ring.push([y1, skulder], [y1, vTopp - rTopp])
+    // TOPPEN. Ved null er han ein rett kant; ved eitt er han ein halv
+    // sirkel med radius lik halve breidda. Imellom er han ein boge som
+    // er flat på midten og runda i hjørna — same kurva heile vegen, so
+    // skyvaren ikkje har eit sprang i seg. Bogen er teikna med den
+    // radien `rTopp` gjev, og senteret ligg der han må for at kurva skal
+    // møte sidekantane rett.
+    if (rTopp > 0.5) {
+      const flat = Math.max(0, staveB / 2 - rTopp)
+      const NB = 16
+      for (let i = 0; i <= NB; i++) {
+        const th = (i / NB) * Math.PI
+        const cx = cy + flat * Math.cos(th)
+        ring.push([cx + rTopp * Math.cos(th), vTopp - rTopp + rTopp * Math.sin(th)])
+      }
     }
     ring.push([y0, vTopp - rTopp])
     ring.push([y0, skulder])
-    ring.push([t0, 0])
+    for (let n = 0; n < NT; n++) {
+      const v = (vBotn * n) / NT
+      ring.push([tungeKant(v)[0], v])
+    }
+
     const d: Del = {
       id: "R" + (k + 1),
       kind: "rygg",
@@ -560,21 +650,28 @@ export function bygg(p: Params): Bygg {
   }
   delar.push(...rygg)
 
-  // --- kilen ----------------------------------------------------------------
-  // Han står i midtplanet og vert driven FRAM gjennom tunga. Skråkanten
-  // er heile mekanikken: di lenger inn han går, di høgare vert snittet i
-  // hòlet, og til slutt pressar overkanten opp mot undersida av setet.
-  const kileZ = zSete - t / ca - 44
+  // --- kilane ---------------------------------------------------------------
+  // Ein kile per ryggdel. Han står i tunga sitt eige plan og vert driven
+  // FRAM gjennom henne; skråkanten er heile mekanikken: di lenger inn han
+  // går, di høgare vert snittet i hòlet, og til slutt pressar overkanten
+  // opp mot undersida av setet. Skuldra ligg over setet og kilen under —
+  // plata er klemd mellom dei to, og då sit møbelet.
+  //
+  // Med DELT rygg er det to tunger, og dei står kvar for seg inne i
+  // kilerommet med ei glipe imellom. Éin kile i midtplanet ville gå
+  // gjennom glipa og ikkje gjennom nokon av dei. Difor får kvar tunge sin
+  // eigen — og då er kontrastkilen ikkje eitt merke i møbelet, men to.
   const kileH0 = 26
+  // Kilen skal sitje i TUNGA, og tunga er ikkje like djup kvar gong —
+  // ho vert løyst av kilerommet og kan bli kort. Ein fast avstand under
+  // setet hamnar då nedanfor enden på henne, og kilen går gjennom lufta.
+  // Difor vert han plassert etter tunga: godt under setet, so det er
+  // gods å bera mot, og godt over enden, so det er gods å klemme.
+  const vKile = Math.min(-(t / ca + 20), Math.min(...tungeDjup) * -0.55)
+  const kileZ = zSete + vKile * Math.cos(rv)
   // Tunga lener seg framover medan ho fell: der ho står i kilehøgda er
   // ikkje der ho gjekk gjennom setet. Kilen må stå DER.
   const xTunge = xRygg + (zSete - kileZ) * Math.tan(rv)
-  const kilePlass: Plass = {
-    o: [xTunge, t / 2, kileZ],
-    u: [1, 0, 0],
-    v: [0, 0, 1],
-    n: [0, -1, 0],
-  }
   const kileL = p.kileB
   const kileRing: Pt[] = [
     [-kileL * 0.5, -kileH0 / 2],
@@ -585,15 +682,20 @@ export function bygg(p: Params): Bygg {
     [kileL * 0.22, kileH0 / 2],
     [-kileL * 0.5, kileH0 / 2 - 3],
   ]
-  const kile: Del = {
-    id: "K1",
-    kind: "kile",
+  const kilar: Del[] = rygg.map((r, i) => ({
+    id: "K" + (i + 1),
+    kind: "kile" as const,
     outline: motKlokka(kileRing),
     holes: [],
-    plass: kilePlass,
+    plass: {
+      o: [xTunge, tungeMidt[i] + t / 2, kileZ],
+      u: [1, 0, 0],
+      v: [0, 0, 1],
+      n: [0, -1, 0],
+    } as Plass,
     t,
-  }
-  delar.push(kile)
+  }))
+  delar.push(...kilar)
 
   // --- SPORA, rekna av dei som skal gjennom --------------------------------
   const sete: Del = {
@@ -626,11 +728,11 @@ export function bygg(p: Params): Bygg {
   }
   delar.unshift(sete)
 
-  // hòlet i tunga som kilen går gjennom
-  for (const d of rygg) {
-    const s = sporRing(d.plass, d.t, kile, fit)
+  // hòlet i tunga som kilen går gjennom — kvar sin
+  rygg.forEach((d, i) => {
+    const s = sporRing(d.plass, d.t, kilar[i], fit)
     if (s) d.holes.push(...sporMedAvlasting(s, p.fresD))
-  }
+  })
 
   // --- kor setet ligg i høve til krysset -----------------------------------
   // Med eit kryss er setet ikkje ein bjelke mellom to opplegg; det er
@@ -688,6 +790,7 @@ export function bygg(p: Params): Bygg {
     stotteB,
     tilBlad,
     xRygg,
+    tungeDjup,
   }
 }
 
