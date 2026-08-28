@@ -17,7 +17,7 @@
  * Bryt éin av dei, ligg det fire plater på golvet og ikkje ein stol.
  */
 import { bbox, CUBE, MATERIALS, nn, type Metrics, type Rule } from "../core"
-import { hank, pakke } from "./pakke"
+import { iKuben, stabel } from "./pakke"
 import { buildParts } from "./parts"
 import { bygg } from "./profil"
 import type { Params } from "./params"
@@ -45,9 +45,8 @@ const LAFT_DJUP = 34
 
 export function checkRules(p: Params, m: Metrics): Rule[] {
   const b = bygg(p)
-  // pakkaren har eitt steg minne, so dette er same brettet tavla synte
-  const pk0 = pakke(buildParts(p).parts)
-  const pk = { w: pk0.w, h: pk0.h, hank: hank(pk0) }
+  const st = stabel(buildParts(p).parts)
+  const stKube = iKuben(st)
   const out: Rule[] = []
   const add = (r: Rule) => out.push(r)
   const t = p.plyT
@@ -258,20 +257,26 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     why: "Heile argumentet til typologien er at ein stol kan vera fire plater og ein kile. Delt rygg gjer det til sju — to stavar og ein kile til kvar, og det er eit VAL med ein grunn — to smale stavar toler fiberretninga betre enn éi brei plate med eit hòl i. Går talet over sju, er det ein annan typologi som svarar betre.",
   })
 
-  // --- 14 pakken (mjuk) ----------------------------------------------------
-  // Eit flatpakka møbel har to former, og pakken er den andre. Regelen
-  // spør ikkje om han er liten — han vert aldri liten, delane ligg flatt
-  // og kuben gjeld den ferdige stolen — han spør om EIN person kan bera
-  // han: eitt brett, ikkje ein stabel, og eit hòl å ta i.
+  // --- 14 pakken i kuben (hard) --------------------------------------------
+  // Oppgåva gjev éi grense, og ho gjeld ikkje berre den reiste stolen.
+  // Eit flatpakka møbel har to former, og den andre er bunten. Referansane
+  // gjer bunten til eit objekt med mål; her vert han målt mot den SAME
+  // kuben. Det er den einaste grensa ein pakke kan bryte, og den einaste
+  // regelen i motoren som ser på ein ENKELT del si lengd — kuberegelen
+  // over måler den samansette stolen og slepp gjennom eit blad på sju
+  // hundre millimeter utan å blunke.
   add({
     id: "pakke",
-    label: "pakken å bera",
-    hard: false,
-    ok: !!pk.hank,
-    value: `${nn(pk.w, 0)} × ${nn(pk.h, 0)} mm${pk.hank ? "" : " · utan hank"}`,
-    why: "Hanken vert ikkje teikna, ho vert FUNNEN: pakkaren leitar etter ein fri flekk i avkappet nær overkanten, og finn han ingen, er brettet så tett at det ikkje er hòl att å ta i. Då må det berast med to hender under. Storleiken står det ingen grense på, av di rommet ikkje treng ei: over åtti terningkast ligg den lengste sida mellom 857 og 1068 mm, godt innanfor den korte sida av ei standard plate.",
-    peikar: ["djup", "breidd", "ryggT"],
+    label: "pakken i kuben",
+    hard: true,
+    ok: stKube !== "nei",
+    value:
+      `${nn(st.L, 0)} × ${nn(st.B, 0)} × ${nn(st.D, 0)} mm` +
+      (stKube === "beint" ? "" : stKube === "på skrå" ? " · på skrå" : " · UTANFOR"),
+    why: "Krysshalvinga gjer at det lengste emnet er heile diagonalen i fotavtrykket — 2·√(fotX² + fotY²) — og han er alltid lenger enn sida i fotavtrykket sjølv. Ein stol som står i kuben kan difor ha ein pakke som ikkje gjer det. Ei plate får plass i kuben anten beint fram, eller lagd på skrå: eit rektangel på lengd × tjukn står i eit kvadrat på 500 når lengd + tjukn ≤ 707. Bit regelen, er det kryssvinkelen og ikkje setet som skal gje seg.",
+    peikar: ["fotX", "fotY", "plyT"],
   })
+
 
   // --- 15 foten (mjuk) -----------------------------------------------------
   add({

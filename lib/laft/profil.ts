@@ -36,6 +36,9 @@
 import { shoelace, type Pt, type Vec3 } from "../core"
 import { materialet, type Params } from "./params"
 import { rekt, sporRing, tilPlan, tilVerda, type Plass } from "./spor"
+import { ryggPlass as loysRygg, setePlan } from "./seteplan"
+
+export { setePlan } from "./seteplan"
 
 const RAD = Math.PI / 180
 
@@ -193,41 +196,6 @@ function sporMedAvlasting(ring: Pt[], d: number): Pt[][] {
 }
 
 // =============================================================================
-// SETEPLANET — éi likning over tre formspråk
-// =============================================================================
-/**
- * Superellipsen gjev hjørna: eksponenten to er ellipsen, tolv er
- * rektangelet, og alt imellom er dei runda hjørna. Kilen gjer framkanten
- * breiare enn bakkanten. Nasen skyv framkanten fram på midten, og BUKTA
- * skyv bakkanten fram — det er halvmånen, og det er den einaste
- * skilnaden mellom eit skjold og ein sigd.
- *
- * Kurva vert gått gjennom på TVERS og ikkje kring ein vinkel. Ein
- * vinkelsveip hoppar over bakkanten når eksponenten er høg: der er kurva
- * nesten loddrett i y, og to steg i vinkel kan vera eit halvt sete. Då
- * vert bukta ein spiss i staden for ein boge.
- */
-export function setePlan(p: Params, N = 132): Pt[] {
-  const A = p.djup / 2
-  const B = p.breidd / 2
-  const n = 2 + 10 * (1 - p.hjorne) ** 2
-  const pkt = (s: number, fram: boolean): Pt => {
-    const yn = Math.sin((Math.PI * s) / 2)
-    const x0 = (fram ? A : -A) * Math.max(0, 1 - Math.abs(yn) ** n) ** (1 / n)
-    const q = x0 / A
-    const kile = 1 + p.setekile * q
-    const y = B * yn * kile
-    const midt = 0.5 * (1 + Math.cos(Math.PI * Math.min(1, Math.abs(yn))))
-    const x = x0 + p.nase * Math.max(0, q) * midt + p.bakbukt * Math.max(0, -q) * midt
-    return [x, y]
-  }
-  const ut: Pt[] = []
-  for (let i = 0; i <= N; i++) ut.push(pkt(-1 + (2 * i) / N, true))
-  for (let i = 1; i < N; i++) ut.push(pkt(1 - (2 * i) / N, false))
-  return ut
-}
-
-// =============================================================================
 // HÒLET I BLADET — trekant gjennom drope til boge
 // =============================================================================
 /**
@@ -328,10 +296,13 @@ function byggja(p: Params): Bygg {
   const seteUnder = (x: number) => seteTopp(x) - t / ca
   const xF = (A + p.nase) * ca
   const xB = (-A + p.bakbukt) * ca
-  // Ryggen står så langt bak som godset i setet toler: bakkanten pluss
-  // ei heil tjukn pluss litt. Med sigdsete ligg bakkanten langt fram, og
-  // då følgjer ryggen med — det er sigden som flyttar han, ikkje eit tal.
-  const xRygg = xB + t + 26
+
+  // --- kvar ryggen får stå, og kor brei han får vera ------------------------
+  // Løysinga bur i seteplan.ts, av di reparasjonen i params.ts må rekne
+  // nøyaktig det same. Sjå kommentaren der for kvifor bakkanten ikkje kan
+  // lesast på midtlina.
+  const planet = setePlan(p)
+  const { xRygg, ryggB } = loysRygg(p, planet)
 
   // --- bladplana ------------------------------------------------------------
   const phi = Math.atan2(p.fotY, p.fotX)
@@ -349,7 +320,7 @@ function byggja(p: Params): Bygg {
   // punktet fell overkanten av. Det er heile skilnaden mellom eit bein og
   // ein sidevegg, og det er ikkje eit tal nokon set — det er setet sitt
   // eige omriss lese langs armen.
-  const setering = motKlokka(setePlan(p))
+  const setering = motKlokka(planet)
   const iSete = (u: number, v: number) => {
     let inne = false
     for (let i = 0, j = setering.length - 1; i < setering.length; j = i++) {
@@ -543,7 +514,7 @@ function byggja(p: Params): Bygg {
 
   const ryggTal = p.ryggdel >= 1.5 ? 2 : 1
   const glipe = ryggTal === 2 ? p.ryggglipe : 0
-  const staveB = (p.ryggT - glipe) / ryggTal
+  const staveB = (ryggB - glipe) / ryggTal
   const rygg: Del[] = []
   const tungeMidt: number[] = []
   const tungeDjup: number[] = []
@@ -670,9 +641,34 @@ function byggja(p: Params): Bygg {
       plass: ryggPlass,
       t,
     }
-    // bereholet
-    const gl = Math.min(p.grep, staveB - 76)
-    if (gl >= 84) d.holes.push(medKlokka(kapsel(cy, vTopp - p.grepZ, gl, 17)))
+    // BEREHOLET, løyst mot plata si eiga kant.
+    //
+    // Hòlet stod før på eit tal: så langt ned frå toppen som `grepZ` sa,
+    // så langt som `grep` sa, klipt av staven si breidd. Det held berre
+    // for ei rett plate. Er toppen runda, smalnar plata nettopp der hòlet
+    // ligg, og kapselen sine endar bryt ut gjennom det runda hjørnet —
+    // eit berehol som er ope i eine enden er ikkje eit berehol, det er ei
+    // gaffel. `scripts/laft-gods.ts` fann det på seks av førti kast, verst
+    // med hòlkanten éin millimeter UTANFOR plata.
+    //
+    // No vert både høgda og lengda løyste mot den same toppkurva plata er
+    // teikna med. På ei rett plate gjev det nøyaktig det gamle talet.
+    const rH = 17
+    const godsH = 38
+    /** plata si halve breidd i høgd v — rett kant nedanfor bogen, boge over */
+    const halvTopp = (v: number) => {
+      if (rTopp <= 0.5 || v <= vTopp - rTopp) return staveB / 2
+      const flat = Math.max(0, staveB / 2 - rTopp)
+      const q = Math.min(1, (v - (vTopp - rTopp)) / rTopp)
+      return flat + rTopp * Math.sqrt(Math.max(0, 1 - q * q))
+    }
+    // senteret: der skyvaren vil ha det, men aldri så høgt at kapselen
+    // bryt toppen eller så lågt at han et seg ned i skuldra
+    const vH = Math.min(vTopp - rH - godsH / 2, Math.max(skulder + rH + godsH / 2, vTopp - p.grepZ))
+    // lengda: det plata gjev ved kapselen sin topp OG botn
+    const romH = Math.min(halvTopp(vH + rH), halvTopp(vH - rH))
+    const gl = Math.min(p.grep, 2 * romH - 2 * godsH)
+    if (gl >= 84) d.holes.push(medKlokka(kapsel(cy, vH, gl, rH)))
     rygg.push(d)
   }
   delar.push(...rygg)

@@ -1,215 +1,251 @@
 /**
- * PAKKEN.
+ * PAKKEN — og han er ikkje eit brett.
  *
- * Eit flatpakka møbel har TO former, ikkje éi. Den eine er stolen. Den
- * andre er brettet han kjem som — og i referansane er det brettet eit
- * designa objekt: alle delane nesta inne i eitt rektangel med runda
- * hjørne, og bereholet i ryggen ligg øvst, so ein ber pakken etter det
- * same hòlet ein seinare ber stolen etter.
+ * Fyrste utgåva av denne fila søkte fram det minste rektangelet som tok
+ * alle delane NESTA ved sida av kvarandre, og skar ei hank i avkappet.
+ * Referansane seier at det er feil spørsmål. Tre av dei fem syner den
+ * flatpakka tilstanden, og alle tre syner det same: platene ligg FLATE
+ * MOT KVARANDRE i ein stabel som står oppreist på sine eigne føter.
+ * Ikkje eitt av bileta syner eit brett med delane nesta side ved side.
  *
- * Kuttarket seier kor mange plater jobben krev. Pakken seier noko anna:
- * kor STOR ein bunt dette vert, kor mykje av brettet som er stol og kor
- * mykje som er luft, og om ein kan bera det med éi hand. Det er det
- * talet ein oppgjev når nokon spør kva ein flatpakka stol ER.
+ * Skilnaden er ikkje kosmetisk, han er tre ting:
  *
- * Han vert funnen ved søk: pakkaren i lib/nestraster.ts kan svare på om
- * eit gjeve rektangel tek alle delane, og då er resten binærsøk på
- * arealet. Sideforholdet er STÅANDE, av di ein pakke vert boren ståande
- * — og det er ikkje langt frå eitt: eit brett som er tre gonger så høgt
- * som det er breidt er ikkje ein pakke, det er ei planke.
+ *   FORMA   Pakken har ikkje ei eiga form. Ytterkonturen ER den største
+ *           delen — med sine eigne runda hjørne, sitt eige hòl og sitt
+ *           eige kutt i underkanten. Dei mindre platene ligg inne i den
+ *           konturen og trappar seg innover. Eit runda rektangel kring
+ *           delane er ei innpakning, og ei innpakning er ikkje møbel.
+ *   TALET   Eit brett er to tal og ein prosent. Ein stabel er TRE tal —
+ *           lengd, breidd og tjukn — og utnyttinga er hundre prosent, av
+ *           di alt ein ber er stol. Brettet på 925 × 841 for
+ *           standardstolen bar fire kilo finér som ikkje var møbel: meir
+ *           enn stolen sjølv vog.
+ *   GRENSA  Og då kan pakken målast mot den SAME kuben som stolen. Det er
+ *           den einaste grensa oppgåva gjev, og det er den einaste grensa
+ *           ein pakke kan bryte.
+ *
+ * Ein ting bileta gjer som denne motoren ikkje kan love: kilen som låser
+ * stabelen. Der står han driven gjennom heile bunten. LAFT sine spor
+ * møtest ikkje når platene ligg oppå kvarandre — tappespora sit der
+ * bladtoppane står, ryggsporet bakerst i setet — so ein slik lås måtte
+ * PEIKAST UT og ikkje reknast fram. Han er ikkje her, og det er ærlegare
+ * enn å teikne ein kile som ikkje ville gått gjennom noko.
  */
-import { nestRaster, placedRings, type Nesting } from "../nestraster"
+import type { Pt } from "../core"
 import type { Part } from "./parts"
 
-export type Pakke = {
-  /** brettet sine mål, mm */
+/** ein del lagd flat i stabelen: omrisset snudd og flytt på plass */
+export type Lag = {
+  part: Part
+  outline: Pt[]
+  holes: Pt[][]
+  /** delen sine mål etter snuinga */
   w: number
   h: number
-  /** nestinga, klar til teikning */
-  ns: Nesting<Part>
-  /** kor mykje av brettet som er del og ikkje luft */
-  util: number
-  /** samla delareal, mm² */
-  areal: number
 }
 
-const GAP = 6
-
-/**
- * EITT gir, og det er eit VAL.
- *
- * Det var to ei stund: eit grovt til måltavla og eit fint til eksporten.
- * Det gav to ulike svar på same spørsmål — talet ved sida av biletet
- * skildra eit anna brett enn det biletet synte, opp mot ein fjerdedel i
- * areal. Ei tavle som ikkje skildrar biletet ved sida av seg er verre enn
- * ei grov tavle.
- *
- * Difor eitt søk, brukt av begge: celle på åtte millimeter, eitt
- * sideforhold og fire halveringar. Brettet vert nokre prosent større enn
- * det aller minste som finst — og det er eit ærleg svar, for det er
- * brettet pakkaren FANN. Så vert delane pakka ein siste gong TETT inne i
- * det brettet, so biletet syner dei så samla som dei kan liggje.
- *
- * Sideforholdet er fast med vilje. Ein pakke som skifter proporsjon frå
- * skyv til skyv er ikkje eit produkt, det er eit søkeresultat.
- */
-const CELLE = 8
-const RUNDER = 4
-const FORHOLD = 1.1
-
-/** tek dette brettet alle delane, på EITT ark? */
-function held(parts: Part[], w: number, h: number, tett: boolean): Nesting<Part> | null {
-  const ns = nestRaster(parts, { sheetW: w, sheetH: h, gap: GAP, cell: CELLE, tett })
-  return ns.sheets.length === 1 && ns.sheets[0].placed.length === parts.length ? ns : null
+export type Stabel = {
+  /** dei tre måla: lengste del, breiaste del, summen av tjuknene */
+  L: number
+  B: number
+  D: number
+  /** delen som gjev omrisset — pakken har ingen eigen form */
+  omslag: Lag
+  /** dei andre, størst fyrst, slik dei ligg bak omslaget */
+  bak: Lag[]
+  /** hòlet ein ber etter: eit hòl i omslaget som ingen annan del dekkjer */
+  hank: Pt[] | null
+  /** kor mange av dei andre delane som står heilt inne i omslaget */
+  inni: number
 }
 
 /**
- * Minste brett som tek alle delane. Sideforholdet er gjeve (breidd delt
- * på høgd); arealet vert søkt. Ei øvre grense må finnast fyrst — ein
- * binærsøk utan tak er ein uendeleg lykkje — og delen som er størst set
- * botnen: brettet kan aldri vera mindre enn han.
+ * Minste omskrivne rektangel, ved roterande kaliper. Ein del kan snuast
+ * fritt i stabelen — det er ingen fiberretning å ta omsyn til når han
+ * ligg i ein bunt — so det er DETTE rektangelet som er delen sine mål, og
+ * ikkje det aksefaste. Skilnaden er ikkje liten: eit blad som ligg på
+ * skrå i sitt eige plan måler tjue prosent meir aksefast enn det gjer i
+ * røynda.
  */
-/**
- * Tavla, reglane og kortet spør om det same brettet rett etter
- * kvarandre, og søket er det dyraste i heile motoren. Difor eitt steg
- * minne: same delane, same svaret. Nøkkelen er delane sine areal og
- * ikkje parametrane, av di det er delane pakkaren ser.
- */
-let siste: { nokkel: string; k: Pakke } | null = null
-
-export function pakke(parts: Part[]): Pakke {
-  const nokkel = parts.map((d) => d.id + d.area.toFixed(0)).join("|")
-  if (siste && siste.nokkel === nokkel) return siste.k
-  let areal = 0
-  let breiast = 0
-  for (const d of parts) {
-    areal += d.area
-    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity
-    for (const q of d.outline) {
-      if (q[0] < x0) x0 = q[0]
-      if (q[0] > x1) x1 = q[0]
-      if (q[1] < y0) y0 = q[1]
-      if (q[1] > y1) y1 = q[1]
+function minRekt(pts: Pt[]): { w: number; h: number; th: number } {
+  let best = { w: Infinity, h: Infinity, th: 0 }
+  for (let d = 0; d < 90; d += 1) {
+    const th = (d * Math.PI) / 180
+    const c = Math.cos(th)
+    const s = Math.sin(th)
+    let u0 = Infinity
+    let u1 = -Infinity
+    let v0 = Infinity
+    let v1 = -Infinity
+    for (const [x, y] of pts) {
+      const u = x * c + y * s
+      const v = -x * s + y * c
+      if (u < u0) u0 = u
+      if (u > u1) u1 = u
+      if (v < v0) v0 = v
+      if (v > v1) v1 = v
     }
-    breiast = Math.max(breiast, Math.min(x1 - x0, y1 - y0) + 2 * GAP)
+    if ((u1 - u0) * (v1 - v0) < best.w * best.h) best = { w: u1 - u0, h: v1 - v0, th }
   }
-
-  const maal = (k: number) => {
-    const A = areal * k
-    const w = Math.sqrt(A * FORHOLD)
-    return { w, h: A / w }
-  }
-  // finn eit tak: doble til det held. Ein binærsøk utan tak er ei
-  // uendeleg lykkje, og delen som er størst set botnen — brettet kan
-  // aldri vera smalare enn han.
-  let hi = 1.25
-  let funne = false
-  for (let i = 0; i < 9; i++) {
-    const { w, h } = maal(hi)
-    if (Math.min(w, h) >= breiast && held(parts, w, h, false)) { funne = true; break }
-    hi *= 1.22
-  }
-  if (!funne) {
-    const w = Math.sqrt(areal * 2 * FORHOLD)
-    const h = (areal * 2) / w
-    return { w, h, ns: nestRaster(parts, { sheetW: w, sheetH: h, gap: GAP, cell: CELLE }), util: 0, areal }
-  }
-  let lo = 1.0
-  for (let i = 0; i < RUNDER; i++) {
-    const mid = (lo + hi) / 2
-    const { w, h } = maal(mid)
-    if (Math.min(w, h) >= breiast && held(parts, w, h, false)) hi = mid
-    else lo = mid
-  }
-  const { w, h } = maal(hi)
-  // Siste pakkinga er TETT. Brettet er alt funne, so dette flytter ikkje
-  // eit einaste mål — det samlar berre delane inne i det, so biletet
-  // syner ein bunt og ikkje eit sprei. Held ikkje den tette pakkinga
-  // (rasteret kan i sjeldne høve pakke dårlegare tett enn laust), vinn
-  // den lause: eit brett med alle delane slår eit penare med færre.
-  const ns = held(parts, w, h, true) ?? held(parts, w, h, false)!
-  const k: Pakke = { w, h, ns, util: areal / (w * h), areal }
-  siste = { nokkel, k }
-  return k
+  return best
 }
 
 /**
- * HANKEN I PAKKEN.
- *
- * Brettet er ein ting ein ber, og då må det ha noko å bera i. Referansane
- * legg bereholet i ryggen øvst i pakken, so ein ber pakken etter det
- * same hòlet ein seinare ber stolen etter; det krev at pakkaren veit kva
- * ein rygg er, og det gjer han ikkje. I staden får brettet sitt EIGE hòl,
- * skore i avkappet: eit stykke ledig plate øvst som er stort nok til ei
- * hand. Det kostar ingen ting — plata der er skrot same kva — og det gjer
- * pakken til eit objekt i staden for eit ark.
- *
- * Finst det ikkje eit slikt stykke, får pakken ikkje hank, og måltavla
- * seier frå. Det er eit ærleg svar: nokre pakkingar er så tette at det
- * ikkje er skrot att å bera i.
+ * Legg ein del flat: snudd so den lange sida ligg vassrett, og flytt so
+ * MIDTEN AV UNDERKANTEN ligg i origo. Botnjustering og ikkje
+ * senterjustering, av di stabelen står på golvet på sine eigne føter, og
+ * det er underkantane som møtest.
  */
-export type Hank = { cx: number; cy: number; len: number; hogd: number }
+function leggFlat(part: Part): Lag {
+  const r = minRekt(part.outline)
+  const th = r.w >= r.h ? r.th : r.th + Math.PI / 2
+  const c = Math.cos(th)
+  const s = Math.sin(th)
+  const snu = (ring: Pt[]): Pt[] => ring.map(([x, y]) => [x * c + y * s, -x * s + y * c] as Pt)
+  const o = snu(part.outline)
+  let u0 = Infinity
+  let u1 = -Infinity
+  let v0 = Infinity
+  let v1 = -Infinity
+  for (const [u, v] of o) {
+    if (u < u0) u0 = u
+    if (u > u1) u1 = u
+    if (v < v0) v0 = v
+    if (v > v1) v1 = v
+  }
+  const dx = -(u0 + u1) / 2
+  const dy = -v0
+  const flytt = (ring: Pt[]): Pt[] => ring.map(([u, v]) => [u + dx, v + dy] as Pt)
+  return {
+    part,
+    outline: flytt(o),
+    holes: part.holes.map((h) => flytt(snu(h))),
+    w: u1 - u0,
+    h: v1 - v0,
+  }
+}
 
-export function hank(k: Pakke, len = 110, hogd = 32): Hank | null {
-  const { ns, w, h } = k
-  if (!ns.sheets[0]) return null
-  // opptekne firkantar, grovt: kvar del sitt omskrivne rektangel
-  const opptekne: [number, number, number, number][] = []
-  for (const q of ns.sheets[0].placed) {
-    const r = placedRings(q)
-    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity
-    for (const p of r.outline) {
-      if (p[0] < x0) x0 = p[0]
-      if (p[0] > x1) x1 = p[0]
-      if (p[1] < y0) y0 = p[1]
-      if (p[1] > y1) y1 = p[1]
-    }
-    opptekne.push([x0, y0, x1, y1])
+function iRing(ring: Pt[], x: number, y: number): boolean {
+  let inne = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i]
+    const [xj, yj] = ring[j]
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inne = !inne
   }
-  const fritt = (cx: number, cy: number) => {
-    const a = cx - len / 2 - 14
-    const b = cy - hogd / 2 - 14
-    const c = cx + len / 2 + 14
-    const d = cy + hogd / 2 + 14
-    if (a < 8 || b < 8 || c > w - 8 || d > h - 8) return false
-    return !opptekne.some(([x0, y0, x1, y1]) => a < x1 && c > x0 && b < y1 && d > y0)
-  }
-  // øvst og på midten fyrst: der ein faktisk ville teke tak
-  for (let cy = h - 30; cy > h * 0.5; cy -= 8) {
-    for (let d = 0; d <= w / 2; d += 10) {
-      for (const cx of d === 0 ? [w / 2] : [w / 2 - d, w / 2 + d]) {
-        if (fritt(cx, cy)) return { cx, cy, len, hogd }
-      }
-    }
-  }
-  return null
+  return inne
 }
 
 /**
- * Pakken som teikning. Brettet med runda hjørne, hanken, og kvar del der
- * ho ligg. Målestokken er millimeter, som i alle dei andre arka her, so
- * eit uttak kan målast rett av fila.
+ * HANKEN ER FRAMLEIS FUNNEN OG IKKJE SKOREN — men no i møbelet, ikkje i
+ * avkappet. I bileta er hòlet ein ber pakken etter nøyaktig det same
+ * hòlet ein seinare ber stolen etter: same form, same plass, same del.
+ * Den førre utgåva skar eit ANDRE hòl i skrotet, so eksporten hadde to
+ * hankar — den ekte der nestaren tilfeldigvis la ryggen, og ein oppdikta
+ * ein ved sida av.
+ *
+ * Spørsmålet er difor berre: har omslaget eit hòl høgt nok oppe til at ei
+ * hand kjem til, og som ingen av dei andre platene dekkjer når dei ligg
+ * bak? Finst det ikkje, har pakken ingen hank, og tavla seier frå.
  */
-export function pakkeSvg(k: Pakke, h: Hank | null): string {
-  const { w, h: H, ns } = k
-  const r = Math.min(w, H) * 0.055
-  const ut: string[] = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w.toFixed(1)}mm" height="${H.toFixed(1)}mm" viewBox="0 0 ${w.toFixed(1)} ${H.toFixed(1)}">`,
-    `<rect x="0.6" y="0.6" width="${(w - 1.2).toFixed(1)}" height="${(H - 1.2).toFixed(1)}" rx="${r.toFixed(1)}" fill="#ffffff" stroke="#111" stroke-width="1.2"/>`,
-  ]
-  if (h) {
-    const y = H - h.cy
-    ut.push(
-      `<rect x="${(h.cx - h.len / 2).toFixed(1)}" y="${(y - h.hogd / 2).toFixed(1)}" width="${h.len.toFixed(1)}" height="${h.hogd.toFixed(1)}" rx="${(h.hogd / 2).toFixed(1)}" fill="none" stroke="#111" stroke-width="1.2"/>`,
+function finnHank(omslag: Lag, bak: Lag[]): Pt[] | null {
+  let beste: Pt[] | null = null
+  let bestH = -Infinity
+  for (const h of omslag.holes) {
+    let x0 = Infinity
+    let x1 = -Infinity
+    let y0 = Infinity
+    let y1 = -Infinity
+    for (const [x, y] of h) {
+      if (x < x0) x0 = x
+      if (x > x1) x1 = x
+      if (y < y0) y0 = y
+      if (y > y1) y1 = y
+    }
+    // ei hand treng eit hòl på minst hundre gonger tjuefem
+    if (x1 - x0 < 100 || y1 - y0 < 25) continue
+    // og det må sitje i den øvre halvdelen: ein ber ovanfrå
+    const cy = (y0 + y1) / 2
+    if (cy < omslag.h * 0.5) continue
+    // ingen annan plate får liggje i det
+    const prov: Pt[] = [
+      [x0 + 4, cy],
+      [x1 - 4, cy],
+      [(x0 + x1) / 2, cy],
+    ]
+    const sperra = bak.some((l) =>
+      prov.some(([x, y]) => iRing(l.outline, x, y) && !l.holes.some((q) => iRing(q, x, y))),
     )
-  }
-  for (const q of ns.sheets[0]?.placed ?? []) {
-    const rings = placedRings(q)
-    for (const [ring, brei] of [[rings.outline, 0.9] as const, ...rings.holes.map((x) => [x, 0.55] as const)]) {
-      const d = ring.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(2)},${(H - p[1]).toFixed(2)}`).join(" ") + "Z"
-      ut.push(`<path d="${d}" fill="${brei > 0.7 ? "#f2f2f2" : "#ffffff"}" stroke="#111" stroke-width="${brei}"/>`)
+    if (sperra) continue
+    if (cy > bestH) {
+      bestH = cy
+      beste = h
     }
   }
-  ut.push(`</svg>`)
-  return ut.join("\n")
+  return beste
+}
+
+export function stabel(parts: Part[]): Stabel {
+  const lag = parts.map(leggFlat).sort((a, b) => b.w * b.h - a.w * a.h)
+  const omslag = lag[0]
+  const bak = lag.slice(1)
+  let L = 0
+  let B = 0
+  let D = 0
+  for (const l of lag) {
+    if (l.w > L) L = l.w
+    if (l.h > B) B = l.h
+    D += l.part.t
+  }
+  // Kor mange av dei andre som står HEILT inne i omslaget. I bileta er
+  // svaret alle — det er difor pakken der ser ut som éi plate, og det er
+  // eit mål på om delane er i slekt med kvarandre i storleik.
+  const inni = bak.filter((l) => l.outline.every(([x, y]) => iRing(omslag.outline, x, y))).length
+  return { L, B, D, omslag, bak, hank: finnHank(omslag, bak), inni }
+}
+
+/** kuben oppgåva gjev, i mm */
+const KUBE = 500
+
+/**
+ * Står stabelen i kuben? Ei plate på L × B × D med B under kubesida får
+ * plass anten beint fram, eller lagd på SKRÅ: eit rektangel på L × D står
+ * i eit kvadrat på 500 når (L + D)/√2 ≤ 500, altså L + D ≤ 707. Det er
+ * ikkje ein teknikalitet — det er slik ein faktisk legg ei lang plate i
+ * ein kasse — og skilnaden mellom «beint» og «på skrå» er verd å melde.
+ */
+export function iKuben(s: Stabel): "beint" | "på skrå" | "nei" {
+  if (s.B > KUBE || s.D > KUBE) return "nei"
+  if (s.L <= KUBE) return "beint"
+  return s.L + s.D <= KUBE * Math.SQRT2 ? "på skrå" : "nei"
+}
+
+/**
+ * Pakken som teikning: omslaget heilt, dei andre bak seg i minkande
+ * storleik, og hanken merkt med tjukk strek. Målestokken er millimeter,
+ * som i alle dei andre arka her, so eit uttak kan målast rett av fila.
+ */
+export function stabelSvg(s: Stabel): string {
+  const M = 24
+  const W = s.L + 2 * M
+  const H = s.B + 2 * M
+  const bane = (ring: Pt[]) =>
+    ring.map(([x, y], i) => `${i ? "L" : "M"}${(x + W / 2).toFixed(1)},${(H - M - y).toFixed(1)}`).join("") + "Z"
+  const ut: string[] = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W.toFixed(1)}mm" height="${H.toFixed(1)}mm" viewBox="0 0 ${W.toFixed(1)} ${H.toFixed(1)}">`,
+  ]
+  // bakarst fyrst, so omslaget legg seg over dei
+  for (let i = s.bak.length - 1; i >= 0; i--) {
+    const l = s.bak[i]
+    ut.push(`<path d="${bane(l.outline)}" fill="#ffffff" stroke="#111" stroke-width="0.9" opacity="0.45"/>`)
+    for (const h of l.holes) {
+      ut.push(`<path d="${bane(h)}" fill="none" stroke="#111" stroke-width="0.7" opacity="0.45"/>`)
+    }
+  }
+  ut.push(`<path d="${bane(s.omslag.outline)}" fill="#ffffff" fill-opacity="0.88" stroke="#111" stroke-width="1.5"/>`)
+  for (const h of s.omslag.holes) {
+    ut.push(`<path d="${bane(h)}" fill="#ffffff" stroke="#111" stroke-width="1.1"/>`)
+  }
+  if (s.hank) ut.push(`<path d="${bane(s.hank)}" fill="none" stroke="#111" stroke-width="2.6"/>`)
+  ut.push("</svg>")
+  return ut.join("")
 }

@@ -17,10 +17,9 @@
  *
  * Prisen er ærleg og står i tavla: flata er flat, og i ein kube på
  * femhundre vert ryggen ei LIST og ikkje ein rygg. Vinsten er talet ingen
- * annan motor er i nærleiken av — FEM delar. Sjølve bygginga er nesten
- * gratis av di det ikkje er noko å byggje; det som kostar er PAKKEN, som
- * vert søkt fram og ikkje rekna, og det er difor både han og bygginga har
- * eitt steg minne.
+ * annan motor er i nærleiken av — FEM delar, og ein pakke som er stolen
+ * sjølv kollapsa: platene flate mot kvarandre, med den største som
+ * omslag, og ingen ting i bunten som ikkje er møbel.
  *
  * Kilen er den einaste delen som SKAL kuttast i eit anna treslag. Han er
  * det som held møbelet saman, og då skal ein sjå kvar han sit.
@@ -49,7 +48,7 @@ import { lastForm } from "./lastform"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
 import { buildParts } from "./parts"
-import { hank, pakke, pakkeSvg } from "./pakke"
+import { stabel, stabelSvg } from "./pakke"
 import { profileSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
@@ -161,11 +160,10 @@ export const LAFT: EngineDef = {
     if (what === "arksyn") {
       // Biletet i panelet er PAKKEN og ikkje kuttarket. Kuttarket svarar
       // på kor mange plater jobben krev, og det talet står i tavla; men
-      // det ein vil SJÅ av eit flatpakka møbel er brettet han kjem som.
-      // Måla på pakken står i tavla ved sida av biletet, so kortet og
-      // talet er framleis same rekninga — berre ei anna av dei.
-      const k = pakke(pl.parts)
-      return { name: "laft-pakke.svg", mime: "image/svg+xml", text: pakkeSvg(k, hank(k)) }
+      // det ein vil SJÅ av eit flatpakka møbel er bunten han kjem som —
+      // og bunten er ein stabel med den største delen som omslag, ikkje
+      // eit brett med delane nesta ved sida av kvarandre.
+      return { name: "laft-pakke.svg", mime: "image/svg+xml", text: stabelSvg(stabel(pl.parts)) }
     }
     const laser = maskin?.id === "laser" ? maskin : null
     const s = laser ? laser.tjukn / p.plyT : 1
