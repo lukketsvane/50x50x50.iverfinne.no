@@ -1,5 +1,10 @@
 /**
- * SPOR SOM VERT REKNA, IKKJE TEIKNA.
+ * PLATER I KVART SITT PLAN — OG SPOR SOM VERT REKNA, IKKJE TEIKNA.
+ *
+ * Fila låg under lib/laft/ til VIKING vart bygd. Ingenting i henne er
+ * LAFT: ho kan ikkje namnet på ein einaste del, og ho spør berre om
+ * plan, omriss og tjukner. To motorar treng henne no, og då skal ho bu
+ * eitt sted og ikkje i den eine sin heim.
  *
  * Eit spor i ei plate er ikkje ein rektangel ein skriv opp. Det er
  * SKUGGEN av den delen som skal gjennom, kasta ned i plata sitt plan og
@@ -17,7 +22,7 @@
  * han. Då kan ingen lening, ingen vipp og ingen vridning koma på tvers
  * seinare: endrar gjesten seg, endrar sporet seg med.
  */
-import type { Pt, Vec3 } from "../core"
+import type { Pt, Vec3 } from "./core"
 
 /** Plasseringa av ei plate: origo og to aksar i planet, tjukna langs n. */
 export type Plass = { o: Vec3; u: Vec3; v: Vec3; n: Vec3 }

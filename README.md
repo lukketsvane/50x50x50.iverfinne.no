@@ -3,10 +3,20 @@
 Ein parametrisk sandkasse for sitjemøbel, bygd til AHO-oppgåva
 **50 × 50 × 50**: eit møbel som skal stå inne i ein kube på 500 millimeter.
 
-Sandkassen har fem typologiar, og dei er ikkje fem former. Dei fire fyrste
-er fire svar på det same spørsmålet: **korleis byggjer ein ei krum
+Sandkassen har seks typologiar, og dei er ikkje seks former. Dei fire
+fyrste er fire svar på det same spørsmålet: **korleis byggjer ein ei krum
 sitjeflate av flate plater?** Den femte, LAFT, er det einaste svaret som
-NEKTAR spørsmålet — og difor står han her.
+NEKTAR spørsmålet. Den sjette, VIKING, er det som stod att.
+
+Dei fire fyrste svarar nemleg på ein måte ingen av dei seier høgt: dei
+SNITTAR. Og fylgja er den same i alle fire, og ho er fysisk — **du sit på
+plata sin KANT**. LAFT lét deg sitje på plateFLATA, men flata er flat.
+Det gjev ei rute som stod tom:
+
+| | du sit på KANTEN | du sit på FLATA |
+|---|---|---|
+| **krum flate** | vaffel · skive · straum · ribbe | **viking** |
+| **flat flate** | — | laft |
 
 | typologi | produksjonsveg | leddet |
 |---|---|---|
@@ -15,6 +25,7 @@ NEKTAR spørsmålet — og difor står han her.
 | **STRAUM** | éin kropp skoren i skrå skiveplan, finnar sette i spor | gjennomspor |
 | **RIBBE** | radiale blad og vassrette band | kryssholdt |
 | **LAFT** | to kryssande blad, eit sete og ei list | krysshalving, tapp og kile |
+| **VIKING** | overlappande bord klinka til to spant | lapp og nagle |
 
 Fire er talet av di kvart svar må svare på SPØRSMÅLET. FLETT (vevne band)
 og KARVE (limt blokk, frest ned) svara på andre spørsmål — band er ikkje

@@ -21,6 +21,7 @@ import { RIBBE } from "./ribbe/engine"
 import { VAFFEL } from "./vaffel/engine"
 import { BOYG } from "./boyg/engine"
 import { LAFT } from "./laft/engine"
+import { VIKING } from "./viking/engine"
 
 /**
  * ENGINES er det brukaren ser. UNDER_BYGGING er det som er under arbeid:
@@ -31,7 +32,7 @@ import { LAFT } from "./laft/engine"
  * motor vert flytta hit ned FYRST når han byggjer sin eigen geometri og
  * held alle fem portane.
  */
-const UNDER_BYGGING: readonly EngineDef[] = [BOYG]
+const UNDER_BYGGING: readonly EngineDef[] = [BOYG, VIKING]
 
 // VAFFEL fyrst: han er standardobjektet og øvst i nedtrekket. SKAL er
 // teken ut — kjelda hans står att for dokumentpipelinen, men han er ikkje
