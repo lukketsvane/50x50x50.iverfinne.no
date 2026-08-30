@@ -17,22 +17,30 @@ import type {
   ParamBag,
   Vec3,
   View,
+  Maskin,
 } from "../core"
+import { LASER } from "../core"
+import { skalerDelar } from "../nestraster"
 import { meshToStl } from "../skal/export-stl"
 import { nest } from "../vaffel/nest"
 import { partsToDxf } from "../vaffel/export-dxf"
-import { sheetSvg } from "../vaffel/export-svg"
+import { alleArkSvg } from "../vaffel/export-svg"
 import { buildSlices, DETAIL } from "./profile"
 import { contourLines, lagMesh, loftMesh } from "./mesh"
+import { feltPaMesh, lastVerste } from "./last"
+import { finmaskNett } from "../lastnett"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
+import { lastForm } from "./lastform"
 import { buildParts } from "./parts"
 import { profileSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
   GROUPS,
+  HOVUDDRAG,
   NUDGE_PARAMS,
   PARAM_KEYS,
+  POSAR,
   PARAM_RANGES,
   clampParams,
   randomParams,
@@ -52,7 +60,11 @@ export const SKIVE: EngineDef = {
   keys: PARAM_KEYS,
   defaults: DEFAULT_PARAMS as unknown as ParamBag,
   nudge: NUDGE_PARAMS,
+  poses: POSAR,
+  hovuddrag: HOVUDDRAG,
   unitLabel: "skiver",
+  kanLast: true,
+  lastForm: (bag) => lastForm(asP(bag)) as unknown as ParamBag,
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
   random: (rnd, prev, locked) =>
@@ -74,6 +86,21 @@ export const SKIVE: EngineDef = {
     if (view === "lag") {
       const m = lagMesh(p, b)
       return { ...m, lines: EMPTY(), heavy: EMPTY() }
+    }
+
+    if (view === "last") {
+      // Lastkartet: same nett som «lag», FINMASKA so hjørna samplar feltet
+      // tett nok — store flate trekantar smører fargane diagonalt elles.
+      // Ankeret er det analytiske maksimumet — same talet som tavla viser.
+      const m0 = lagMesh(p, b)
+      const m = { ...m0, ...finmaskNett(m0) }
+      return {
+        ...m,
+        felt: feltPaMesh(p, b, m.positions),
+        feltTak: lastVerste(p, b).util,
+        lines: EMPTY(),
+        heavy: EMPTY(),
+      }
     }
 
     // Konturkartet legg silhuettane flatt ved sida av kvarandre og fyller
@@ -108,7 +135,7 @@ export const SKIVE: EngineDef = {
   measure: (bag) => measure(asP(bag)),
   rules: (bag, m) => checkRules(asP(bag), m),
 
-  exportFile(bag: ParamBag, what: ExportKind): ExportOut {
+  exportFile(bag: ParamBag, what: ExportKind, maskin?: Maskin): ExportOut {
     const p = asP(bag)
     const b = buildSlices(p, DETAIL.hog.k)
     if (what === "stl") {
@@ -122,10 +149,22 @@ export const SKIVE: EngineDef = {
     if (what === "svg") {
       return { name: "skive-profilar.svg", mime: "image/svg+xml", text: profileSvg(b) }
     }
-    const ns = nest(buildParts(p, b).parts)
-    if (what === "ark") {
-      return { name: "skive-ark1.svg", mime: "image/svg+xml", text: sheetSvg(ns, 0) }
+    if (what === "arksyn") {
+      // biletet i panelet: same pakking som measure las — sjå ExportKind
+      return {
+        name: "skive-ark.svg",
+        mime: "image/svg+xml",
+        text: alleArkSvg(nest(buildParts(p, b).parts)),
+      }
     }
-    return { name: "skive.dxf", mime: "application/dxf", text: partsToDxf(ns, p.plyT) }
+    // laseren: modellskala tjukn/plyT, nesta på lasersenga
+    const laser = maskin?.id === "laser" ? maskin : null
+    const s = laser ? laser.tjukn / p.plyT : 1
+    const ns = nest(skalerDelar(buildParts(p, b).parts, s), laser ? { ...LASER, tett: true } : { cell: 4, tett: true })
+    const merk = laser ? "-laser" : ""
+    if (what === "ark") {
+      return { name: "skive-" + ns.sheets.length + "ark" + merk + ".svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
+    }
+    return { name: "skive" + merk + ".dxf", mime: "application/dxf", text: partsToDxf(ns, laser ? laser.tjukn : p.plyT) }
   },
 }

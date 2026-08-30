@@ -29,9 +29,21 @@ export const MM = 1 / 250
  * Uniformen vert delt med materialet gjennom eit objekt som lever utanfor
  * shaderen: ny platetjukn er eit taloppslag, aldri ein rekompilering.
  */
-/** Bjørk under kvitpigmentert olje: nesten kvit, eit snev varm. I mørk
- *  modus vert han dempa, elles brenn objektet hòl i skjermen. */
-const col2 = (dark: boolean) => (dark ? "#cfc7bb" : "#e8e1d4")
+/**
+ * Materialtonane i 3D — same valet som materialprikkane i panelet.
+ * Naturtonen er grunnfargen shaderen legg ved, seinved og finérlag over;
+ * i mørk modus vert han dempa, elles brenn objektet hòl i skjermen.
+ * `slag` vel shadergrein og overflateparametrar: ved har åringar og
+ * lagdelt kant, MDF er homogen med tett mørkare kant, akryl er blank
+ * støypt plast utan ved i det heile.
+ */
+const TONAR: Record<string, { lys: string; slag: "ved" | "mdf" | "akryl" }> = {
+  bjork: { lys: "#e8dabb", slag: "ved" },
+  bok: { lys: "#d2a97c", slag: "ved" },
+  poppel: { lys: "#f0e6cc", slag: "ved" },
+  mdf: { lys: "#c8aa80", slag: "mdf" },
+  akryl: { lys: "#cfe0e0", slag: "akryl" },
+}
 
 /**
  * Beisane. Fargen sit på FLATENE av kvar plate; kantane står som rå finér —
@@ -52,27 +64,76 @@ export const BEIS: readonly { id: string; label: string; hex: string }[] = [
   { id: "svart", label: "svartbeisa", hex: "#2e2b28" },
 ]
 
+/**
+ * Skalaen til lastkartet, av husets eigne fargar: marine → petrol → sand
+ * → aho-oransje → mørkraud. 0 er urørt, 1,0 er objektet sitt VERSTE punkt
+ * — kva det punktet er i prosent av kapasiteten, står ved skalaen i
+ * panelet. Fargane vert rekna per hjørne éin gong per bygg; shaderen les
+ * dei som vanlege vertex-fargar.
+ */
+const LAST_STOPP: readonly [number, number, number, number][] = [
+  [0.0, 0x2b / 255, 0x4a / 255, 0x68 / 255],
+  [0.3, 0x3f / 255, 0x7d / 255, 0x8c / 255],
+  [0.55, 0xe9 / 255, 0xe2 / 255, 0xd2 / 255],
+  [0.8, 0xed / 255, 0x52 / 255, 0x0f / 255],
+  [1.0, 0x7f / 255, 0x1d / 255, 0x1d / 255],
+]
+
+function feltFargar(felt: Float32Array, tak?: number): Float32Array {
+  // Strekt til objektet sitt eige verste punkt. På absoluttskalaen ligg
+  // eit lovleg møbel under 40 % utnytting og det meste av godset under
+  // 10 — då var HEILE kartet blått, same kva ein skrudde på, og eit kart
+  // som alltid seier det same seier ingenting. Relativt syner kartet det
+  // han finst for: KVAR lasta bur i objektet. Ankeret er motoren sitt
+  // analytiske maksimum (feltTak) — same talet som «utnytting» i tavla
+  // og ved skalaen i panelet — med hjørnemaksimum som golv, so ingen
+  // verdi går over 1 om ankeret av ein grunn manglar.
+  let maks = 0
+  for (let i = 0; i < felt.length; i++) if (felt[i] > maks) maks = felt[i]
+  if (tak && tak > maks) maks = tak
+  const inv = maks > 1e-6 ? 1 / maks : 0
+  const out = new Float32Array(felt.length * 3)
+  for (let i = 0; i < felt.length; i++) {
+    // Kvadratrota spreier den låge enden; skalaen i panelet er teikna
+    // med same rot, so ein farge peikar på same relative nivå begge stader.
+    const u = Math.sqrt(Math.min(1, Math.max(0, felt[i] * inv)))
+    let k = 1
+    while (k < LAST_STOPP.length - 1 && LAST_STOPP[k][0] < u) k++
+    const a = LAST_STOPP[k - 1]
+    const b = LAST_STOPP[k]
+    const t = (u - a[0]) / (b[0] - a[0] || 1)
+    out[i * 3] = a[1] + (b[1] - a[1]) * t
+    out[i * 3 + 1] = a[2] + (b[2] - a[2]) * t
+    out[i * 3 + 2] = a[3] + (b[3] - a[3]) * t
+  }
+  return out
+}
+
 function makeStriped(
   color: string,
-  roughness: number,
+  slag: "ved" | "mdf" | "akryl",
   uPly: { value: number },
   uBeis: { value: THREE.Color },
   uBeisOn: { value: number },
 ) {
   const m = new THREE.MeshPhysicalMaterial({
     color,
-    roughness,
     metalness: 0,
-    // eit tynt oljestrøk: nesten matt, men med liv i refleksane
-    clearcoat: 0.14,
-    clearcoatRoughness: 0.55,
-    envMapIntensity: 1,
     side: THREE.DoubleSide,
+    // overflata er slaget: olja finér har eit tynt, levande strøk;
+    // MDF er daudmatt; støypt akryl er blankpolert
+    ...(slag === "ved"
+      ? { roughness: 0.58, clearcoat: 0.28, clearcoatRoughness: 0.42, envMapIntensity: 0.55 }
+      : slag === "mdf"
+        ? { roughness: 0.86, clearcoat: 0, envMapIntensity: 0.22 }
+        : { roughness: 0.1, clearcoat: 1.0, clearcoatRoughness: 0.06, envMapIntensity: 1.2 }),
   })
+  const uSlag = slag === "ved" ? 0 : slag === "mdf" ? 1 : 2
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uPly = uPly
     sh.uniforms.uBeis = uBeis
     sh.uniforms.uBeisOn = uBeisOn
+    sh.uniforms.uSlag = { value: uSlag }
     sh.vertexShader = sh.vertexShader
       .replace(
         "#include <common>",
@@ -85,52 +146,106 @@ function makeStriped(
     sh.fragmentShader = sh.fragmentShader
       .replace(
         "#include <common>",
-        "#include <common>\nvarying vec3 vObj;\nvarying vec3 vNrmO;\nvarying float vKant;\nuniform float uPly;\nuniform vec3 uBeis;\nuniform float uBeisOn;\nfloat gKorn;",
+        "#include <common>\nvarying vec3 vObj;\nvarying vec3 vNrmO;\nvarying float vKant;\nuniform float uPly;\nuniform vec3 uBeis;\nuniform float uBeisOn;\nuniform float uSlag;\nfloat gKorn;",
       )
       .replace(
         "#include <color_fragment>",
         [
           "#include <color_fragment>",
           "{",
+          "  gKorn = 0.0;",
           // Kvart hjørne veit om det er plateFLATE (0) eller KUTT (1).
           // Motoren har merkt det der han bygde trekanten; der han teier,
           // har framsyninga gissa frå normalen før ho la attributtet.
+          // Beisen fyrst, veden over: farga tre viser framleis åringane —
+          // det er beis, ikkje målingsdekke.
           "  if (uBeisOn > 0.5) {",
           "    diffuseColor.rgb = mix(diffuseColor.rgb, uBeis, (1.0 - vKant) * 0.92);",
           "  }",
-          // VEDEN. Åringane ligg i det planet flata faktisk har: normalen
-          // vel kva to aksar teikninga går i. To sinuslag gjev årring og
-          // fiber; ei celle-hash gjev endeved-spetter på kutta. Alt er
-          // rekna av geometrien sin eigen posisjon i millimeter — ingen
-          // tekstur, inga sauming, og mønsteret fylgjer kvar einaste
-          // parameterendring.
-          "  vec2 q = abs(vNrmO.z) > 0.7 ? vObj.xy : (abs(vNrmO.y) > 0.7 ? vObj.xz : vObj.yz);",
-          // Frekvensane må døy før dei aliaserer: kvar sinus vert dempa av
-          // sin eigen skjermromsderiverte, so mønsteret løyser seg opp i
-          // ro — ikkje i moaré — når det vert mindre enn ein piksel.
-          "  float px = fwidth(q.x);",
-          "  float attA = clamp(1.0 - px * 1.4, 0.0, 1.0);",
-          "  float attF = clamp(1.0 - px * 4.0, 0.0, 1.0);",
-          "  float aar = sin(q.x * 0.5 + 2.2 * sin(q.y * 0.035) + 1.4 * sin(q.x * 0.09)) * attA;",
-          "  float fiber = sin(q.x * 3.7 + sin(q.y * 0.6) * 2.4) * attF;",
-          "  gKorn = aar * 0.6 + fiber * 0.2;",
-          "  vec3 celle = floor(vObj * 1.3);",
-          "  float spek = (fract(sin(dot(celle, vec3(12.9898, 78.233, 37.719))) * 43758.5453) - 0.5) * attF;",
-          "  float ved = mix(gKorn * 0.03, spek * 0.08 + gKorn * 0.02, vKant);",
-          "  diffuseColor.rgb *= 1.0 + ved;",
-          // rå kryssfinérkant er eit hakk lysare og gulare enn flata
-          "  diffuseColor.rgb *= mix(vec3(1.0), vec3(1.05, 1.03, 0.97), vKant);",
-          "  if (uPly > 0.5) {",
-          "    float t = vObj.z / uPly;",
-          "    float kant = (0.5 - abs(fract(t) - 0.5)) * uPly;",
-          "    float w = max(fwidth(vObj.z) * 1.2, 0.35);",
-          "    float fuge = 1.0 - smoothstep(0.0, w + 0.45, kant);",
-          // Fuga finst berre i kuttet. Flatene ligg NØYAKTIG på
-          // laggrensene, so utan denne porten vart heile lokket på kvart
-          // lag mørkna som éi stor fuge — det var den mørke ringen kring
-          // setet.
-          "    diffuseColor.rgb *= 1.0 - 0.16 * fuge * vKant;",
+          // VEDEN. Alt er rekna av geometrien sin eigen posisjon i
+          // millimeter — ingen tekstur, inga sauming, og mønsteret fylgjer
+          // kvar einaste parameterendring. Kvar frekvens vert dempa av sin
+          // eigen skjermromsderiverte, so mønsteret løyser seg opp i ro og
+          // ikkje i moaré når det vert mindre enn ein piksel.
+          "  if (uSlag < 0.5) {",
+          // Planvalet er KONTINUERLEG: koordinaten er ei triplanar
+          // blanding vekta av normalen i fjerde potens. På ei plan plate
+          // dominerer eitt plan totalt og teikninga er som før; på ein
+          // frest, fasettert kropp glid planet mjukt frå fasett til
+          // fasett i staden for å flippe — det var flippinga som la
+          // mursteinsmønster over sokkelen.
+          "    vec3 aw = vNrmO * vNrmO;",
+          "    aw *= aw;",
+          "    aw /= max(aw.x + aw.y + aw.z, 1e-5);",
+          "    vec2 q = vObj.yz * aw.x + vObj.xz * aw.y + vObj.xy * aw.z;",
+          "    float px = fwidth(q.x);",
+          // Planvalet over gjeld berre der flata FAKTISK er eit plan: på
+          // ei tvikrumma frest flate flippar aksen frå fragment til
+          // fragment, og full ved vart kordfløyel. Krumme flater får
+          // difor roleg, dempa ved — plane plateflater full teikning.
+          "    float flatW = 1.0;",
+          // ... og berre der normalen står i ro: på ei krum flate svingar
+          // han frå piksel til piksel, og der skal veden tie
+          "    flatW *= clamp(1.0 - length(fwidth(vNrmO)) * 9.0, 0.0, 1.0);",
+          // Og fyrst og sist: ringveden hoeyrer plateFLATENE til. Eit kutt
+          // viser endeved og lag — aldri ringband — so heile
+          // flate-teikninga doeyr paa kanten.
+          "    flatW *= 1.0 - vKant;",
+          // Rotérskoren finér: nesten parallelle årringar som vandrar.
+          // Seinveden er det smale, skarpe, mørkare bandet i kvar ring —
+          // det er han, meir enn fargen, som gjer at auget les tre.
+          "    float bolge = 30.0 * sin(q.y * 0.011 + 1.7) + 55.0 * sin(q.y * 0.0031) + 9.0 * sin(q.x * 0.007);",
+          "    float rf = fract((q.x + bolge) / 26.0);",
+          "    float attR = clamp(1.0 - px * 0.09, 0.0, 1.0);",
+          "    float late = (smoothstep(0.55, 0.74, rf) - smoothstep(0.80, 0.95, rf)) * attR;",
+          "    float attF = clamp(1.0 - px * 2.6, 0.0, 1.0);",
+          "    float fib = (sin(q.x * 2.3 + 3.0 * sin(q.y * 0.33)) * 0.5 + 0.5) * attF;",
+          // margstrålespetter: sjeldne, strekte, eit hakk mørkare
+          "    vec2 cq = floor(q * vec2(0.3, 0.05));",
+          "    float fleck = step(0.955, fract(sin(dot(cq, vec2(127.1, 311.7))) * 43758.5453)) * attF;",
+          // brei fargedrift over plata — inga plate er jamn
+          "    float drift = sin(q.x * 0.006 + q.y * 0.0043);",
+          "    vec3 lateTone = uBeisOn > 0.5 ? diffuseColor.rgb * 0.86 : diffuseColor.rgb * vec3(0.80, 0.68, 0.55);",
+          "    diffuseColor.rgb = mix(diffuseColor.rgb, lateTone, late * mix(0.22, 0.75, flatW));",
+          "    diffuseColor.rgb *= 1.0 + drift * 0.07 * (1.0 - 0.6 * vKant) - fib * 0.035 * flatW - fleck * 0.12 * flatW;",
+          "    gKorn = late;",
+          "    if (vKant > 0.5) {",
+          // KUTTET. Der laga ligg VASSRETT (uPly ber platetjukna) vert
+          // kvart finérlag på ~1,45 mm teikna, annakvar mørkare av di
+          // fibrane står på tvers, med limline mellom. For motorane der
+          // platene står kvar sin veg finst ingen global lag-akse — då
+          // står kuttet som rå, ujamn endeved: litt mørkare og varmare
+          // enn flata, med spetter.
+          "      if (uPly > 0.5) {",
+          "        float nV = max(3.0, floor(uPly / 1.45 + 0.5));",
+          "        float tz = fract(vObj.z / uPly);",
+          "        float vt = tz * nV;",
+          "        float ft = fract(vt);",
+          "        float vPx = fwidth(vObj.z) * nV / uPly;",
+          "        float attV = clamp(1.0 - vPx * 0.9, 0.0, 1.0);",
+          "        float par = mod(floor(vt), 2.0);",
+          "        diffuseColor.rgb *= mix(1.0, mix(1.07, 0.85, par), attV);",
+          "        float gl = 1.0 - smoothstep(0.0, 0.16 + vPx * 0.4, min(ft, 1.0 - ft));",
+          "        diffuseColor.rgb *= 1.0 - 0.3 * gl * attV;",
+          "        float kantP = (0.5 - abs(tz - 0.5)) * uPly;",
+          "        float wp = max(fwidth(vObj.z) * 1.2, 0.3);",
+          "        diffuseColor.rgb *= 1.0 - 0.2 * (1.0 - smoothstep(0.0, wp + 0.4, kantP));",
+          "      } else {",
+          "        diffuseColor.rgb *= vec3(0.94, 0.92, 0.88);",
+          "      }",
+          "      vec3 celle = floor(vObj * 1.6);",
+          "      float spek = fract(sin(dot(celle, vec3(12.9898, 78.233, 37.719))) * 43758.5453) - 0.5;",
+          "      diffuseColor.rgb *= 1.0 + spek * 0.07 * attF;",
+          "    }",
+          "  } else if (uSlag < 1.5) {",
+          // MDF: homogen fiberplate — berre eit fint, tett spett, og ein
+          // kant som er tettare og mørkare enn flata
+          "    vec3 c2 = floor(vObj * 3.1);",
+          "    float s2 = fract(sin(dot(c2, vec3(12.9898, 78.233, 37.719))) * 43758.5453) - 0.5;",
+          "    diffuseColor.rgb *= 1.0 + s2 * 0.025;",
+          "    if (vKant > 0.5) diffuseColor.rgb *= 0.9;",
           "  }",
+          // akryl: rein, jamn farge — glansen gjer resten
           "}",
         ].join("\n"),
       )
@@ -138,10 +253,10 @@ function makeStriped(
         "#include <roughnessmap_fragment>",
         [
           "#include <roughnessmap_fragment>",
-          // Kuttet er RUARE enn flata — endeved et lys — og åringane
-          // vekslar mellom blank sommarved og matt vintved. Det er denne
-          // vekslinga, meir enn fargen, som gjer at auget les tre.
-          "roughnessFactor = clamp(roughnessFactor + vKant * 0.08 + gKorn * 0.025, 0.05, 1.0);",
+          // Endeveden et lys — kuttet er ruare enn flata — og seinveden
+          // er BLANKARE enn vårveden: det er vekslinga i glans, meir enn
+          // i farge, som sel materialet under hardt lys.
+          "if (uSlag < 0.5) roughnessFactor = clamp(roughnessFactor + vKant * 0.14 - gKorn * 0.1, 0.05, 1.0);",
         ].join("\n"),
       )
   }
@@ -154,6 +269,7 @@ export function ObjectMesh({
   dark,
   stripePly,
   beis,
+  material,
   onFit,
 }: {
   data: BuildRes | null
@@ -163,6 +279,8 @@ export function ObjectMesh({
   stripePly: number
   /** beis-hex for plateFLATENE; tom streng er natur */
   beis: string
+  /** materialvalet frå panelet — bjork/bok/poppel/mdf/akryl */
+  material: string
   onFit: (r: number, cy: number) => void
 }) {
   const invalidate = useThree((s) => s.invalidate)
@@ -194,6 +312,10 @@ export function ObjectMesh({
         }
       }
       g.setAttribute("aKant", new THREE.BufferAttribute(kant, 1))
+      // lastkartet: utnyttinga per hjørne, ferdig farga etter skalaen
+      if (data.view === "last" && data.felt && data.felt.length === nv) {
+        g.setAttribute("color", new THREE.BufferAttribute(feltFargar(data.felt, data.feltTak), 3))
+      }
       // Kula kjem frå min/maks motoren alt har rekna — å skanne kvart
       // hjørne ein gong til her ville kosta ein full gjennomgang av
       // nettet per bygg, på hovudtråden, for eit tal vi alt har.
@@ -247,14 +369,33 @@ export function ObjectMesh({
     if (box) onFit(box.r, box.mid)
   }, [box, onFit])
 
-  // materialet lever like lenge som fargen og ruheita; fugetjukna er ein
+  // materialet lever like lenge som tonen og slaget; fugetjukna er ein
   // uniform og kostar aldri ein rekompilering
-  const rough = view === "lag" ? 0.92 : 0.78
+  const tone = TONAR[material] ?? TONAR.bjork
+  const farge = useMemo(() => {
+    const c = new THREE.Color(tone.lys)
+    if (dark) c.multiplyScalar(0.82)
+    return c
+  }, [tone, dark])
   const mat = useMemo(
-    () => makeStriped(col2(dark), rough, uPly.current, uBeis.current, uBeisOn.current),
-    [dark, rough],
+    () =>
+      makeStriped("#" + farge.getHexString(), tone.slag, uPly.current, uBeis.current, uBeisOn.current),
+    [farge, tone],
   )
   useEffect(() => () => mat.dispose(), [mat])
+  // Lastkartet sitt eige materiale: berre fargane, ingen ved og inga beis
+  // — kartet er ei måling, ikkje eit materiale.
+  const matLast = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.85,
+        metalness: 0,
+        side: THREE.DoubleSide,
+      }),
+    [],
+  )
+  useEffect(() => () => matLast.dispose(), [matLast])
   useEffect(() => {
     uPly.current.value = stripePly
     uBeisOn.current.value = beis ? 1 : 0
@@ -280,7 +421,12 @@ export function ObjectMesh({
           </lineSegments>
         </>
       ) : (
-        <mesh geometry={built.g} castShadow receiveShadow material={mat} />
+        <mesh
+          geometry={built.g}
+          castShadow
+          receiveShadow
+          material={data?.view === "last" && data.felt?.length ? matLast : mat}
+        />
       )}
     </group>
   )

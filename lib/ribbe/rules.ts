@@ -83,6 +83,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: m.sitZ >= 380 && m.sitZ <= 480,
     value: `sit ${mm(m.sitZ)} · kant ${mm(m.seatZ)} mm`,
     why: "Setehøgda er der ein sit og ikkje der kanten står; på ei skål ligg dei eit par centimeter frå kvarandre. Under 380 mm pressar setet knea opp mot brystet, over 480 mm heng føtene i lause lufta.",
+    peikar: ["seatZ", "dish"],
   })
 
   // --- 3 veltevinkel -------------------------------------------------------
@@ -93,6 +94,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: m.tipAngle >= 15,
     value: `${mm1(m.tipAngle)}° · arm ${mm(m.tipArm)} mm`,
     why: "Ein krakk som går rundt når nokon lener seg utover er farleg lenge før han er stygg; Stool 60 har kring 23 grader å gå på.",
+    peikar: ["footR", "planR", "seatZ"],
   })
 
   // --- 4 navet -------------------------------------------------------------
@@ -106,6 +108,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: hubOpen >= 0 && sh.rHub >= need,
     value: `radius ${mm1(sh.rHub)} mot ${mm1(need)} mm · fritt ${mm1(hubOpen)} mm`,
     why: "Tjueto blad på femten millimeter treng 22·15/2π = 52,5 mm radius berre for å stå ved sida av kvarandre. Den indre kanten vert klemd mot det talet og ikkje mot ein ynskjeverdi — er han mindre, finst ikkje objektet, det er berre teikna.",
+    peikar: ["hubGap", "twist", "blades", "bladeT"],
   })
 
   // --- 5 vevdjupn ----------------------------------------------------------
@@ -118,6 +121,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: web >= WEB_MIN,
     value: `${mm1(web)} mm`,
     why: "Ribbene er ikkje smale lister, dei er djupe vevar. Under 24 millimeter mellom ytre og indre kant ber bladet korkje lasta eller lesinga: objektet vert ei lykt i staden for ein kropp.",
+    peikar: ["waist", "inner", "hubGap", "planR"],
   })
 
   // --- 6 utnytting ---------------------------------------------------------
@@ -128,6 +132,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: m.util <= 1,
     value: `${mm(m.util * 100)} % · trykk ${nn(m.sigmaC, 2)} + bøying ${nn(m.sigmaM, 2)} MPa`,
     why: "Over 1,0 er lasta større enn materialet toler etter NS-EN 1995-1-1, og då er resten av teikninga likegyldig. Momentet kjem ikkje frå lasta, men frå at ribba ikkje er rett.",
+    peikar: ["waist", "bladeT", "inner", "bandW"],
   })
 
   // --- 7 leddet ------------------------------------------------------------
@@ -139,6 +144,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: lap >= 12,
     value: `overlapp ${mm1(lap)} mm · ${mm1(lap / 2)} mm i kvar del`,
     why: "Kryssholdt er det einaste leddet i objektet. Overlappen er bandbreidda minus utstikket, og han vert delt i to. Under seks millimeter i kvar del er det ikkje eit ledd, det er to delar som ligg inntil kvarandre.",
+    peikar: ["bandW", "bandOut"],
   })
 
   // --- 8 sporklaring -------------------------------------------------------
@@ -149,6 +155,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: p.fit >= 0.1 && p.fit <= 0.5,
     value: `${nn(p.fit, 2)} mm per side · ${nn(p.fit * 2, 2)} mm på sporbreidda`,
     why: "Finér på femten millimeter har toleranse ±0,5 mm. Klaringa skal liggja LÅGARE enn toleransen med vilje, slik at leddet må bankast saman og difor held utan lim; over ein halv millimeter held det ikkje av seg sjølv.",
+    peikar: ["fit"],
   })
 
   // --- 9 avlasting ---------------------------------------------------------
@@ -159,6 +166,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: p.relief > p.bit,
     value: `⌀${nn(p.relief, 1)} mot fres ⌀${nn(p.bit, 1)} mm`,
     why: "Ein fres kan ikkje lage eit skarpt innvendig hjørne. Er avlastinga ikkje større enn fresen, står radien hans att i hjørnet og delane vert ståande tre millimeter frå kvarandre — ti gonger klaringa.",
+    peikar: ["relief", "bit"],
   })
 
   // --- 10 bandet ut --------------------------------------------------------
@@ -169,6 +177,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: p.bandOut >= 8,
     value: `${mm1(p.bandOut)} mm forbi bladet`,
     why: "Ringane skal vera det ytste elementet: dei lagar silhuetten i si eiga høgd. Ligg dei i flukt med blada, vert sporet i bladet ståande fram som ei sagtann heile vegen rundt.",
+    peikar: ["bandOut"],
   })
 
   // --- 11 opningane mellom blada -------------------------------------------
@@ -180,6 +189,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: wide >= p.bladeT,
     value: `${mm1(wide)} mm mot ${mm1(p.bladeT)} mm`,
     why: "Talet på blad er det talet der opningane framleis er breiare enn bladet sjølv. Færre blad ser lettare ut men gjev grovare fasettar i silhuetten; fleire lukkar objektet.",
+    peikar: ["blades", "bladeT", "planR"],
   })
 
   // --- 12 klemfare ---------------------------------------------------------
@@ -192,6 +202,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: trapped.length === 0,
     value: `minste luke ${mm1(Math.min(...gaps))} mm`,
     why: "Rommet mellom to band og to blad er ei lukka opning. Er ho mellom fem og tjuefem millimeter høg, tek ho ein finger og slepper han ikkje att; ho skal anten vera for trong til å koma inn i eller vid nok til å koma ut av.",
+    peikar: ["bands", "bandZ0", "bandZ1", "bandT"],
   })
 
   // --- 13 setet på blada ---------------------------------------------------
@@ -203,6 +214,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: g.seat.onBlades >= needBlades,
     value: `${mm(g.seat.onBlades)} av ${mm(sh.angles.length)} blad`,
     why: "Setet har inga anna oppleiring enn toppen av blada. Bit halvmånen eller overhenget bort for mange av dei, er setet ei plate lagd over eit hol.",
+    peikar: ["moon", "moonR", "lip"],
   })
 
   // --- 14 ei plate ---------------------------------------------------------
@@ -215,6 +227,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: ns.sheets.length <= 1,
     value: `${mm(ns.sheets.length)} ark · ${mm(ns.util * 100)} % utnytting`,
     why: "Heile objektet skal koma ut av éi plate på 2500 × 1250 mm. Utnyttinga er låg fordi ringane er annulusar og hòlet i midten er avfall; det ærlege talet er kor mange plater jobben krev.",
+    peikar: ["planR", "blades", "bandW", "bands"],
   })
 
   // --- 15 fotbogen ---------------------------------------------------------
@@ -226,6 +239,7 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: arc >= 20 && arc <= sh.zBlade * 0.4,
     value: `${mm(arc)} mm opp mot navet · ${mm(m.contacts)} føter`,
     why: "Botnkanten stig innover mot navet, slik at objektet står på ytterendane. Utan bogen vert botnen ei vifte av vassrette kantar som svevar over golvet; går han forbi to femtedelar av høgda, er det ikkje lenger ein boge, det er ein skrå bladunderkant.",
+    peikar: ["footArc", "seatZ"],
   })
 
   // --- 16 skåla mot setetjukna ---------------------------------------------
@@ -236,6 +250,18 @@ export function checkRules(p: Params, m: Metrics, pre?: { sh?: Shell; g?: Built 
     ok: p.dish <= p.seatT - 8,
     value: `${mm1(p.dish)} mm i ${mm1(p.seatT)} mm plate`,
     why: "Skåla er frest ned i setet frå oversida. Står det under åtte millimeter att under botnen av henne, er setet ikkje lenger ei plate med ei skål i, det er eit hol med ein kant rundt.",
+    peikar: ["dish", "seatT"],
+  })
+
+  // --- plateutnytting (mjuk) -------------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.28,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Plata er ein del av objektet, òg den delen som vert til spon. Blad og band pakkar godt når planet er rundt og blada liknar kvarandre; under 28 prosent er det silhuetten som kastar arket, og det valet skal stå her.",
+    peikar: ["planAsp", "waist", "bandW"],
   })
 
   return R

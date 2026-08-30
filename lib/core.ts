@@ -4,10 +4,12 @@
  * Fire typologiar står i denne sandkassen, og dei er ikkje fire former.
  * Dei er fire måtar å byggje ei krum flate av flate plater:
  *
- *   RIBBE   radiale blad og vassrette band, kryssholdte i kvarandre
- *   VAFFEL  dei same ribbene lagde i to rette retningar i staden for radialt
- *   SKAL    vassrette lamellar stabla og slipte ned til éi flate
+ *   VAFFEL  kryssholdte ribber i to retningar, utan lim og utan skruar
+ *   SKIVE   parallelle skiver med luft imellom, tredde på stavar
  *   STRAUM  éin kropp skoren i skrå skiveplan, finnar sette i spor
+ *   RIBBE   radiale blad og vassrette band, kryssholdte i kvarandre
+ *
+ * VAFFEL er sluttproduktet; dei tre andre er argumentet kring valet.
  *
  * Kvar av dei har si eiga likning, sitt eige parameterrom og sine eigne
  * ledd. Det dei deler er denne fila: kva eit måltal er, kva ein regel er,
@@ -24,16 +26,21 @@ export type Vec3 = [number, number, number]
 // =============================================================================
 // MATERIALE
 // =============================================================================
-export type Material = "bjork" | "poppel" | "bok"
+export type Material = "bjork" | "poppel" | "bok" | "mdf" | "akryl"
 
 export const MATERIALS: Record<
   Material,
   { label: string; rho: number; fmk: number; fck: number }
 > = {
-  // rho kg/m³ · fm,k og fc,k i MPa, karakteristiske verdiar for finér
+  // rho kg/m³ · fm,k og fc,k i MPa, karakteristiske verdiar. Finér er
+  // fresarvegen; MDF og akryl er laservegen — tynne plater til modellar
+  // og småting. kmod/γM er treverdiar og vert borne konservativt av dei
+  // andre òg; for ein laserkutta modell er styrken uansett ikkje saka.
   bjork: { label: "bjørkefinér", rho: 680, fmk: 40, fck: 26 },
   bok: { label: "bøkefinér", rho: 720, fmk: 44, fck: 28 },
   poppel: { label: "poppelkjerne", rho: 460, fmk: 24, fck: 15 },
+  mdf: { label: "MDF", rho: 750, fmk: 18, fck: 10 },
+  akryl: { label: "akryl (PMMA)", rho: 1190, fmk: 60, fck: 65 },
 }
 
 /** NS-EN 1728, kontraktnivå: 1600 N konsentrert på setet. */
@@ -232,6 +239,18 @@ export type Metrics = {
 
   parts: number // tal delar
   plyArea: number // finérareal i alt, mm²
+
+  /**
+   * Plata er ein del av objektet, òg den delen som vert til spon. Dei tre
+   * tala her er avfallsrekninga på arket: kor mange plater kuttlista tek i
+   * bruk, kor mykje av dei som faktisk går gjennom maskina (breidda gonger
+   * den brukte lengda, summert over arka), og kor stor del av det arealet
+   * som endar som del i staden for som avfall. Teljaren er alltid NETTO
+   * delareal — hòl i ein del er avfall, ikkje del.
+   */
+  sheets: number // plater teke i bruk
+  sheetArea: number // medgått plateareal, mm²
+  sheetUtil: number // plateutnytting: netto delareal / medgått plateareal, 0–1
   /** kva den einskilde typologien tel som «lag»: lamellar, blad, finnar */
   units: number
   unitLabel: string
@@ -254,6 +273,13 @@ export type Rule = {
   hard: boolean
   value: string
   why: string
+  /**
+   * Skyvarane som faktisk flytter regelen, viktigast fyrst. Ein regel som
+   * berre seier nei har gjort halve jobben; panelet gjer etiketten
+   * trykkbar og rullar til den fyrste skyvaren. Tom/utelaten tyder at
+   * ingen skyvar eig regelen (innpassinga, materialvalet).
+   */
+  peikar?: readonly string[]
 }
 
 // =============================================================================
@@ -271,12 +297,37 @@ export type MeshData = {
 
 export type DetailKey = "lav" | "mid" | "hog"
 
-/** Dei tre lesemåtane av eit og same objekt. Kva dei tyder er opp til
- *  motoren: for SKAL er «lag» stabelen som kutta, for STRAUM er det dei 24
- *  finnane, for RIBBE blada og banda kvar for seg. */
-export type View = "flate" | "lag" | "kontur"
+/** Lesemåtane av eit og same objekt. Kva dei tyder er opp til motoren:
+ *  «lag» er delane montert, «flate» forma dei nærmar seg, «kontur» dei
+ *  flate kuttprofilane — og «last» er lastkartet: utnyttinga under
+ *  NS-EN 1728-lasta måla PÅ flata. Berre motorar med `kanLast` svarar
+ *  på den siste. */
+export type View = "flate" | "lag" | "kontur" | "last"
 
-export type ExportKind = "stl" | "dxf" | "svg" | "ark"
+/**
+ * `arksyn` er ikkje ei fil nokon lastar ned: det er BILETET av plata som
+ * står i panelet. Han finst av di kortet og talet ved sida av det må kome
+ * frå SAME pakkinga — eksportarket vert pakka tett (tre sorteringar, fint
+ * raster) og ville synt ein annan prosent enn tavla, og eit kort som seier
+ * eitt tal og viser eit anna er verre enn ikkje noko kort.
+ */
+export type ExportKind = "stl" | "dxf" | "svg" | "ark" | "arksyn"
+
+/**
+ * Maskina som skal kutte. Fresen skjer 1:1 or heil plate; laseren kuttar
+ * tynne MDF- eller akrylark på ei lita seng, og då vert kuttfilene ein
+ * MODELL: heile geometrien skalert med tjukn/hovudtjukn, so kvart spor
+ * framleis passar plata nøyaktig — det er den einaste skaleringa som
+ * held fugene sanne. Laserens eigen kerf (~0,15 mm) gjev klaringa.
+ */
+export type Maskin = { id: "fres" } | { id: "laser"; tjukn: number }
+
+/** laserseng og luft — 600 × 400 er den vanlege verkstadlaseren. Lufta
+ *  på 1,2 mm er målt: med strålebreidd under 0,25 er ho rikeleg, ho gav
+ *  tre prosentpoeng meir vaffel per ark enn 2 mm, og under 1,2 kom
+ *  ingenting meir att. Det fine rasteret er eksportluksus — senga er
+ *  lita, so det kostar sekund, ikkje minutt. */
+export const LASER = { sheetW: 600, sheetH: 400, gap: 1.2, cell: 0.6 }
 
 export type BuildOut = {
   positions: Float32Array<ArrayBufferLike>
@@ -294,6 +345,19 @@ export type BuildOut = {
    * «byggjaren sa ingenting», og då gjettar visaren av normalen.
    */
   kant: Float32Array<ArrayBufferLike>
+  /**
+   * Lastkartet, berre i lesemåten «last»: utnyttinga per hjørne under
+   * NS-EN 1728-lasta, der 1,0 ER kapasiteten — same skala som `util` i
+   * tavla, so kartet og talet aldri kan seie kvar sitt.
+   */
+  felt?: Float32Array<ArrayBufferLike>
+  /**
+   * Ankeret til lastkartet: det styrande talet frå SAME modellen som
+   * feltet, rekna analytisk og ikkje av hjørna. Hjørna samplar feltet og
+   * glattar smale toppar — utan ankeret ville fargane og tavla lese kvar
+   * sin maksimum, og då laug eitt av dei to.
+   */
+  feltTak?: number
 }
 
 export type ExportOut = {
@@ -304,17 +368,75 @@ export type ExportOut = {
 }
 
 // =============================================================================
+// POSAR OG HOVUDDRAG — inngangane til eit parameterrom
+// =============================================================================
+/**
+ * Ein pose er eit namngjeve, handdesigna punkt i parameterrommet — same
+ * punkta terningen jittrar kring. Dei har alltid vore der; no ber dei
+ * namnet sitt sjølve, so panelet kan syne dei som inngangar i staden for
+ * å gøyme dei som terning-krydder. Ein pose er IKKJE ein ny parameter:
+ * han er ei peiking inn i rommet som alt finst.
+ */
+export type Pose = {
+  namn: string
+  bag: Readonly<Partial<Record<string, number | string>>>
+}
+
+/**
+ * Eit hovuddrag er éin semantisk kontroll som styrer eitt eller fleire
+ * EKSISTERANDE band saman: fyrste nøkkelen er primæren og gjev draget
+ * posisjonen og talet sitt på skjermen, resten fylgjer med same
+ * normaliserte steg, skalert med vekta si. Ingen nye parametrar vert
+ * opna — eit drag les og skriv berre band som alt står i `ranges`, og
+ * skyvarveggen bak («alt»-nivået) ser nøyaktig det draget gjorde.
+ */
+export type Hovuddrag = {
+  id: string
+  label: string
+  /** [nøkkel, vekt] — fyrste er primæren og skal ha vekt 1 */
+  keys: readonly (readonly [string, number])[]
+}
+
+/**
+ * Flytt eit hovuddrag: primæren til `value`, fylgjarane med same
+ * normaliserte steg gonger vekta. Alt vert klemt inn i sitt eige band og
+ * snappa til sitt eige steg — eit drag kan aldri skyve eit tal ut av
+ * rommet, berre gjennom det.
+ */
+export function applyDrag(
+  drag: Hovuddrag,
+  value: number,
+  prev: ParamBag,
+  ranges: Record<string, Range>,
+): ParamBag {
+  const [pk] = drag.keys[0]
+  const pr = ranges[pk]
+  if (!pr) return prev
+  const cur = typeof prev[pk] === "number" ? (prev[pk] as number) : pr.min
+  const v = clamp1(value, pr)
+  if (!Number.isFinite(v)) return prev
+  const dt = (v - cur) / (pr.max - pr.min)
+  const out = { ...prev, [pk]: v } as Record<string, number | string>
+  for (const [k, w] of drag.keys.slice(1)) {
+    const r = ranges[k]
+    if (!r) continue
+    const at = typeof prev[k] === "number" ? (prev[k] as number) : r.min
+    const nv = clamp1(at + dt * w * (r.max - r.min), r)
+    if (Number.isFinite(nv)) out[k] = nv
+  }
+  return out as ParamBag
+}
+
+// =============================================================================
 // MOTORKONTRAKTEN
 // =============================================================================
 export type EngineId =
   | "skal"
+  | "viking"
   | "straum"
   | "ribbe"
   | "vaffel"
   | "skive"
-  | "kote"
-  | "flett"
-  | "karve"
   | "boyg"
 
 export type EngineDef = {
@@ -327,17 +449,36 @@ export type EngineDef = {
   groups: readonly Group[]
   keys: readonly string[]
   defaults: ParamBag
-  /** kva to-fingers-rulling på lerretet skrur på */
-  nudge: { vertical: string; horizontal: string }
+  /**
+   * Kva gestane på lerretet skrur på: to fingrar loddrett, to fingrar
+   * vassrett, og klypa. Klypa zoomar IKKJE — alt bur i same 500-kuben og
+   * innramminga er automatisk, so ho er ledig for det klypa tyder:
+   * storleik. Sprikande fingrar gjer møbelet breiare. Peikar ein nøkkel
+   * på primæren i eit hovuddrag, køyrer gesten heile draget.
+   */
+  nudge: { vertical: string; horizontal: string; pinch: string }
   /** namnet på det motoren tel: «lag», «blad», «finnar» */
   unitLabel: string
+  /** om motoren kan svare på lesemåten «last» (lastkartet på flata) */
+  kanLast?: boolean
+  /**
+   * Form av lasta: løys eitt formval analytisk or SAME modellen som
+   * tavla les og kartet fargar — funksjonen som måler og syner får
+   * forme. Valfri: berre motorar der svaret er ærleg skal ha henne.
+   * Kan ta eit par sekund; arbeidaren køyrer henne, aldri hovudtråden.
+   */
+  lastForm?(p: ParamBag): ParamBag
+  /** namngjevne posar — synlege inngangar i panelet; terningen jittrar kring dei */
+  poses: readonly Pose[]
+  /** hovuddraga: 3–6 semantiske kontrollar som styrer fleire band saman */
+  hovuddrag: readonly Hovuddrag[]
 
   clamp(o: unknown, prev: ParamBag): ParamBag
   random(rnd: () => number, prev: ParamBag, locked: ReadonlySet<string>): ParamBag
   build(p: ParamBag, detail: DetailKey, view: View): BuildOut
   measure(p: ParamBag): Metrics
   rules(p: ParamBag, m: Metrics): Rule[]
-  exportFile(p: ParamBag, what: ExportKind): ExportOut
+  exportFile(p: ParamBag, what: ExportKind, maskin?: Maskin): ExportOut
 }
 
 // =============================================================================

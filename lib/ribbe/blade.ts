@@ -76,16 +76,21 @@ export const angAt = (b: Blade, s: number) => {
 }
 
 /**
- * Ytterkanten ved høgda z. Lina kryssar skalet der radien langs henne
- * møter skalradien i den vinkelen ho då står i, og båe sider veks, så
- * halveringa er den einaste som toler at planet står på skrå.
+ * Ytterkanten ved høgda z. Lina kryssar bladkonturen der radien langs
+ * henne møter bladradien i den vinkelen ho då står i, og båe sider veks,
+ * så halveringa er den einaste som toler at planet står på skrå.
+ *
+ * `rBlade` og ikkje `rOuter`: bladet kan stikke fram forbi skalet, og då
+ * er det tuppen og ikkje skalet som seier kvar bladet sluttar. Banda les
+ * framleis skalet, so eit blad med tupp stikk fram FORBI ringen — det er
+ * heile skilnaden på ein jamn kontur og ei vifte av frie tunger.
  */
 export function sOuterAt(sh: Shell, b: Blade, z: number): number {
   let lo = 0
   let hi = 4 * sh.R + sh.rHub
   for (let i = 0; i < 40; i++) {
     const m = (lo + hi) / 2
-    if (radAt(b, sh.rHub, m) < sh.rOuter(angAt(b, m), z)) lo = m
+    if (radAt(b, sh.rHub, m) < sh.rBlade(angAt(b, m), z)) lo = m
     else hi = m
   }
   return (lo + hi) / 2
@@ -109,10 +114,18 @@ export type Slot = {
 }
 
 /**
- * Leddet er kryssholdt: overlappen mellom bandet og bladet vert delt i to,
- * og kvar av dei tek si halvdel. Overlappen er `bandbreidd − bandutstikk`
- * same kvar på ringen ein står, av di båe er målte frå den same ytre
- * kanten — difor er dette eit uttrykk og ikkje ei tabell.
+ * Leddet er kryssholdt: overlappen mellom bandet og bladet vert delt, og
+ * kvar av dei tek sin part. Overlappen er `bandbreidd − bandutstikk` same
+ * kvar på ringen ein står, av di båe er målte frå den same ytre kanten —
+ * difor er dette eit uttrykk og ikkje ei tabell.
+ *
+ * `bandLapp` seier KVAR i overlappen delinga ligg. Halvt om halvt er det
+ * gamle, og for ein ring er det rett: båe delane er like breie og skal
+ * missa like mykje. For ei HYLLE er det feil. Overlappen er då mest heile
+ * plata, og halvt om halvt ville skore hundre millimeter inn i eit blad
+ * som er hundre og femti breitt — bladet vert kappa av leddet sitt eige
+ * ledd. Ei hylle er difor ei plate med DJUPE spor som fell ned over blad
+ * med GRUNNE hakk, og det er nøyaktig det ein bygg i verkstaden òg.
  */
 export function bladeSlots(sh: Shell, b: Blade): Slot[] {
   const p = sh.p
@@ -123,7 +136,7 @@ export function bladeSlots(sh: Shell, b: Blade): Slot[] {
     const sOut = sOuterAt(sh, b, z)
     const rOut = radAt(b, sh.rHub, sOut)
     const lap = p.bandW - p.bandOut
-    const rRoot = rOut - Math.max(0, lap) / 2
+    const rRoot = rOut - Math.max(0, lap) * p.bandLapp
     out.push({
       j,
       z,

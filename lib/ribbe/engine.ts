@@ -21,8 +21,10 @@ import type {
   ExportOut,
   ParamBag,
   View,
+  Maskin,
 } from "../core"
-import { MATERIALS } from "../core"
+import { LASER, MATERIALS } from "../core"
+import { skalerDelar } from "../nestraster"
 import { meshToStl } from "../skal/export-stl"
 import { makeShell } from "./shell"
 import { build, buildAll, DETAIL, lagMesh } from "./mesh"
@@ -30,13 +32,16 @@ import { buildParts } from "./parts"
 import { nest } from "./nest"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
+import { lastForm } from "./lastform"
 import { partsToDxf } from "./export-dxf"
-import { profileSvg, sheetSvg } from "./export-svg"
+import { alleArkSvg, profileSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
   GROUPS,
+  HOVUDDRAG,
   NUDGE_PARAMS,
   PARAM_KEYS,
+  POSAR,
   PARAM_RANGES,
   clampParams,
   randomParams,
@@ -54,7 +59,11 @@ export const RIBBE: EngineDef = {
   keys: PARAM_KEYS,
   defaults: DEFAULT_PARAMS as unknown as ParamBag,
   nudge: NUDGE_PARAMS,
+  poses: POSAR,
+  hovuddrag: HOVUDDRAG,
   unitLabel: "blad",
+  kanLast: true,
+  lastForm: (bag) => lastForm(asP(bag)) as unknown as ParamBag,
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
   random: (rnd, prev, locked) =>
@@ -67,7 +76,7 @@ export const RIBBE: EngineDef = {
   measure: (bag) => measure(asP(bag)),
   rules: (bag, m) => checkRules(asP(bag), m),
 
-  exportFile(bag: ParamBag, what: ExportKind): ExportOut {
+  exportFile(bag: ParamBag, what: ExportKind, maskin?: Maskin): ExportOut {
     const p = asP(bag)
     const sh = makeShell(p)
     if (what === "stl") {
@@ -82,11 +91,20 @@ export const RIBBE: EngineDef = {
     if (what === "svg") {
       return { name: "ribbe-profilar.svg", mime: "image/svg+xml", text: profileSvg(sh, g) }
     }
-    const pl = buildParts(sh, g, MATERIALS[p.material].rho)
-    const ns = nest(pl.parts)
-    if (what === "ark") {
-      return { name: "ribbe-ark1.svg", mime: "image/svg+xml", text: sheetSvg(ns, 0) }
+    if (what === "arksyn") {
+      // biletet i panelet: same pakking som measure las — sjå ExportKind
+      const ns = nest(buildParts(sh, g, MATERIALS[p.material].rho).parts)
+      return { name: "ribbe-ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
     }
-    return { name: "ribbe.dxf", mime: "application/dxf", text: partsToDxf(ns, p.bladeT) }
+    // laseren: modellskala tjukn/bladeT, nesta på lasersenga
+    const laser = maskin?.id === "laser" ? maskin : null
+    const s = laser ? laser.tjukn / p.bladeT : 1
+    const pl = buildParts(sh, g, MATERIALS[p.material].rho)
+    const ns = nest(skalerDelar(pl.parts, s), laser ? { ...LASER, tett: true } : { cell: 4, tett: true })
+    const merk = laser ? "-laser" : ""
+    if (what === "ark") {
+      return { name: "ribbe-" + ns.sheets.length + "ark" + merk + ".svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
+    }
+    return { name: "ribbe" + merk + ".dxf", mime: "application/dxf", text: partsToDxf(ns, laser ? laser.tjukn : p.bladeT) }
   },
 }

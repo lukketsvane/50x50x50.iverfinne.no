@@ -57,6 +57,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.sitZ >= SIT_LO && m.sitZ <= SIT_HI,
     value: mm1(m.sitZ),
     why: `NS-EN 1729 set setehøgda for vaksne til ${SIT_LO}–${SIT_HI} mm. Talet er ikkje setekanten, men middelet av flata ein faktisk kviler på — gropa er rekna med.`,
+    peikar: ["hogd", "sokk"],
   })
 
   // --- 3 velting (hard) ------------------------------------------------------
@@ -67,6 +68,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.tipAngle >= 12,
     value: `${nn(m.tipAngle, 1)}°`,
     why: "NS-EN 1022. Vinkelen er målt frå der ein sit og ut til kanten av støtteflata; under tolv grader veltar krakken av at nokon lener seg.",
+    peikar: ["fot", "planA", "planB", "hogd"],
   })
 
   // --- 4 styrke (hard) -------------------------------------------------------
@@ -77,6 +79,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.util <= 1,
     value: `${nn(m.util * 100, 0)} %`,
     why: "1600 N etter NS-EN 1728, mot kapasiteten i NS-EN 1995-1-1 med kmod 0,80 og materialfaktoren 1,20. Bøying i bandet over kvelvinga og trykk i beinet vert lagde saman.",
+    peikar: ["ribbT", "ribbX", "ribbY", "bogeH"],
   })
 
   // --- 5 ribba er eitt stykke (hard) -----------------------------------------
@@ -88,6 +91,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: split.length === 0,
     value: split.length ? `${split.length} delte` : "alle heile",
     why: "Bit midja djupare enn ribba er brei, eller går kvelvinga gjennom botnen hennar, fell ribba frå kvarandre i lause bitar. Kvar bit ville stå i kuttlista som ein eigen del og henge i naboen sin — det er ikkje eit møbel, det er ein feil som let seg kutte.",
+    peikar: ["midje", "bogeH", "bogeBX", "bogeBY"],
   })
 
   // --- 6 kvar ribbe har grep (hard) ------------------------------------------
@@ -99,6 +103,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: loose.length === 0,
     value: loose.length ? `${loose.length} med under to` : `minst ${Math.min(...g.ribs.map((r) => r.slots.length))}`,
     why: "Ei ribbe med eitt ledd kan svinge om det leddet, og ei med null ligg berre inntil. Rutenettet held seg sjølv av di kvar plate er låst i minst to andre — det finst ikkje ein skrue i møbelet.",
+    peikar: ["bogeH", "ribbX", "ribbY"],
   })
 
   // --- 7 gods over sporet (hard) ---------------------------------------------
@@ -110,6 +115,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: Number.isFinite(narrow) && narrow >= 20,
     value: mm1(Number.isFinite(narrow) ? narrow : 0),
     why: "Halve overlappet vert skore bort i kvar ribbe. Står det under tjue millimeter att ved det djupaste sporet, knekk ribba i leddet når nokon set seg — og leddet er den staden lasta faktisk går gjennom.",
+    peikar: ["sokk", "ribbT", "lapp"],
   })
 
   // --- 8 fresen kjem ned i sporet (hard) -------------------------------------
@@ -121,6 +127,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: p.fresD <= slotW,
     value: `${nn(p.fresD, 1)} mot ${nn(slotW, 2)} mm`,
     why: "Sporet er så breitt som ribba pluss pressfiten. Er fresen breiare enn det, finst ikkje sporet — det vert eit vidare spor, og leddet held ingenting.",
+    peikar: ["fresD", "ribbT", "pressfit"],
   })
 
   // --- 9 klemfare (mjuk) -----------------------------------------------------
@@ -132,6 +139,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: !(gap >= TRAP_LO && gap < TRAP_HI),
     value: mm1(gap),
     why: `Ei opning mellom ${TRAP_LO} og ${TRAP_HI} mm tek ein finger og slepper han ikkje att. Ho skal anten vera for trong til å koma inn i eller vid nok til å koma ut av — og i eit rutenett er ho der i to retningar samstundes.`,
+    peikar: ["ribbX", "ribbY", "planA", "planB"],
   })
 
   // --- 10 platetal (mjuk) ----------------------------------------------------
@@ -142,6 +150,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: ns.sheets.length <= 2,
     value: `${ns.sheets.length} × 2500 × 1250`,
     why: "To plater er det ein får ut av eit standard ark utan å skøyte. Over det byrjar prosjektet å koste transport i staden for material.",
+    peikar: ["ribbX", "ribbY", "planA", "planB"],
   })
 
   // --- 11 setebreidd (mjuk) --------------------------------------------------
@@ -153,6 +162,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: seatMin >= 320,
     value: mm1(seatMin),
     why: "Under 320 mm på den korte leia sit ein på kanten i staden for på setet. Talet er lese av kvar ribbene faktisk ber, ikkje av planet.",
+    peikar: ["planA", "planB", "planN"],
   })
 
   // --- 12 slankheit (mjuk) ---------------------------------------------------
@@ -164,6 +174,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: slender <= 75,
     value: nn(slender, 0),
     why: "Ei plate som er meir enn 75 gonger så høg som ho er tjukk vippar under handa når ho står åleine på benken. I rutenettet er ho avstiva, men ho skal òg kunne handterast før ho kjem dit.",
+    peikar: ["ribbT", "hogd"],
   })
 
   // --- 13 støtteflate (mjuk) -------------------------------------------------
@@ -174,6 +185,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.footArea >= 90000,
     value: `${nn(m.footArea / 100, 0)} cm²`,
     why: "Under 900 cm² står krakken på for lite til at han kjennest trygg, same kva veltevinkelen seier — vinkelen måler den verste retninga, flata måler alle.",
+    peikar: ["fot", "planA", "planB"],
   })
 
   // --- 14 masse (mjuk) -------------------------------------------------------
@@ -184,6 +196,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.mass <= 12,
     value: `${nn(m.mass, 2)} kg`,
     why: "Eit rutenett er tungt: kvar ribbe går heilt ned til golvet, og det er atten av dei. Over tolv kilo er det ikkje lenger ein krakk ein flyttar med éi hand, og det er prisen typologien tek.",
+    peikar: ["ribbT", "ribbX", "ribbY", "hogd"],
   })
 
   // --- 15 unike delar (mjuk) -------------------------------------------------
@@ -194,6 +207,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: pl.ids.length <= pl.parts.length * 0.85,
     value: `${pl.ids.length} av ${pl.parts.length}`,
     why: "Er kvar del ulik, er kvar del ei eiga oppspenning. Eit symmetrisk plan speglar halve rutenettet inn i den andre halva og halverer talet — det er den einaste staden i motoren der symmetri er verdt pengar.",
+    peikar: ["lut", "rygg"],
   })
 
   // --- 16 materialet (mjuk) --------------------------------------------------
@@ -204,6 +218,17 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: p.material !== "poppel",
     value: MATERIALS[p.material as MaterialKey].label,
     why: "Poppelkjerne er lett og billeg, men ei ribbe på 7,5 mm i poppel toler ikkje at nokon dreg krakken etter éi ribbe. Bjørk og bøk gjer det.",
+  })
+
+  // --- 17 plateutnytting (mjuk) ----------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.24,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Plata er ein del av objektet, òg den delen som vert til spon. Under fjerdedelen av arket i delar er eit val som skal stå på papiret: færre, breiare ribber pakkar betre enn mange smale med høg boge.",
+    peikar: ["ribbX", "ribbY", "bogeH"],
   })
 
   return out

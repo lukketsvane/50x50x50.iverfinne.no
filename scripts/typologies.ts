@@ -18,7 +18,7 @@ import { ALLE_MOTORAR as ENGINES } from "../lib/engines.ts"
 
 const VIEWS: View[] = ["flate", "lag", "kontur"]
 const DETAILS: DetailKey[] = ["lav", "mid", "hog"]
-const KINDS: ExportKind[] = ["stl", "dxf", "svg", "ark"]
+const KINDS: ExportKind[] = ["stl", "dxf", "svg", "ark", "arksyn"]
 
 let fails = 0
 const ok = (cond: boolean, what: string, detail = "") => {
@@ -76,6 +76,19 @@ function probe(e: EngineDef) {
   const orphan = Object.keys(e.ranges).filter((k) => !inGroups.includes(k))
   ok(orphan.length === 0, "ingen skyvar utan gruppe", orphan.join(","))
 
+  // --- posane og hovuddraga peikar berre inn i rommet som finst ------------
+  const poseMiss = e.poses.flatMap((p) =>
+    Object.keys(p.bag).filter((k) => k !== "material" && !e.ranges[k]),
+  )
+  ok(poseMiss.length === 0, "kvar pose held seg til banda", poseMiss.join(","))
+  ok(e.poses.every((p) => p.namn.length > 0), "kvar pose har eit namn")
+  const dragMiss = e.hovuddrag.flatMap((d) => d.keys.filter(([k]) => !e.ranges[k]).map(([k]) => k))
+  ok(dragMiss.length === 0, "kvart hovuddrag held seg til banda", dragMiss.join(","))
+  ok(e.hovuddrag.every((d) => d.keys.length > 0 && d.keys[0][1] === 1),
+    "kvart hovuddrag har ein primær med vekt 1")
+  const nudgeMiss = Object.values(e.nudge).filter((k) => !e.ranges[k])
+  ok(nudgeMiss.length === 0, "gestane peikar på band som finst", nudgeMiss.join(","))
+
   // --- standarden ligg inne i sitt eige spenn ------------------------------
   const outside = Object.entries(e.ranges).filter(([k, r]) => {
     const v = e.defaults[k]
@@ -120,6 +133,35 @@ function probe(e: EngineDef) {
   ok(r.length > 0, `${r.length} reglar, ${r.filter((x) => x.hard).length} harde`)
   ok(broken.length === 0, "standarden held alle reglane",
     broken.map((x) => x.id).join(","))
+  // reglane som peikar, peikar berre på skyvarar som finst — og nesten
+  // alle skal peike: berre innpassinga og materialvalet får stå utan
+  const peikMiss = r.flatMap((x) => (x.peikar ?? []).filter((k) => !e.ranges[k]))
+  ok(peikMiss.length === 0, "kvar peikar treffer eit band", peikMiss.join(","))
+  const utanPeikar = r.filter((x) => !x.peikar?.length)
+  ok(utanPeikar.length <= 3, `${r.length - utanPeikar.length} av ${r.length} reglar peikar`,
+    utanPeikar.map((x) => x.id).join(","))
+
+  // --- lastkartet, der motoren ber det -------------------------------------
+  if (e.kanLast) {
+    const lb = e.build(e.defaults, "mid", "last")
+    const nv = lb.positions.length / 3
+    const felt = lb.felt
+    ok(!!felt && felt.length === nv, "lastkartet dekkjer kvart hjørne",
+      felt ? `${felt.length} mot ${nv}` : "manglar")
+    if (felt) {
+      let fMax = 0
+      let bad = 0
+      for (let i = 0; i < felt.length; i++) {
+        if (!Number.isFinite(felt[i]) || felt[i] < 0) bad++
+        else if (felt[i] > fMax) fMax = felt[i]
+      }
+      ok(bad === 0, "ingen NaN eller negative i lastkartet", `${bad}`)
+      // kartet og tavla les same modell: toppen av feltet skal liggje ved
+      // utnyttinga i tavla (fiberen gjer at kartet aldri går OVER)
+      ok(fMax <= m.util * 1.05 + 0.02 && fMax >= m.util * 0.5,
+        `kartmaks ${Math.round(fMax * 100)} % mot tavla ${Math.round(m.util * 100)} %`)
+    }
+  }
 
   // --- nettet ---------------------------------------------------------------
   for (const view of VIEWS) {

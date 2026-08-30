@@ -112,7 +112,7 @@ export function bandGeom(sh: Shell, j: number, nt: number): BandGeom {
     z0: z - p.bandT / 2,
     z1: z + p.bandT / 2,
     st,
-    cutDepth: Math.max(0, p.bandW - p.bandOut) / 2,
+    cutDepth: Math.max(0, p.bandW - p.bandOut) * (1 - p.bandLapp),
     lap: Math.max(0, p.bandW - p.bandOut),
   }
 }

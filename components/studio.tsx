@@ -1,13 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ENGINES, getEngine, isEngineId } from "@/lib/engines"
-import type { EngineId, Metrics, ParamBag, Rule, View } from "@/lib/core"
-import { seeded } from "@/lib/core"
+import { ENGINES, getEngine } from "@/lib/engines"
+import type { EngineId, Maskin, Metrics, ParamBag, Rule, View } from "@/lib/core"
+import { applyDrag, seeded } from "@/lib/core"
+import { kortHash, lesHash } from "@/lib/hash"
 import type { BuildRes, DetailKey, MaalRes, Req, Res, SynRes } from "@/lib/worker"
 import { Viewer, type LightDir } from "./viewer"
 import { BEIS } from "./object-mesh"
-import { ControlsPanel } from "./controls-panel"
+import { ControlsPanel, type SheetMode } from "./controls-panel"
 import type { NudgeAxis } from "./gesture-params"
 
 /** kor mange piksel to-fingers-rulling må dra for å sveipe eit heilt band */
@@ -45,15 +46,19 @@ export function Studio() {
   // objektet, og det er dei som skil typologiane frå kvarandre. Den slipte
   // flata er eit klikk unna.
   const [view, setView] = useState<View>("lag")
-  // Dobbelttrykk på nedtrekket låser terningen til den valde modulen.
-  // Ulåst får terningen kaste over ALLE modulane — motor og form i eitt.
-  const [engineLock, setEngineLock] = useState(false)
+  // Dobbelttrykk på nedtrekket låser terningen til den valde modulen —
+  // og han STARTAR låst: VAFFEL er svaret prosjektet landar på, so
+  // terningen kastar form innanfor han til nokon medvite låser opp og
+  // slepper han over motorgrensa.
+  const [engineLock, setEngineLock] = useState(true)
   // beis er ferdig handsaming, som lakk: han bur i visinga og hashen, aldri
-  // i parameterrommet — masse og styrke bryr seg ikkje om farge
-  // AHO-oransjen er standard — «natur» er eit val, ikkje utgangspunktet
+  // i parameterrommet — masse og styrke bryr seg ikkje om farge.
+  // AHO-oransjen er standard: eit møbel er eit VAL, og fargen seier med
+  // ein gong at dette er noko nokon har bestemt. Naturen står eitt trykk
+  // unna, og veden syner gjennom beisen uansett — sjå object-mesh.
   const [beis, setBeis] = useState("aho")
   const [hiDetail, setHiDetail] = useState(false)
-  const [light, setLight] = useState<LightDir>({ az: 0.62, el: 0.92 })
+  const [light, setLight] = useState<LightDir>({ az: 0.85, el: 0.52 })
   const [data, setData] = useState<BuildRes | null>(null)
   // Måltala kjem i eiga melding etter nettet, og berre for det siste
   // punktet: under eit drag står den førre tavla dimma til fingeren
@@ -62,6 +67,15 @@ export function Studio() {
   // flatene som bilete, generert av arbeidaren etter kvar måling
   const [syn, setSyn] = useState<SynRes | null>(null)
   const [busy, setBusy] = useState(true)
+  // avlen undervegs: kva steg søket står på, eller null når ingen går
+  const [avlGang, setAvlGang] = useState<{ steg: number; total: number } | null>(null)
+  // Arket nedst: lukka → halv (posar, hovuddrag, lesemåtar) → full (alt).
+  // Tilstanden bur her og ikkje i panelet, av di scena treng henne: eit ope
+  // ark skal lyfte objektet fri, ikkje gøyme det bak seg.
+  const [mode, setMode] = useState<SheetMode>("lukka")
+  // Gesten på lerretet er usynleg til han får eit namn: chipen syner kva
+  // to-fingers-draget skrur på, og talet det står i, medan draget går.
+  const [hud, setHud] = useState<{ k: string; t: number } | null>(null)
   const [mounted, setMounted] = useState(false)
   // kvitt, alltid — sjå globals.css
   const dark = false
@@ -70,6 +84,12 @@ export function Studio() {
   const eng = getEngine(engine)
   const params = bags[engine] ?? eng.defaults
   const locked = locks[engine] ?? new Set<string>()
+
+  // «last» finst berre der motoren kan svare på han: byter ein til ein
+  // motor utan lastkart, fell lesemåten attende til delane
+  useEffect(() => {
+    if (view === "last" && !eng.kanLast) setView("lag")
+  }, [engine, view, eng])
 
   const worker = useRef<Worker | null>(null)
   const reqId = useRef(0)
@@ -91,24 +111,22 @@ export function Studio() {
 
   // Hashen er ikkje til å stole på: kvart felt vert lese for seg og klemt inn
   // i sitt eige band av motoren sin eigen clamp, så inga laga lenkje kan
-  // skyve NaN eller framande verdiar inn i geometrien.
+  // skyve NaN eller framande verdiar inn i geometrien. Begge formene vert
+  // lesne — #p= (JSON, for alltid) og den korte #s= — og går same vegen.
   useEffect(() => {
     setMounted(true)
-    try {
-      const h = window.location.hash.slice(1)
-      if (!h.startsWith("p=")) return
-      const obj = JSON.parse(decodeURIComponent(h.slice(2))) as Record<string, unknown>
-      const id = isEngineId(obj.engine) ? obj.engine : "vaffel"
-      const e = getEngine(id)
-      setEngine(id)
-      setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
-      const v = obj.view
-      if (v === "lag" || v === "kontur" || v === "flate") setView(v)
-      if (typeof obj.beis === "string" && BEIS.some((b) => b.id === obj.beis)) {
-        setBeis(obj.beis)
-      }
-    } catch {
-      // øydelagd hash — lat standardobjektet stå
+    const lese = lesHash(window.location.hash.slice(1))
+    if (!lese) return
+    const { engine: id, obj } = lese
+    const e = getEngine(id)
+    setEngine(id)
+    setBags((b) => ({ ...b, [id]: e.clamp(obj, b[id] ?? e.defaults) }))
+    const v = obj.view
+    if (v === "lag" || v === "kontur" || v === "flate" || (v === "last" && e.kanLast)) {
+      setView(v)
+    }
+    if (typeof obj.beis === "string" && BEIS.some((b) => b.id === obj.beis)) {
+      setBeis(obj.beis)
     }
   }, [])
 
@@ -138,6 +156,26 @@ export function Studio() {
       }
       if (r.kind === "syn") {
         setSyn((prev) => (prev && prev.id > r.id ? prev : r))
+        return
+      }
+      if (r.kind === "avl") {
+        if (!r.ferdig) {
+          setAvlGang({ steg: r.steg, total: r.total })
+          return
+        }
+        setAvlGang(null)
+        // eit avbrote søk vert kasta: brukaren har alt flytta seg, og eit
+        // svar som overskriv handa hans er verre enn ingen svar
+        // Ingen kvittering, ingen chip: resultatet av avlen er objektet
+        // som står der og tala som alltid er synlege. Alt anna er støy.
+        if (!r.avbroten) {
+          setBags((b) => ({ ...b, [r.engine]: r.best }))
+        }
+        return
+      }
+      if (r.kind === "form") {
+        // det løyste punktet inn i posen — den vanlege bygginga tek over
+        setBags((b) => ({ ...b, [r.engine]: r.params }))
         return
       }
       if (r.kind === "feil") {
@@ -189,22 +227,13 @@ export function Studio() {
     }
   }, [engine, params, detail, view, mounted, pump])
 
-  // URL-en kodar alltid det objektet som står på skjermen
+  // URL-en kodar alltid det objektet som står på skjermen — kort form:
+  // kvantisert til banda sine eigne steg, kring 30–60 teikn. QR-bar, og
+  // kort nok til at mappa kan bera henne som stempel.
   useEffect(() => {
     if (!mounted) return
     const t = window.setTimeout(() => {
-      window.history.replaceState(
-        null,
-        "",
-        "#p=" +
-          encodeURIComponent(
-            JSON.stringify(
-              beis === "natur"
-                ? { engine, ...params, view }
-                : { engine, ...params, view, beis },
-            ),
-          ),
-      )
+      window.history.replaceState(null, "", "#" + kortHash(engine, params, view, beis))
     }, 500)
     return () => window.clearTimeout(t)
   }, [engine, params, view, beis, mounted])
@@ -220,15 +249,34 @@ export function Studio() {
       const r = eng.ranges[key]
       if (!r) return
       const frac = deltaPx / NUDGE_RANGE_PX
+      // Peikar nøkkelen på primæren i eit hovuddrag, køyrer gesten heile
+      // draget: klypa på VAFFEL flytter heile planet, ikkje berre den
+      // eine aksen av det.
+      const drag = eng.hovuddrag.find((d) => d.keys[0][0] === key)
       setBags((b) => {
         const cur = b[engine] ?? eng.defaults
         const at = typeof cur[key] === "number" ? (cur[key] as number) : r.min
         const v = Math.min(r.max, Math.max(r.min, at + frac * (r.max - r.min)))
-        return { ...b, [engine]: { ...cur, [key]: +v.toFixed(4) } }
+        return {
+          ...b,
+          [engine]: drag
+            ? applyDrag(drag, v, cur, eng.ranges)
+            : { ...cur, [key]: +v.toFixed(4) },
+        }
       })
+      // chipen les sjølve verdien frå params ved teikning — her berre KVA
+      // som vert skrudd, og NÅR, so han kan kvile att etter draget
+      setHud({ k: key, t: Date.now() })
     },
     [engine, eng],
   )
+
+  // HUD-chipen kvilar att når fingrane har vore stille ei lita stund
+  useEffect(() => {
+    if (!hud) return
+    const t = window.setTimeout(() => setHud(null), 1100)
+    return () => window.clearTimeout(t)
+  }, [hud])
 
   const nudgeLight = useCallback((dx: number, dy: number) => {
     setLight((l) => ({
@@ -266,15 +314,48 @@ export function Studio() {
     [engine],
   )
 
+  // Maskina som skal kutte: fres 1:1 or heil plate, eller laser i
+  // modellskala på 600 × 400. Eit produksjonsval, ikkje ein parameter —
+  // det bur her og ikkje i satsen, og terningen ser det aldri.
+  const [maskin, setMaskin] = useState<Maskin>({ id: "fres" })
+
   const doExport = useCallback(
     (what: "stl" | "dxf" | "svg" | "ark") => {
       setBusy(true)
       // utanom porten: eit klikk, ikkje ein straum — og svaret slepp porten fri
-      const msg: Req = { kind: "export", id: ++reqId.current, engine, params, what }
+      const msg: Req = { kind: "export", id: ++reqId.current, engine, params, what, maskin }
       worker.current?.postMessage(msg)
     },
-    [engine, params],
+    [engine, params, maskin],
   )
+
+  // Avlen: same objekt, mindre plate. Søket startar i punktet som står,
+  // held dei harde reglane og minimerer materialet gjennom maskina —
+  // låste skruar står, som med terningen. Frøet ber tida, so to trykk
+  // gjev to ulike søk: avlen er ein reiskap, ikkje ein fasit.
+  const startAvl = useCallback(() => {
+    if (avlGang) return
+    setAvlGang({ steg: 0, total: 90 })
+    const msg: Req = {
+      kind: "avl",
+      id: ++reqId.current,
+      engine,
+      params,
+      steg: 90,
+      frø: `avl-${engine}-${Date.now()}`,
+      locked: [...locked],
+    }
+    worker.current?.postMessage(msg)
+  }, [avlGang, engine, params, locked])
+
+  // Form av lasta: motoren løyser bogen or lastmodellen sin — same
+  // funksjon som måler og fargar. Utanom porten, som eksporten; svaret
+  // set punktet og den vanlege bygginga tek over.
+  const startLastForm = useCallback(() => {
+    setBusy(true)
+    const msg: Req = { kind: "form", id: ++reqId.current, engine, params }
+    worker.current?.postMessage(msg)
+  }, [engine, params])
 
   const share = useCallback(() => {
     const url = window.location.href
@@ -299,6 +380,32 @@ export function Studio() {
   const liveSyn = syn && syn.engine === engine ? syn.svg : null
   const metrics: Metrics | null = liveTal?.metrics ?? null
   const rules: Rule[] = useMemo(() => liveTal?.rules ?? [], [liveTal])
+  // det verste punktet i lastkartet, i prosent av kapasiteten — fargane i
+  // kartet er strekte til dette talet, og skalaen i panelet må seie det.
+  // Motoren sender ankeret sjølv (feltTak, same tal som utnyttinga i
+  // tavla); hjørneskanninga er berre reserve for eldre bygg utan det.
+  const lastMaks = useMemo(() => {
+    if (live?.feltTak) return live.feltTak
+    const f = live?.felt
+    if (!f || !f.length) return 0
+    let m = 0
+    for (let i = 0; i < f.length; i++) if (f[i] > m) m = f[i]
+    return m
+  }, [live])
+
+  // Kor stor del av skjermhøgda arket dekkjer i kvart steg — kameraet
+  // rammar inn objektet i bandet som står att, i staden for å late arket
+  // gøyme det. Tala er målte, ikkje utleidde: arket er innhaldsstyrt.
+  const pad = isDesktop
+    ? mode === "lukka" ? 0.07 : mode === "halv" ? 0.52 : 0.64
+    : mode === "lukka" ? 0.1 : mode === "halv" ? 0.55 : 0.62
+
+  // Gestechipen: namnet på det gesten skrur på, og talet det står i no.
+  // Køyrer gesten eit hovuddrag, er det draget sitt namn som skal stå —
+  // «plan», ikkje «plan djup» — for det er heile planet som flyttar seg.
+  const hudR = hud ? eng.ranges[hud.k] : null
+  const hudDrag = hud ? eng.hovuddrag.find((d) => d.keys[0][0] === hud.k) : null
+  const hudVal = hud && typeof params[hud.k] === "number" ? (params[hud.k] as number) : null
 
   return (
     <main className="fixed inset-0 overflow-hidden" style={{ background: "var(--paper)" }}>
@@ -310,8 +417,8 @@ export function Studio() {
             dark={dark}
             stripePly={stripe}
             beis={beisHex}
-            hiDetail={hiDetail && isDesktop}
-            mobile={!isDesktop}
+            material={String(params.material ?? "bjork")}
+            pad={pad}
             light={light}
             onNudge={nudge}
             onLight={nudgeLight}
@@ -319,11 +426,12 @@ export function Studio() {
         )}
       </div>
 
-      {/* Eitt ord og ei lenkje. Alt anna sida har å seie, seier objektet. */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-5 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <div className="text-[11px] tracking-[0.22em]" style={{ color: "var(--ink)" }}>
-          50 × 50 × 50
-        </div>
+      {/* Ei lenkje, og ikkje eit ord meir.
+          Tittelen «50 × 50 × 50» stod her og sa det objektet alt seier: det
+          står i ein kube. Fanen i nettlesaren ber namnet for den som treng
+          det. Lenkja står att av di ho gjer noko — ho fører ein vidare —
+          medan tittelen berre gjentok. */}
+      <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-end p-5 pt-[calc(env(safe-area-inset-top)+16px)]">
         <a
           href="https://iverfinne.no"
           target="_blank"
@@ -335,12 +443,43 @@ export function Studio() {
         </a>
       </header>
 
+      {/* Gesten får eit namn medan han går — kva band, kva tal — og chipen
+          forsvinn med fingrane. Det er alt han seier: han er handa sitt
+          spegelbilete, ikkje ein informasjonskanal. */}
+      {hud && hudR && hudVal !== null && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 z-10 flex justify-center"
+          style={{ bottom: `calc(${(pad * 100).toFixed(0)}% + 18px)` }}
+        >
+          <div
+            className="flex items-baseline gap-2 rounded-full border px-3.5 py-1.5 text-[11px]"
+            style={{
+              borderColor: "var(--rule)",
+              background: "var(--paper)",
+              color: "var(--ink)",
+            }}
+          >
+            <span className="uppercase tracking-[0.14em] opacity-55">
+              {hudDrag?.label ?? hudR.label}
+            </span>
+            <span className="tab">
+              {hudVal
+                .toFixed(hudR.step >= 1 ? 0 : hudR.step >= 0.1 ? 1 : 2)
+                .replace(".", ",")}
+              {hudR.unit && <span className="pl-0.5 opacity-45">{hudR.unit}</span>}
+            </span>
+          </div>
+        </div>
+      )}
+
       <ControlsPanel
         engine={engine}
         params={params}
         metrics={metrics}
         rules={rules}
         view={view}
+        lastMaks={lastMaks}
         beis={beis}
         syn={liveSyn}
         engineLock={engineLock}
@@ -348,16 +487,23 @@ export function Studio() {
         hiDetail={hiDetail}
         isDesktop={isDesktop}
         busy={busy}
+        mode={mode}
+        onMode={setMode}
         onEngine={setEngine}
         onToggleEngineLock={() => setEngineLock((v) => !v)}
         onChange={setParams}
         onView={setView}
         onBeis={setBeis}
         onShuffle={shuffle}
+        onAvl={startAvl}
+        avlGang={avlGang}
+        onLastForm={startLastForm}
         onReset={() => setParams({ ...eng.defaults })}
         onToggleLock={toggleLock}
         onToggleDetail={() => setHiDetail((d) => !d)}
         onExport={doExport}
+        maskin={maskin}
+        onMaskin={setMaskin}
         onShare={share}
       />
     </main>

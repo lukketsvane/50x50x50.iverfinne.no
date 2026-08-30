@@ -19,22 +19,29 @@ import type {
   ExportOut,
   ParamBag,
   View,
+  Maskin,
 } from "../core"
+import { LASER } from "../core"
+import { skalerDelar } from "../nestraster"
 import { meshToStl } from "../skal/export-stl"
 import { makeBody, type Body } from "./body"
 import { buildParts, type Build } from "./parts"
 import { assemblyMesh, contourLines } from "./assembly"
 import { buildMesh, DETAIL } from "./surface"
+import { feltPaMesh, lastProfil, snittMaskin } from "./last"
+import { finmaskNett } from "../lastnett"
 import { measure } from "./metrics"
 import { checkRules } from "./rules"
 import { nest } from "./nest"
 import { partsToDxf } from "./export-dxf"
-import { contourMapSvg, sheetSvg } from "./export-svg"
+import { alleArkSvg, contourMapSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
   GROUPS,
+  HOVUDDRAG,
   NUDGE_PARAMS,
   PARAM_KEYS,
+  POSAR,
   PARAM_RANGES,
   clampParams,
   randomParams,
@@ -73,7 +80,10 @@ export const STRAUM: EngineDef = {
   keys: PARAM_KEYS,
   defaults: DEFAULT_PARAMS,
   nudge: NUDGE_PARAMS,
+  poses: POSAR,
+  hovuddrag: HOVUDDRAG,
   unitLabel: "finnar",
+  kanLast: true,
 
   // Params er ein type alias og ikkje eit interface, og difor tildelbar til
   // ParamBag utan eit einaste kast. Vegen andre vegen — frå sekk til
@@ -91,6 +101,24 @@ export const STRAUM: EngineDef = {
     if (view === "lag") {
       const m = assemblyMesh(parts())
       return { ...m, kant: m.kant ?? EMPTY(), lines: EMPTY(), heavy: EMPTY() }
+    }
+    if (view === "last") {
+      // Lastkartet: same nett som «lag», FINMASKA so hjørna samplar feltet
+      // tett nok, farga med utnyttinga til snittet i si høgd. Ankeret er
+      // det analytiske maksimumet — same talet som tavla viser.
+      const B = parts()
+      const m0 = assemblyMesh(B)
+      const g = { ...m0, kant: m0.kant ?? EMPTY() }
+      const m = { ...g, ...finmaskNett(g) }
+      const lp = lastProfil(snittMaskin(p, bd, B), bd.H, p.kappeT)
+      return {
+        ...m,
+        kant: EMPTY(),
+        felt: feltPaMesh(lp, m.positions),
+        feltTak: lp.verste.util,
+        lines: EMPTY(),
+        heavy: EMPTY(),
+      }
     }
     const c = contourLines(parts())
     return {
@@ -116,7 +144,7 @@ export const STRAUM: EngineDef = {
     return checkRules(p, m, { body: c.body, build: c.parts() })
   },
 
-  exportFile(bag: ParamBag, what: ExportKind): ExportOut {
+  exportFile(bag: ParamBag, what: ExportKind, maskin?: Maskin): ExportOut {
     const p = asP(bag)
     const { body: bd, parts } = ctx(p)
     if (what === "stl") {
@@ -127,18 +155,30 @@ export const STRAUM: EngineDef = {
         data: bytes.buffer.slice(0) as ArrayBuffer,
       }
     }
-    if (what === "dxf") {
+    if (what === "arksyn") {
+      // biletet i panelet: same pakking som measure las — sjå ExportKind
       return {
-        name: "straum.dxf",
-        mime: "application/dxf",
-        text: partsToDxf(nest(parts().parts)),
+        name: "straum-ark.svg",
+        mime: "image/svg+xml",
+        text: alleArkSvg(nest(parts().parts)),
       }
     }
-    if (what === "ark") {
+    if (what === "dxf" || what === "ark") {
+      // laseren: modellskala tjukn/finneT — og ÉI plate for alt: sokkel
+      // og kappe vert kutta or same tynne arket som finnane
+      const laser = maskin?.id === "laser" ? maskin : null
+      const s = laser ? laser.tjukn / p.finneT : 1
+      let dl = skalerDelar(parts().parts, s)
+      if (laser) dl = dl.map((q) => ({ ...q, t: laser.tjukn }))
+      const ns = nest(dl, laser ? { ...LASER, tett: true } : { cell: 4, tett: true })
+      const merk = laser ? "-laser" : ""
+      if (what === "dxf") {
+        return { name: "straum" + merk + ".dxf", mime: "application/dxf", text: partsToDxf(ns) }
+      }
       return {
-        name: "straum-ark1.svg",
+        name: "straum-" + ns.sheets.length + "ark" + merk + ".svg",
         mime: "image/svg+xml",
-        text: sheetSvg(nest(parts().parts), 0),
+        text: alleArkSvg(ns),
       }
     }
     return {

@@ -23,8 +23,10 @@ import {
   smooth,
   superR,
   type Group,
+  type Hovuddrag,
   type Material,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 // metrics.ts hentar berre TYPEN Params herifrå, so importen er asyklisk
@@ -59,6 +61,7 @@ export type Params = {
   innerW: number // kva han gjer over den høgda: opnar (+) eller lukkar (−)
   footArc: number // fotbogen: kor høgt botnkanten stig mot navet, mm
   hubGap: number // klaring i navet ut over n·t/2π, mm
+  bladTupp: number // kor langt bladtuppen stikk fram forbi skalet, mm
 
   // --- BAND ---------------------------------------------------------------
   bands: number // tal band
@@ -67,6 +70,7 @@ export type Params = {
   bandT: number // bandtjukn, mm
   bandW: number // bandbreidd i planet, mm
   bandOut: number // kor langt bandet stikk fram forbi bladet, mm
+  bandLapp: number // kvar i overlappen delinga ligg; 0,5 er halvt om halvt
 
   // --- SETE ---------------------------------------------------------------
   seatZ: number // høgda på setekanten, mm
@@ -85,8 +89,6 @@ export type Params = {
 
   material: Material
 }
-
-export type ParamKey = Exclude<keyof Params, "material">
 
 export const PARAM_RANGES: Record<string, Range> = {
   planN: { min: 2, max: 6.5, step: 0.05, label: "planform" },
@@ -112,13 +114,18 @@ export const PARAM_RANGES: Record<string, Range> = {
   innerW: { min: -0.6, max: 1.0, step: 0.01, label: "indre kant, oppe" },
   footArc: { min: 0, max: 150, step: 1, label: "fotboge", unit: "mm" },
   hubGap: { min: 0, max: 24, step: 0.5, label: "navklaring", unit: "mm" },
+  bladTupp: { min: 0, max: 46, step: 1, label: "bladtupp", unit: "mm" },
 
   bands: { min: 2, max: 6, step: 1, label: "band", int: true },
   bandZ0: { min: 0.04, max: 0.4, step: 0.005, label: "nedste band" },
   bandZ1: { min: 0.55, max: 0.97, step: 0.005, label: "øvste band" },
   bandT: { min: 8, max: 24, step: 0.5, label: "bandtjukn", unit: "mm" },
-  bandW: { min: 22, max: 70, step: 0.5, label: "bandbreidd", unit: "mm" },
+  // Over ringen sin eigen radius er bandet ikkje ein ring lenger, men ei
+  // HYLLE — ei full plate med eit lite hol i midten. Det er same delen og
+  // same leddet, berre breiare, so det kostar ikkje ein einaste ny del.
+  bandW: { min: 22, max: 260, step: 0.5, label: "bandbreidd", unit: "mm" },
   bandOut: { min: 0, max: 34, step: 0.5, label: "band ut", unit: "mm" },
+  bandLapp: { min: 0.08, max: 0.5, step: 0.01, label: "leddeling" },
 
   seatZ: { min: 360, max: 480, step: 1, label: "setekant", unit: "mm" },
   seatT: { min: 16, max: 34, step: 0.5, label: "setetjukn", unit: "mm" },
@@ -144,12 +151,15 @@ export const GROUPS: readonly Group[] = [
   {
     id: "blad",
     label: "blad",
-    keys: ["blades", "bladeT", "twist", "inner", "innerZ", "innerW", "footArc", "hubGap"],
+    keys: [
+      "blades", "bladeT", "twist", "inner", "innerZ", "innerW",
+      "footArc", "hubGap", "bladTupp",
+    ],
   },
   {
     id: "band",
     label: "band",
-    keys: ["bands", "bandZ0", "bandZ1", "bandT", "bandW", "bandOut"],
+    keys: ["bands", "bandZ0", "bandZ1", "bandT", "bandW", "bandOut", "bandLapp"],
   },
   {
     id: "sete",
@@ -180,21 +190,28 @@ export const DEFAULT_PARAMS: Params = {
   waistW: 0.34,
   swell: 0.05,
 
+  // Bladtjukna og bandtjukna stod på 15 og bar 6–7 gonger lasta utan at
+  // nokon hadde spurt: 11 mm held kvar einaste regel, sparer over kiloen
+  // og lyfter arkutnyttinga frå 32 til 38 prosent — plata inn fell med
+  // fjerdedelen. Tynnare enn 11 vipper nestinga til to ark og vinsten
+  // er borte, so dette ER botnen av dalen, ikkje eit kompromiss.
   blades: 22,
-  bladeT: 15,
+  bladeT: 11,
   twist: 0,
   inner: 0.17,
   innerZ: 0.45,
   innerW: 0.8,
   footArc: 93,
   hubGap: 3.5,
+  bladTupp: 0,
 
   bands: 3,
   bandZ0: 0.13,
   bandZ1: 0.85,
-  bandT: 15,
+  bandT: 11,
   bandW: 40,
   bandOut: 16,
+  bandLapp: 0.5,
 
   seatZ: 448,
   seatT: 22,
@@ -214,36 +231,85 @@ export const DEFAULT_PARAMS: Params = {
   material: "bjork",
 }
 
-/** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring. */
+/** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring.
+ *  Tjuknene er målte botnar, ikkje arv: sopp stoggar på 10 (9,5 vipper
+ *  nestinga til to ark), krysset på 20 (under det fell plateutnyttinga
+ *  under den mjuke grensa), resten står på 9 — eit medvite mon over
+ *  bandbotnen på 8, av di modellane ikkje reknar knekking. Slankinga
+ *  åleine tek 0,8–2,5 kg per pose. */
 export const POSES: readonly Partial<Params>[] = [
-  // vridd
-  { twist: 28, blades: 19, bladeT: 11, hubGap: 10, inner: 0.2 },
-  // timeglas
-  { waist: 0.32, waistZ: 0.5, waistW: 0.5, footR: 0.9, taper: 1.4 },
-  // sopp
-  { footR: 0.55, swell: 0.14, planR: 250, taper: 0.75, moon: 0.3 },
+  // vridd: trettifire graders vriding med opna nav — meridianane skrur
+  // seg forbi kvarandre med målt 1,1 mm fritt
+  { twist: 34, blades: 19, bladeT: 9, bandT: 9, hubGap: 15, inner: 0.18 },
+  // timeglas: djup midje midt i høgda, klokkefot
+  { waist: 0.35, waistZ: 0.5, waistW: 0.5, footR: 0.9, taper: 1.4, bladeT: 9, bandT: 9 },
+  // amfora: svulmen sit HØGT og halsen over — swell-aksen som elles står
+  // ubrukt, og den best pakka posen i settet (40 prosent)
+  { waist: 0.3, waistZ: 0.78, waistW: 0.22, swell: 0.22, footR: 0.62, taper: 0.85, bladeT: 9, bandT: 9 },
+  // sopp: smal fot under vid hatt — foten på 0,57 for mon på veltevinkelen
+  { footR: 0.57, swell: 0.14, planR: 250, taper: 0.75, moon: 0.3, bladeT: 10, bandT: 10 },
+  // søyla: lite plan i full høgd — proporsjonsaksen, lettast i settet
+  { planR: 160, planAsp: 0, footR: 1.05, taper: 1.3, waist: 0.12, blades: 18, seatZ: 480, bladeT: 9, bandT: 9 },
+  // blomen: fem flikar i planet — kronblad i staden for oval
+  { flikar: 5, flik: 0.18, planN: 2.4, planAsp: 0, blades: 20, waist: 0.18, bladeT: 9, bandT: 9 },
   // krysset: sju tjukke blad og store opningar — beinkryss-enden av
   // typologien, der objektet sluttar å vera skal
   {
-    blades: 7,
-    bladeT: 22,
-    inner: 0.12,
-    waist: 0.12,
-    footR: 0.8,
-    hubGap: 5,
-    bandW: 34.5,
-    bandOut: 16,
-    twist: 0,
-    dish: 12,
-    seatT: 22,
+    blades: 7, bladeT: 20, bandT: 10, inner: 0.12, waist: 0.12,
+    footR: 0.8, hubGap: 5, bandW: 34.5,
   },
-  // blomen: fem flikar i planet — kronblad i staden for oval
-  { flikar: 5, flik: 0.14, planN: 2.4, planAsp: 0, blades: 20, waist: 0.18 },
+  // --- FORMSPENNET: tre referansar, prøvde punkt for punkt ---------------
+  // vifta: åtte og tjue tynne blad med tuppen åtte og tretti millimeter
+  // forbi skalet, og øvste ringen so høgt han kan stå. Han kan IKKJE stå
+  // høgare: over 0,928 av bladhøgda vert luka opp til setet mindre enn
+  // fem og tjue millimeter, og då er ho ei fingerfelle.
+  {
+    blades: 28, bladeT: 9, bladTupp: 38, bands: 3, bandZ0: 0.12, bandZ1: 0.92,
+    bandOut: 12, waist: 0.28, waistZ: 0.5, footR: 0.82, lip: 4, corner: 12,
+  },
+  // bladet: fjorten breie blad med tuppen so langt ut han kan koma. Færre
+  // og tjukkare enn vifta, so kvar tunge les som eit blad og ikkje som ein
+  // pinne — hjørneradien på fjorten er det som rundar tuppen av.
+  {
+    blades: 14, bladeT: 16, bladTupp: 44, bands: 2, bandZ0: 0.16, bandZ1: 0.9,
+    bandOut: 14, waist: 0.2, footR: 0.9, corner: 14, inner: 0.28,
+  },
+  // hyllesøyla: banda er ikkje ringar her, dei er HYLLER — to hundre
+  // millimeter breie, altso plater med eit nav på fire og førti att i
+  // midten. Leddelinga må ned til 0,11: halvt om halvt ville skore
+  // nitti millimeter inn i eit blad som er hundre og femti breitt.
+  {
+    blades: 22, bladeT: 10, bands: 2, bandW: 200, bandOut: 16, bandLapp: 0.11,
+    bandT: 10, bandZ0: 0.2, bandZ1: 0.72, waist: 0.3, footR: 0.9,
+  },
+]
+
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = [
+  "vridd", "timeglas", "amfora", "sopp", "søyla", "blomen", "krysset",
+  "vifta", "bladet", "hyllesøyla",
+]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag,
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["seatZ", 1]] },
+  { id: "midje", label: "midje", keys: [["waist", 1], ["waistW", 0.5]] },
+  { id: "vriding", label: "vriding", keys: [["twist", 1]] },
+  { id: "blad", label: "blad", keys: [["blades", 1]] },
+  { id: "band", label: "band", keys: [["bands", 1]] },
+  { id: "skaal", label: "skål", keys: [["dish", 1]] },
 ]
 
 /** Kva to-fingers-rulling på lerretet skrur på. Midja og vridinga er dei
  *  to som endrar kva objektet ER og ikkje berre kva det måler. */
-export const NUDGE_PARAMS = { vertical: "waist", horizontal: "twist" }
+export const NUDGE_PARAMS = { vertical: "waist", horizontal: "twist", pinch: "planR" }
 
 export const clampParams = (o: unknown, prev: Params): Params =>
   clampBag(o, prev as unknown as ParamBag, PARAM_RANGES, PARAM_KEYS) as unknown as Params
@@ -583,10 +649,21 @@ function fiksTerning(q: Params, locked: ReadonlySet<string>): Params {
   return q
 }
 
+/** produksjonsval, ikkje form: tjukner og ledd vel ein etter plata og
+ *  maskina ein faktisk har — terningen rører dei aldri */
+const FREDA = ["bladeT", "bandT", "seatT", "fit", "relief", "corner", "bit"] as const
+
 export const randomParams = (
   rnd: () => number,
   prev: Params,
-  locked: ReadonlySet<string> = new Set(),
+  laastInn: ReadonlySet<string> = new Set(),
+): Params =>
+  randomMedFreda(rnd, prev, new Set([...laastInn, ...FREDA]))
+
+const randomMedFreda = (
+  rnd: () => number,
+  prev: Params,
+  locked: ReadonlySet<string>,
 ): Params =>
   fiksTerning(
     (poseBag(

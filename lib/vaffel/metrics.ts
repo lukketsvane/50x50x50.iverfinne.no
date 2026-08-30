@@ -15,7 +15,6 @@
 import {
   CUBE,
   MATERIALS,
-  SEAT_LOAD,
   capacities,
   hull,
   hullArea,
@@ -32,7 +31,10 @@ import { makeBody } from "./body"
 import { buildGrid, type Rib } from "./ribs"
 import { lagMesh } from "./mesh"
 import { buildParts } from "./parts"
-import { nest } from "./nest"
+// sirkelen metrics ↔ last er medviten og trygg: begge brukar den andre
+// fyrst ved kall, aldri under modul-lastinga
+import { lastVerste } from "./last"
+import { nest, usedArea } from "./nest"
 import type { Params } from "./params"
 
 /** Der ribba har gods i høgda z, som stykke langs profilen. Krysspunkta
@@ -69,6 +71,7 @@ export function measure(p: Params): Metrics {
   const mesh = lagMesh(g)
   const pl = buildParts(g, mat)
   const ns = nest(pl.parts)
+  const sArea = usedArea(ns)
 
   // --- ytre mål --------------------------------------------------------------
   const envX = mesh.max[0] - mesh.min[0]
@@ -176,22 +179,15 @@ export function measure(p: Params): Metrics {
   // --- det styrande snittet --------------------------------------------------
   //
   // Ei vaffelribbe ber ikkje som ei søyle. Ho er ein boge: lasta kjem ned
-  // i bandet over kvelvinga, går sidevegs ut til beina og så ned. Difor er
-  // det TO kontrollar, og dei har kvar sitt snitt:
-  //
-  //   bøying   i bandet over kvelvinga, som ein fritt opplagd bjelke med
-  //            spennvidd mellom beina og høgd lik godset over bogen —
-  //            målt der godset er tynnast, spora medrekna
-  //   trykk    i beinet, rett ned
-  //
-  // Lasta er 1600 N på ei lita pute (NS-EN 1728). Ho fell ikkje på heile
-  // rutenettet, men på dei ribbene som ligg under puta: to av kvar familie.
-  // Fire ribber deler henne, og kvar familie tek si helvt.
-  const NRIB = 2
-  const nLoad = SEAT_LOAD / (2 * NRIB)
-  let worst = { z: 0, A: 0, sc: 0, sm: 0, util: 0, tot: 0 }
+  // i bandet over kvelvinga, går sidevegs ut til beina og så ned. Sjølve
+  // rekninga bur i last.ts og er NØYAKTIG den lastkartet les — moment og
+  // djupn i SAME punkt, maksimum over alle ribber og alle punkt. Difor
+  // kan tavla og kartet ikkje seie kvar sitt: maksimumet i kartet ER
+  // dette talet. (Før para tavla verste moment med verste djupn frå to
+  // ULIKE punkt på ribba — konservativt, men eit anna tal enn kartet, og
+  // då laug eitt av dei to.)
 
-  // det samla vassrette snittet, til trykk og til tabellen
+  // det samla vassrette snittet, til tabellen
   let totAt = 0
   let totZ = 0
   for (let k = 1; k < 72; k++) {
@@ -203,53 +199,20 @@ export function measure(p: Params): Metrics {
     if (tot > 0 && (totAt === 0 || tot < totAt)) { totAt = tot; totZ = z }
   }
 
-  for (const r of g.ribs) {
-    const foot = runsOnRib(r, 1.2)
-    if (foot.length < 2) continue
-    const legL = (foot[0][0] + foot[0][1]) / 2
-    const legR = (foot[foot.length - 1][0] + foot[foot.length - 1][1]) / 2
-    const span = Math.abs(legR - legL)
-    if (span < 1) continue
-
-    // godset over kvelvinga, der det er tynnast
-    let depth = Infinity
-    let atZ = 0
-    for (let i = 1; i < 40; i++) {
-      const t = legL + (i / 40) * (legR - legL)
-      const w = r.axis === "x" ? world(r, t) : world(r, t)
-      const top = b.seatSurf(w[0], w[1])
-      const arc = b.arch(w[0], w[1])
-      // sporet et av bandet nett der det er tynnast
-      let cut = 0
-      for (const q of r.slots) {
-        if (Math.abs(q.t - t) > q.w / 2) continue
-        cut = Math.max(cut, Math.abs(q.zMouth - q.zEnd))
-      }
-      const d = top - arc - cut
-      if (d < depth) { depth = d; atZ = arc }
-    }
-    if (!Number.isFinite(depth) || depth < 1) continue
-
-    const W = (p.ribbT * depth * depth) / 6
-    const M = (nLoad * span) / 4
-    const sm = M / W
-
-    // trykket i beinet
-    const legW = Math.min(foot[0][1] - foot[0][0], foot[foot.length - 1][1] - foot[foot.length - 1][0])
-    const sc = nLoad / 2 / Math.max(1, legW * p.ribbT)
-
-    const util = sc / cap.capC + sm / cap.capM
-    if (util > worst.util) {
-      worst = { z: atZ, A: depth * p.ribbT, sc, sm, util, tot: totAt }
-    }
+  const lv = lastVerste(g)
+  const worst = {
+    z: lv.util > 0 ? lv.z : totZ,
+    sc: lv.sc,
+    sm: lv.sm,
+    util: lv.util,
+    tot: totAt,
   }
-  worst.tot = totAt
-  if (worst.util === 0) worst.z = totZ
 
   const mm = (v: number) => nn(v, 0) + " mm"
   const mm1 = (v: number) => nn(v, 1) + " mm"
   const cm2 = (v: number) => nn(v / 100, 0) + " cm²"
   const dm3 = (v: number) => nn(v / 1e6, 2) + " dm³"
+  const m2 = (v: number) => nn(v / 1e6, 2) + " m²"
   const pct = (v: number) => nn(v * 100, 0) + " %"
 
   const raw: [string, string, number, string, string][] = [
@@ -283,6 +246,8 @@ export function measure(p: Params): Metrics {
     ["parts", "delar", pl.parts.length, "stk", nn(pl.parts.length, 0)],
     ["kinds", "unike delar", pl.ids.length, "stk", nn(pl.ids.length, 0)],
     ["sheets", "plater", ns.sheets.length, "stk", nn(ns.sheets.length, 0)],
+    ["sheetArea", "plate medgått", sArea, "mm²", m2(sArea)],
+    ["sheetUtil", "plateutnytting", ns.util, "", pct(ns.util)],
     ["plyArea", "finérareal", pl.area, "mm²", cm2(pl.area)],
     ["volume", "godsvolum", volume, "mm³", dm3(volume)],
     ["massCut", "masse som kutta", pl.mass, "kg", nn(pl.mass, 2)],
@@ -299,6 +264,7 @@ export function measure(p: Params): Metrics {
     sigmaC: worst.sc, sigmaM: worst.sm, capC: cap.capC, capM: cap.capM, util: worst.util,
     volume, mass, massCut: pl.mass,
     parts: pl.parts.length, plyArea: pl.area,
+    sheets: ns.sheets.length, sheetArea: sArea, sheetUtil: ns.util,
     units: g.ribs.length, unitLabel: "ribber",
     list,
   }

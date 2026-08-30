@@ -55,16 +55,6 @@ export function partsToDxf(nesting: Nesting, plyT: number, kerf = 3): string {
   return out.join("\r\n") + "\r\n"
 }
 
-/** ein einskild del i 1:1, til kontroll mot ei ekte plate */
-export function partToDxf(part: Part, kerf = 3): string {
-  const out: string[] = []
-  head(out, 1000, 1000)
-  poly(out, "KUTT", offsetPoly(part.outline, kerf / 2))
-  for (const hole of part.holes) poly(out, "KUTT", offsetPoly(hole, -kerf / 2))
-  out.push("0", "ENDSEC", "0", "EOF")
-  return out.join("\r\n") + "\r\n"
-}
-
 // =============================================================================
 // SNITTBREIDD
 // =============================================================================

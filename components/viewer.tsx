@@ -20,11 +20,12 @@ const FLOOR_TAN = 0.1637
 
 function FitCamera({
   fit,
-  lift,
+  pad,
   reframe,
 }: {
   fit: { r: number; cy: number } | null
-  lift: number
+  /** kor stor del av skjermhøgda arket nedst dekkjer, 0–0,7 */
+  pad: number
   /** teljar frå dobbelttrykket: kvart hopp rammar inn på nytt, utansett */
   reframe: number
 }) {
@@ -34,6 +35,7 @@ function FitCamera({
     | null
   const invalidate = useThree((s) => s.invalidate)
   const lastR = useRef(0)
+  const lastPad = useRef(-1)
   const lastReframe = useRef(0)
   useEffect(() => {
     if (!fit || !controls) return
@@ -44,20 +46,32 @@ function FitCamera({
       lastReframe.current = reframe
       lastR.current = 0
     }
-    if (lastR.current && Math.abs(fit.r - lastR.current) / lastR.current < 0.1) return
+    // eit nytt ark (opna eller lukka) skal alltid flytte sikta, same kor
+    // lik radiusen er
+    const padded = lastPad.current !== pad
+    lastPad.current = pad
+    if (!padded && lastR.current && Math.abs(fit.r - lastR.current) / lastR.current < 0.1) return
     lastR.current = fit.r
     const persp = camera as THREE.PerspectiveCamera
     const vHalf = ((persp.fov ?? 30) * Math.PI) / 360
     const hHalf = Math.atan(Math.tan(vHalf) * (persp.aspect || 1))
-    const dist = Math.min(15, Math.max(3.2, (fit.r * FIT_MARGIN) / Math.tan(Math.min(vHalf, hHalf))))
+    // Arket dekkjer nedste `pad` av skjermen; objektet skal stå i bandet
+    // som er att. Avstanden vert rekna av det bandet, og sikta vert skuva
+    // ned nøyaktig so mykje at bandmidten og objektmidten fell saman —
+    // ingen heuristikk, berre same perspektivrekning som innramminga.
+    const vBand = Math.max(vHalf * (1 - pad), vHalf * 0.3)
+    const dist = Math.min(
+      15,
+      Math.max(3.2, (fit.r * FIT_MARGIN) / Math.tan(Math.min(vBand, hHalf))),
+    )
     // Golvpinninga held golvlina i same skjermhøgd, men berre så lenge
     // ho ikkje kastar sikta over objektet. På eit høgt og smalt lerret
     // vert avstanden stor, og då ville siktepunktet flyge opp i lause
     // lufta med krakken langt nede. Difor eit tak på objektet si eiga
-    // midje — og på mobilen eit lite lyft til, av di kontrollina ligg
-    // over den nedste kanten.
+    // midje.
     const mid = GROUND_Y + fit.cy
-    controls.target.set(0, Math.min(GROUND_Y + dist * FLOOR_TAN, mid) - lift * fit.cy, 0)
+    const base = Math.min(GROUND_Y + dist * FLOOR_TAN, mid)
+    controls.target.set(0, base - pad * dist * Math.tan(vHalf), 0)
     const dir = homing
       ? new THREE.Vector3(2.4, 1.7, 6.4)
       : camera.position.clone().sub(controls.target)
@@ -65,7 +79,7 @@ function FitCamera({
     camera.position.copy(controls.target).add(dir.setLength(dist))
     controls.update?.()
     invalidate()
-  }, [fit, lift, reframe, controls, camera, invalidate])
+  }, [fit, pad, reframe, controls, camera, invalidate])
   return null
 }
 
@@ -75,8 +89,8 @@ export function Viewer({
   dark,
   stripePly,
   beis,
-  hiDetail,
-  mobile,
+  material,
+  pad,
   light,
   onNudge,
   onLight,
@@ -88,23 +102,34 @@ export function Viewer({
   stripePly: number
   /** beis-hex for plateflatene; tom streng er natur */
   beis: string
-  hiDetail: boolean
-  mobile: boolean
+  /** materialvalet frå panelet — bjork/bok/poppel/mdf/akryl */
+  material: string
+  /** kor stor del av skjermhøgda arket nedst dekkjer, 0–0,7 */
+  pad: number
   light: LightDir
   onNudge: (axis: NudgeAxis, deltaPx: number) => void
   onLight: (dxPx: number, dyPx: number) => void
 }) {
   const bg = dark ? "#000000" : "#ffffff"
-  const shadow = hiDetail ? 4096 : 2048
-  // Éi styrbar hovudlyskjelde på ein fast kuppel, pluss to svake fyll.
-  // Ingen omgjevingskart og ingen mjuk kontaktflekk: eit møbel skal kaste
-  // éin hard skugge, slik det gjer i eit verkstadlys.
+  const shadow = 4096
+  // Éi styrbar hovudlyskjelde på ein fast kuppel — sjå kommentaren ved
+  // lyset sjølv. Scena teiknar berre på etterspurnad, so det store
+  // skuggekartet kostar minne, ikkje bilete i sekundet.
   const lightPos = useMemo<[number, number, number]>(() => {
     const R = 8.6
     const h = R * Math.cos(light.el)
     return [h * Math.cos(light.az), R * Math.sin(light.el), h * Math.sin(light.az)]
   }, [light])
   const [fit, setFit] = useState<{ r: number; cy: number } | null>(null)
+  // Skuggekameraet SÅ TRANGT som objektet tillèt: før stod frustumet på
+  // ±5 einingar (2,5 meter) same kva som stod i scena, og kvar teksel
+  // dekte over ein millimeter. No fylgjer det objektradien pluss rommet
+  // slagskuggen treng ved låg sol — kvantisert i halve einingar so lyset
+  // ikkje vert remontert for kvar minste radiusendring.
+  const skuggeVidd = useMemo(() => {
+    const r = fit?.r ?? 1.4
+    return Math.min(5, Math.ceil((r * 1.5 + 1.9) * 2) / 2)
+  }, [fit])
   // Stabil identitet heile vegen, elles går scena i sjølvsving: ein
   // onFit-lambda laga på nytt per teikning fyrer ObjectMesh sin effekt på
   // nytt, effekten lagar eit nytt fit-objekt, det nye objektet teiknar
@@ -138,30 +163,27 @@ export function Viewer({
       <color attach="background" args={[bg]} />
       <fog attach="fog" args={[bg, 15, 36]} />
 
+      {/* SOLA — og berre ho. Inga ambient, inga environment, ingen fyll:
+          éi hard, varm lyskjelde med skarpkanta skugge, og det som vender
+          bort frå henne ligg i mørker, slik det gjer i sollys. */}
       <directionalLight
-        key={shadow}
+        key={`${shadow}-${skuggeVidd}`}
         position={lightPos}
-        intensity={2.3}
+        color="#fff9f0"
+        intensity={3.4}
         castShadow
         shadow-mapSize={[shadow, shadow]}
-        shadow-radius={5}
-        shadow-bias={-0.0002}
-        shadow-normalBias={0.05}
-        shadow-camera-left={-5}
-        shadow-camera-right={5}
-        shadow-camera-top={5}
-        shadow-camera-bottom={-5}
+        shadow-radius={1.2}
+        shadow-bias={-0.00015}
+        shadow-normalBias={0.03}
+        shadow-camera-left={-skuggeVidd}
+        shadow-camera-right={skuggeVidd}
+        shadow-camera-top={skuggeVidd}
+        shadow-camera-bottom={-skuggeVidd}
         shadow-camera-near={0.5}
-        shadow-camera-far={24}
+        shadow-camera-far={16}
       />
-      {/* Ikkje noko omgjevnadslys og ikkje noko ambient: fyllet er KORT,
-          som i eit ekte studio — kvite flater som kastar retningsbestemt
-          lys attende. Golvspretten når opp under bogane; utan han er
-          kvar underside beksvart. */}
-      <directionalLight position={[-6, 3, -2]} intensity={0.55} />
-      <directionalLight position={[6, 2, 1]} intensity={0.4} />
-      <directionalLight position={[2, 1.5, 7]} intensity={0.35} />
-      <directionalLight position={[0.5, -3, 2]} intensity={0.3} />
+
 
       <Suspense fallback={null}>
         <group position={[0, GROUND_Y, 0]}>
@@ -171,21 +193,21 @@ export function Viewer({
             dark={dark}
             stripePly={stripePly}
             beis={beis}
+            material={material}
             onFit={handleFit}
           />
           {!dark && (
             <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
               <planeGeometry args={[60, 60]} />
-              <shadowMaterial transparent opacity={0.24} />
+              <shadowMaterial transparent opacity={0.34} />
             </mesh>
           )}
         </group>
       </Suspense>
 
-      {/* Panelet er no ei lukka line nedst, ikkje eit halvt ark: lyftet
-          skal berre sleppe objektet fri frå den lina, ikkje ein tredel av
-          skjermen. */}
-      <FitCamera fit={fit} lift={mobile ? 0.3 : 0} reframe={reframe} />
+      {/* Lyftet fylgjer arket: lukka er det berre hovudlina som skal
+          sleppast fri, ope skal heile objektet stå over arkkanten. */}
+      <FitCamera fit={fit} pad={pad} reframe={reframe} />
       <GestureParams onNudge={onNudge} onLight={onLight} onDoubleTap={handleDoubleTap} />
       <OrbitControls
         target={[0, 0.35, 0]}

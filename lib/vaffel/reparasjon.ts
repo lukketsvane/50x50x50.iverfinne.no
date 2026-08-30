@@ -84,6 +84,10 @@ export function applyFix(
   // henne over planet er 0,1625 av rygg — integralet av smooth-kurva over
   // dei siste 65 prosentane av setedjupna.
   const RYGGSNITT = 0.1625
+  // Skålkanten stig kring HEILE setet med eksponent 2,4, so middelet hans
+  // over planet er 2/(2 + 2,4) = 0,4545 av skaal — meir enn ryggen, av di
+  // han verkar i alle retningar og ikkje berre bakover.
+  const SKAALSNITT = 0.4545
   const trimMass = () => {
     const g = grid()
     let rbar = 0
@@ -94,7 +98,7 @@ export function applyFix(
     const awx = q.bogeBX * g.A * rho0
     const awy = q.bogeBY * g.B * rho0
     const RHO = 680 * 1e-9
-    const hEff = q.hogd + RYGGSNITT * q.rygg
+    const hEff = q.hogd + RYGGSNITT * q.rygg + SKAALSNITT * q.skaal
     const f1 = q.ribbT * hEff * 2 * rbar * (q.ribbX * g.B + q.ribbY * g.A) * RHO
     const f2 = q.ribbT * ah * (q.ribbX * awy + q.ribbY * awx) * RHO
     const est = 0.69 * f1 - 1.601 * f2
@@ -117,10 +121,16 @@ export function applyFix(
   if (sitEst() < 383) fix("hogd", 383 + 0.8 * q.sokk + 0.1 * q.framkant)
   if (sitEst() < 383) fix("sokk", Math.max(0, (q.hogd - 383 - 0.1 * q.framkant) / 0.8))
 
-  // --- ryggen står OVER setekanten, og kuben måler toppen ------------------
+  // --- ryggen og skålkanten står OVER setekanten, og kuben måler toppen ----
   // Sidevegs vert planet klemt ned av innpassinga; oppover finst det inga
-  // slik klemme, so summen av høgda og ryggen må haldast under taket her.
-  if (q.hogd + q.rygg > TAK) fix("rygg", Math.max(0, TAK - q.hogd))
+  // slik klemme, so summen av høgda, ryggen og skålkanten må haldast under
+  // taket her. Skålkanten går fyrst av di han er den minst viktige av dei
+  // to: ein rygg utan skål er ein stol, ein skål utan rygg er ei skål, men
+  // ein rygg som er kappa er korkje det eine eller det andre.
+  if (q.hogd + q.rygg + q.skaal > TAK) {
+    fix("skaal", Math.max(0, TAK - q.hogd - q.rygg))
+    if (q.hogd + q.rygg + q.skaal > TAK) fix("rygg", Math.max(0, TAK - q.hogd - q.skaal))
+  }
 
   // Tre gjennomgangar og ikkje to. Silhuett-leddet er det siste som rører
   // fot og skulder, og ein feitare silhuett er meir gods: utan ein
