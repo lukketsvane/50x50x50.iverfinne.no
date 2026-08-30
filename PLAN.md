@@ -52,13 +52,14 @@ skalet veit ingenting om kva som ligg under nedtrekket.
 
 Og motorane i registeret, med tala frå `scripts/typologies.ts`. (`skal`,
 `boyg` og `viking` står ikkje i nedtrekket; `laft` og `skive` er tekne
-heilt ut — sjå etappe 27.)
+heilt ut — sjå etappe 27. Skyvartala til VAFFEL og RIBBE er dei etter
+formspennrunda i etappe 28.)
 
 | motor | produksjonsveg | skyvarar | reglar (harde) | masse | utnytting | bygg + mål |
 |---|---|---|---|---|---|---|
-| `vaffel` | kryssholdte ribber i to retningar, utan lim og utan skruar | 24 | 17 (8) | 4,32 kg | 52 % | 295 ms |
-| `straum` | éin kropp skoren i skrå skiveplan, finnar sette i spor | 35 | 18 (6) | 4,25 kg | 40 % | 852 ms |
-| `ribbe` | radiale blad og vassrette band, kryssholdte i kvarandre | 36 | 17 (9) | 9,05 kg | 47 % | 273 ms |
+| `vaffel` | kryssholdte ribber i to retningar, utan lim og utan skruar | 26 | 17 (8) | 4,32 kg | 52 % | 282 ms |
+| `straum` | éin kropp skoren i skrå skiveplan, finnar sette i spor | 35 | 18 (6) | 4,25 kg | 40 % | 855 ms |
+| `ribbe` | radiale blad og vassrette band, kryssholdte i kvarandre | 38 | 17 (9) | 9,05 kg | 47 % | 317 ms |
 
 Alle tre held alle reglane sine på standardobjektet. Ingen av dei held
 alle reglane på eit tilfeldig trekk — sjå etappe 7.
@@ -1474,40 +1475,107 @@ på dei.
 poseprøva grøn på alle posar, `npm run build` grøn, `npx tsc --noEmit`
 rein.
 
-### 28 · Formspennet: kva VAFFEL og RIBBE skal kunne — IKKJE GJORD
+### 28 · Formspennet: fire nye aksar, og kuben som svara nei — GJORD
 
-Dette er neste veke sitt arbeid, og det er formulert som ei DEKNING og
-ikkje som ein funksjonsliste. Ni referansekrakkar i papp og kryssfiner er
-måten: dei er alle bygde av flate plater som møtest i kryss, og dei skal
-kunne nåast frå VAFFEL eller RIBBE ved å skru — ikkje ved å skrive ein ny
-motor. Kjem ein av dei ikkje innanfor, er det EIT av to svar, og båe er
-gode: anten manglar det ein akse, eller so er referansen ein annan
-typologi og skal seiast å vera det.
+Ni referansekrakkar i papp og kryssfiner, alle bygde av flate plater som
+møtest i kryss. Spørsmålet var ikkje om dei var fine. Det var om dei let
+seg nå frå VAFFEL eller RIBBE ved å SKRU — og der dei ikkje gjer det, om
+det manglar ein akse eller om referansen er ein annan typologi.
 
-Referansane, og kva kvar av dei krev:
+**Åtte av ni er nådde. Den niande er ikkje ein manglande akse; han er ei
+anna oppgåve.**
 
-| referansen | kva han krev |
-|---|---|
-| radial vifte med to vassrette ringar over setet | RIBBE med band OVER setehøgd, ikkje berre under |
-| timeglaskrakk: radiale blad, brei fot, brei topp | RIBBE — midja finst; prøv om `waist` når djupt nok |
-| pod/egg: langsgåande krumme ribber, tverrgåande ringar | VAFFEL med ribbene BØYGDE i planet, ikkje rette |
-| eggekasse med rett rygg og flutet ryggplate | VAFFEL — ryggen som eige rutenett i eit skrått plan |
-| bladvifte der kvart blad har fri, avrunda tupp | RIBBE med bladprofil som stikk UT forbi skalet |
-| vogge: krumt understell som møbelet gyngar på | VAFFEL/RIBBE med krum understøtte i staden for føter |
-| lenestol: éin samanhengande skål frå fot til rygg | VAFFEL — silhuetten må kunne bøye seg forbi loddrett |
-| enkel eggekassekrakk, fire gonger fire | VAFFEL — står alt; nedre grensa for kompleksitet |
-| dreia søyle med hyller mellom blada | RIBBE med vassrette PLATER mellom blada, ikkje band |
+**Fire nye aksar, og ikkje ein einaste ny del.** Kvar av dei fire fell ut
+av geometrien som alt stod der — dei skriv seg inn i feltet og i leddet,
+ikkje ved sida av dei:
 
-**Metoden.** For kvar referanse: finn punktet i rommet som kjem nærast,
-lagre det som ein POSE med namn, og skriv ned kva som mangla. Posane som
-lukkast er dokumentasjon; dei som ikkje lukkast er kravlista til aksane
-som skal byggjast. Ingen ny motor før alle ni er prøvde — det er heile
-poenget med å ha kutta ned til tre.
+| akse | motor | kva han gjer |
+|---|---|---|
+| `ryggfall` | VAFFEL | over setekanten sig planet BAKOVER i staden for framover. Ryggen vert noko ein kan lene seg i og ikkje ein vegg |
+| `skålkant` | VAFFEL | kanten stig kring HEILE setet. Ribbeprofilen vert ein U i staden for ein boge — og det er heile pod-forma, utan ei einaste ny line i `ribs.ts` |
+| `bladtupp` | RIBBE | bladet sluttar ikkje der skalet gjer. Silhuetten vert teikna av tjueåtte frie tunger i staden for av éin jamn kontur |
+| `leddeling` | RIBBE | kvar i overlappen mellom band og blad delinga ligg. Halvt om halvt er rett for ein RING; for ei HYLLE er det å kappe bladet med sitt eige ledd |
 
-**Baren.** `scripts/typologi-avstand.ts` måler avstanden mellom motorar,
-og VAFFEL og RIBBE skal ikkje kollapse i kvarandre av dette arbeidet. Går
-avstanden mellom dei under baren, har ein av dei ete den andre, og då er
-det eit svar òg.
+`rygg` gjekk frå 70 til 136 mm og `bandbreidd` frå 70 til 260 mm. Over
+ringen sin eigen radius er bandet ikkje ein ring lenger, men ei plate med
+eit nav att i midten — same delen, same leddet, berre breiare.
+
+**Sju nye posar, alle prøvde gjennom heile kjeda med null brot:**
+
+| referansen | posen | kva han vart |
+|---|---|---|
+| radial vifte med ringar over setet | RIBBE `vifta` | 28 tunger, øvste ringen so høgt han KAN stå — sjå funnet under |
+| timeglaskrakk | RIBBE `timeglas` | stod alt |
+| pod med langsgåande ribber | VAFFEL `skåla` | skålkant 84 mm, U-profil heile vegen rundt |
+| eggekasse med rett, flutet rygg | VAFFEL `ryggstolen` | rygg 92 mm, fall 18° |
+| bladvifte med frie, avrunda tuppar | RIBBE `bladet` | 14 breie blad, tupp 44 mm, hjørneradius 14 |
+| vogge | — | **ikkje nådd** |
+| lenestol: éin skål frå fot til rygg | VAFFEL `lenestolen` | rygg OG skålkant saman |
+| enkel eggekasse 4 × 4 | VAFFEL `eggekassa` | 8 delar, **66 % av arket** — det beste talet i heile settet |
+| dreia søyle med hyller | RIBBE `hyllesøyla` | band på 200 mm: plater med eit nav på 44 att |
+
+#### Funnet: det er KUBEN som seier nei til ryggen, ikkje motoren
+
+Dette er det ærlegaste svaret runda gav, og det var ikkje det eg venta.
+
+Setehøgda skal liggja i 380–480 mm (NS-EN 1729), og taket i kuben er 486.
+Det som er ATT over setekanten er difor 486 − 380 = **106 millimeter i
+beste fall** — og då sit ein på det aller lågaste som er lov. Referansane
+har ryggar på fire og fem hundre millimeter. Dei er ikkje utanfor VAFFEL;
+dei er utanfor OPPGÅVA. `rygg` går til 136 av di reparasjonen skal ha noko
+å ta av, men over kring hundre finst det ingen setehøgd att å setje han i.
+
+Det er ikkje ei avgrensing å rette. Det er kva ein kube på 500 millimeter
+BETYR, og det er verdt ei side i mappa: ein stol med rygg og ein kube på
+500 er to krav som et kvarandre, og prosjektet må velja kva `rygg` er —
+eit ryggstø, eller ei markering av at det finst ein bakside.
+
+#### Att, og kvifor
+
+**Vogga.** Krum understøtte i staden for føter. Feltet toler det — golvet
+er berre `z − arch(x, y)` og kunne like godt vore ein sylinder — men tre
+harde reglar les fotavtrykket som ei FLATE: støtteflata, talet på skilde
+kontaktflater og veltevinkelen. Ei vogge har LINEKONTAKT og veltar med
+vilje. Å byggje henne er ikkje å leggje til ein akse; det er å svare på
+kva NS-EN 1022 tyder for eit møbel som skal røre seg. Det er eit eige
+stykke arbeid, og det skal ikkje gøymast som ein skyvar.
+
+**Ringar over setet i RIBBE.** `vifta` når referansen sine tuppar, men
+ikkje ringane hans: blada sluttar under setet (`zBlade = seatZ − seatT`),
+so eit band over setekanten har ingenting å gripe i. Det krev at bladet
+held fram OVER setet i ein sektor — same tanken som VAFFEL sin rygg, men
+i RIBBE sitt koordinat, og det rører `blade`, `band`, `seat`, nettet,
+kuttarket og alle fire eksportane. Ein akse, ikkje ein parameter.
+
+**Skåla si innoverkrumming.** Skålkanten stig, men han krøkjer seg ikkje
+INN på toppen slik eit egg gjer. Over setekanten står planet stille
+(`rho` er klemd til [0,1]), og eit ledd som let han halde fram å smalne
+er billeg — men det er òg det som skil ei skål frå ei tønne, so det skal
+prøvast mot referansane og ikkje berre leggjast til.
+
+#### Baren held
+
+`scripts/typologi-avstand.ts` etter runda: den likaste paringa i
+nedtrekket er framleis straum–ribbe på **0,635**, og vaffel–ribbe ligg på
+0,49. Dei fire nye aksane har altso ikkje drege VAFFEL og RIBBE mot
+kvarandre — dei har flytt dei kvar sin veg, og det var poenget med å ha
+begge.
+
+#### Lenkjene, som er den eine tilstanden som ikkje kan rettast
+
+Nye band flyttar kvart einaste siffer i nyttelasta. VAFFEL og RIBBE fekk
+difor kvar sin nye bokstav — store **V** og **R** — og dei gamle, små
+`v` og `r`, les framleis dei gamle lenkjene gjennom `GAMLE_BAND` i
+`lib/hash.ts`. Ei lenkje som er delt skal peike på det møbelet ho vart
+delt av, og aldri på eit anna.
+
+`scripts/lenkjer.ts` er ny og vaktar det: fire ekte v1-hashar med fasit,
+pluss rundgang på det som står i dag. Han er den einaste prøva som ser på
+tilstand som lever UTANFOR koden.
+
+**Prøvd:** kontraktprøva grøn på alle fem motorar, poseprøva grøn på alle
+22 posar, lenkjeprøva grøn, terningen 96,6 % (vaffel) og 98,6 % (ribbe) på
+dei harde, `npm run build` grøn, `npx tsc --noEmit` rein.
 
 ---
 
@@ -1641,3 +1709,4 @@ kjem frå éin stad.
 | `scripts/plan-hash.ts` | informasjonsgrensa i eit punkt, og kva ei kvantisert koding ville kosta |
 | `scripts/plan-feasible.ts` | kor stor del av parameterrommet som er eit møbel, og kva reglar som fell |
 | `scripts/typologi-avstand.ts` | om to motorar er same krakken: skugge på tre sider pluss deleliste |
+| `scripts/lenkjer.ts` | om ei delt lenkje framleis peikar på det same møbelet — den einaste prøva som ser på tilstand utanfor koden |

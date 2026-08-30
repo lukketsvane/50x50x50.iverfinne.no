@@ -43,6 +43,8 @@ export type Params = {
   sokk: number // setegropa på det djupaste, mm
   framkant: number // lårlette framme, mm
   rygg: number // kor høgt setekanten stig bak, mm
+  ryggV: number // kor mykje ryggen fell bakover på vegen opp, grader
+  skaal: number // kor høgt kanten stig kring heile setet, mm
   kantR: number // setekantradius, mm
 
   // --- RIBBER -------------------------------------------------------------
@@ -78,7 +80,11 @@ export const PARAM_RANGES: Record<string, Range> = {
 
   sokk: { min: 0, max: 42, step: 0.5, label: "setegrop", unit: "mm" },
   framkant: { min: 0, max: 26, step: 0.5, label: "lårlette", unit: "mm" },
-  rygg: { min: 0, max: 70, step: 1, label: "rygg", unit: "mm" },
+  // Taket er kuben og ikkje ein smak: 486 minus den lågaste setekanten
+  // (350) er 136, og over det er det ingen høgd att å setje ryggen i.
+  rygg: { min: 0, max: 136, step: 1, label: "rygg", unit: "mm" },
+  ryggV: { min: 0, max: 34, step: 1, label: "ryggfall", unit: "°" },
+  skaal: { min: 0, max: 86, step: 1, label: "skålkant", unit: "mm" },
   kantR: { min: 2, max: 26, step: 0.5, label: "kantradius", unit: "mm" },
 
   ribbX: { min: 3, max: 15, step: 1, label: "ribber langs X", int: true },
@@ -102,7 +108,11 @@ export const GROUPS: readonly Group[] = [
     label: "silhuett",
     keys: ["hogd", "fot", "midje", "midjeZ", "midjeW", "skulder", "lut"],
   },
-  { id: "sete", label: "sete", keys: ["sokk", "framkant", "rygg", "kantR"] },
+  {
+    id: "sete",
+    label: "sete",
+    keys: ["sokk", "framkant", "rygg", "ryggV", "skaal", "kantR"],
+  },
   {
     id: "ribber",
     label: "ribber",
@@ -141,6 +151,8 @@ export const DEFAULT_PARAMS: Params = {
   sokk: 26,
   framkant: 11,
   rygg: 0,
+  ryggV: 0,
+  skaal: 0,
   kantR: 14,
 
   // Åtte gonger åtte ribber på 6,5 held kvar einaste regel like godt som
@@ -216,6 +228,44 @@ export const POSES: readonly Partial<Params>[] = [
     midjeZ: 0.4, midjeW: 0.3, skulder: 1.07, sokk: 12, framkant: 18, lut: 44,
     ribbT: 6.5, bogeH: 0.66, bogeBX: 0.58, bogeBY: 0.58, bogeN: 2.8,
   },
+  // --- FORMSPENNET: fire referansar, prøvde punkt for punkt ---------------
+  // eggekassa: fire ribber kvar veg og ikkje meir — den nedre grensa for
+  // kva som framleis les som eit rutenett. Tjukna må opp til tolv av di
+  // seksten ledd skal bera det som sytti gjorde, og han betaler seg: 66
+  // prosent av arket, det høgaste talet i heile settet.
+  {
+    planN: 5.6, planA: 190, planB: 190, hogd: 404, fot: 1.0, midje: 0,
+    skulder: 1.0, sokk: 8, framkant: 4, ribbX: 4, ribbY: 4, ribbT: 12,
+    bogeH: 0.5, bogeBX: 0.5, bogeBY: 0.5, bogeN: 3.2,
+  },
+  // skåla: skålkanten stig fire og åtti millimeter kring HEILE setet, og
+  // då er ribbeprofilen ein U og ikkje ein boge. Gropa er grunn med vilje —
+  // skåla skal koma av kanten som stig, ikkje av botnen som fell, elles
+  // et dei to kvarandre og sitjehøgda fell under bandet.
+  {
+    planN: 2.4, planA: 205, planB: 205, hogd: 396, fot: 1.02, midje: 0.1,
+    midjeZ: 0.4, midjeW: 0.3, skulder: 1.1, sokk: 10, framkant: 0, skaal: 84,
+    ribbX: 9, ribbY: 9, bogeH: 0.45, bogeBX: 0.45, bogeBY: 0.45, bogeN: 2.2,
+  },
+  // ryggstolen: ryggen stig ni og nitti millimeter over setekanten og fell
+  // atten grader bakover. Setekanten må ned til 392 for at toppen skal stå
+  // i kuben — det er den einaste staden i sandkassen der ein rygg KOSTAR
+  // sitjehøgd, og han gjer det krone for krone.
+  {
+    planN: 3.6, planA: 180, planB: 200, hogd: 392, fot: 1.04, midje: 0.05,
+    skulder: 1.02, sokk: 6, framkant: 4, rygg: 92, ryggV: 18,
+    ribbX: 8, ribbY: 8, bogeH: 0.6, bogeBX: 0.55, bogeBY: 0.6, bogeN: 3.0,
+  },
+  // lenestolen: rygg OG skålkant saman, so skalet går i eitt frå framkanten
+  // opp kring sidene og bak. Han er den einaste posen der begge dei to nye
+  // banda står oppe samstundes, og summen deira er det kuben har att over
+  // ein setekant på 388.
+  {
+    planN: 2.8, planA: 200, planB: 200, hogd: 388, fot: 1.02, midje: 0.05,
+    midjeZ: 0.42, midjeW: 0.3, skulder: 1.08, sokk: 6, framkant: 2,
+    rygg: 60, ryggV: 24, skaal: 36, ribbX: 9, ribbY: 9,
+    bogeH: 0.5, bogeBX: 0.48, bogeBY: 0.5, bogeN: 2.6,
+  },
 ]
 
 /** Posane med namna sine — same liste, synlege som inngangar i panelet.
@@ -224,6 +274,7 @@ export const POSES: readonly Partial<Params>[] = [
 const POSE_NAMN: readonly string[] = [
   "timeglas", "amfora", "nesten kube", "tuva",
   "portalbenken", "hallen", "lågryggstolen", "lenekrakken",
+  "eggekassa", "skåla", "ryggstolen", "lenestolen",
 ]
 export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
   namn: POSE_NAMN[i] ?? `pose ${i + 1}`,

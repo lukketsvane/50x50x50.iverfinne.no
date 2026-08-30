@@ -61,6 +61,7 @@ export type Params = {
   innerW: number // kva han gjer over den høgda: opnar (+) eller lukkar (−)
   footArc: number // fotbogen: kor høgt botnkanten stig mot navet, mm
   hubGap: number // klaring i navet ut over n·t/2π, mm
+  bladTupp: number // kor langt bladtuppen stikk fram forbi skalet, mm
 
   // --- BAND ---------------------------------------------------------------
   bands: number // tal band
@@ -69,6 +70,7 @@ export type Params = {
   bandT: number // bandtjukn, mm
   bandW: number // bandbreidd i planet, mm
   bandOut: number // kor langt bandet stikk fram forbi bladet, mm
+  bandLapp: number // kvar i overlappen delinga ligg; 0,5 er halvt om halvt
 
   // --- SETE ---------------------------------------------------------------
   seatZ: number // høgda på setekanten, mm
@@ -112,13 +114,18 @@ export const PARAM_RANGES: Record<string, Range> = {
   innerW: { min: -0.6, max: 1.0, step: 0.01, label: "indre kant, oppe" },
   footArc: { min: 0, max: 150, step: 1, label: "fotboge", unit: "mm" },
   hubGap: { min: 0, max: 24, step: 0.5, label: "navklaring", unit: "mm" },
+  bladTupp: { min: 0, max: 46, step: 1, label: "bladtupp", unit: "mm" },
 
   bands: { min: 2, max: 6, step: 1, label: "band", int: true },
   bandZ0: { min: 0.04, max: 0.4, step: 0.005, label: "nedste band" },
   bandZ1: { min: 0.55, max: 0.97, step: 0.005, label: "øvste band" },
   bandT: { min: 8, max: 24, step: 0.5, label: "bandtjukn", unit: "mm" },
-  bandW: { min: 22, max: 70, step: 0.5, label: "bandbreidd", unit: "mm" },
+  // Over ringen sin eigen radius er bandet ikkje ein ring lenger, men ei
+  // HYLLE — ei full plate med eit lite hol i midten. Det er same delen og
+  // same leddet, berre breiare, so det kostar ikkje ein einaste ny del.
+  bandW: { min: 22, max: 260, step: 0.5, label: "bandbreidd", unit: "mm" },
   bandOut: { min: 0, max: 34, step: 0.5, label: "band ut", unit: "mm" },
+  bandLapp: { min: 0.08, max: 0.5, step: 0.01, label: "leddeling" },
 
   seatZ: { min: 360, max: 480, step: 1, label: "setekant", unit: "mm" },
   seatT: { min: 16, max: 34, step: 0.5, label: "setetjukn", unit: "mm" },
@@ -144,12 +151,15 @@ export const GROUPS: readonly Group[] = [
   {
     id: "blad",
     label: "blad",
-    keys: ["blades", "bladeT", "twist", "inner", "innerZ", "innerW", "footArc", "hubGap"],
+    keys: [
+      "blades", "bladeT", "twist", "inner", "innerZ", "innerW",
+      "footArc", "hubGap", "bladTupp",
+    ],
   },
   {
     id: "band",
     label: "band",
-    keys: ["bands", "bandZ0", "bandZ1", "bandT", "bandW", "bandOut"],
+    keys: ["bands", "bandZ0", "bandZ1", "bandT", "bandW", "bandOut", "bandLapp"],
   },
   {
     id: "sete",
@@ -193,6 +203,7 @@ export const DEFAULT_PARAMS: Params = {
   innerW: 0.8,
   footArc: 93,
   hubGap: 3.5,
+  bladTupp: 0,
 
   bands: 3,
   bandZ0: 0.13,
@@ -200,6 +211,7 @@ export const DEFAULT_PARAMS: Params = {
   bandT: 11,
   bandW: 40,
   bandOut: 16,
+  bandLapp: 0.5,
 
   seatZ: 448,
   seatT: 22,
@@ -246,6 +258,30 @@ export const POSES: readonly Partial<Params>[] = [
     blades: 7, bladeT: 20, bandT: 10, inner: 0.12, waist: 0.12,
     footR: 0.8, hubGap: 5, bandW: 34.5,
   },
+  // --- FORMSPENNET: tre referansar, prøvde punkt for punkt ---------------
+  // vifta: åtte og tjue tynne blad med tuppen åtte og tretti millimeter
+  // forbi skalet, og øvste ringen so høgt han kan stå. Han kan IKKJE stå
+  // høgare: over 0,928 av bladhøgda vert luka opp til setet mindre enn
+  // fem og tjue millimeter, og då er ho ei fingerfelle.
+  {
+    blades: 28, bladeT: 9, bladTupp: 38, bands: 3, bandZ0: 0.12, bandZ1: 0.92,
+    bandOut: 12, waist: 0.28, waistZ: 0.5, footR: 0.82, lip: 4, corner: 12,
+  },
+  // bladet: fjorten breie blad med tuppen so langt ut han kan koma. Færre
+  // og tjukkare enn vifta, so kvar tunge les som eit blad og ikkje som ein
+  // pinne — hjørneradien på fjorten er det som rundar tuppen av.
+  {
+    blades: 14, bladeT: 16, bladTupp: 44, bands: 2, bandZ0: 0.16, bandZ1: 0.9,
+    bandOut: 14, waist: 0.2, footR: 0.9, corner: 14, inner: 0.28,
+  },
+  // hyllesøyla: banda er ikkje ringar her, dei er HYLLER — to hundre
+  // millimeter breie, altso plater med eit nav på fire og førti att i
+  // midten. Leddelinga må ned til 0,11: halvt om halvt ville skore
+  // nitti millimeter inn i eit blad som er hundre og femti breitt.
+  {
+    blades: 22, bladeT: 10, bands: 2, bandW: 200, bandOut: 16, bandLapp: 0.11,
+    bandT: 10, bandZ0: 0.2, bandZ1: 0.72, waist: 0.3, footR: 0.9,
+  },
 ]
 
 /** Posane med namna sine — same liste, synlege som inngangar i panelet.
@@ -253,6 +289,7 @@ export const POSES: readonly Partial<Params>[] = [
  *  lista uendra. Rekkjefylgja er lista over. */
 const POSE_NAMN: readonly string[] = [
   "vridd", "timeglas", "amfora", "sopp", "søyla", "blomen", "krysset",
+  "vifta", "bladet", "hyllesøyla",
 ]
 export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
   namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
