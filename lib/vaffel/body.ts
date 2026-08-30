@@ -23,6 +23,8 @@ import type { Params } from "./params"
  *  målt med tommestokk aldri er 500,0. */
 const MARGIN = 14
 
+const DEG = Math.PI / 180
+
 export type Body = {
   p: Params
   /** halve planet etter innpassinga i kuben, mm */
@@ -32,8 +34,11 @@ export type Body = {
   rhoMax: number
   /** setekanten, mm — der planet sluttar å stige */
   zTop: number
-  /** toppen av materialet, mm — setekanten pluss ryggen */
+  /** toppen av materialet, mm — setekanten pluss ryggen og skålkanten */
   zHigh: number
+  /** står planet stille heile vegen opp? Sige og ryggfallet bryt det, og
+   *  då er feltet ikkje skiljeleg lenger. */
+  flatPlan: boolean
   /** ribbeplana, mm */
   xs: number[]
   ys: number[]
@@ -102,13 +107,25 @@ function makeBodyRaw(p: Params): Body {
   // opp, og vandringa er sentrert kring aksen, so kuben må ta halve planet
   // PLUSS halve vandringa i den eine leia — då er innpassinga framleis eitt
   // steg, av di s står på begge sider av likskapen.
+  //
+  // Ryggfallet tek plass i den same rekninga, men på ein annan måte: han
+  // er ei VANDRING i millimeter og ikkje ein del av planet, so han står i
+  // TELJAREN og ikkje i nemnaren. Ryggen veks berre bakover, so halve
+  // vandringa er det omhylet veks med til kvar side.
   let rhoMax = 0
   for (let i = 0; i <= 240; i++) rhoMax = Math.max(rhoMax, rho(i / 240))
+  const tanV = Math.tan(p.ryggV * DEG)
+  // det ryggen vandrar bakover i alt, mm — toppen av materialet ligg
+  // (rygg + skaal) over setekanten
+  const fall = tanV * (p.rygg + p.skaal)
   const half = (CUBE - MARGIN) / 2
-  const s = Math.min(
-    1,
-    half / (p.planA * rhoMax + Math.abs(p.lut) / 2),
-    half / (p.planB * rhoMax),
+  const s = Math.max(
+    0.05,
+    Math.min(
+      1,
+      (half - fall / 2) / (p.planA * rhoMax + Math.abs(p.lut) / 2),
+      half / (p.planB * rhoMax),
+    ),
   )
   const A = p.planA * s
   const B = p.planB * s
@@ -117,7 +134,12 @@ function makeBodyRaw(p: Params): Body {
   // føtene der dei stod då planet var loddrett — det er berre TOPPEN som
   // heng framom dei, og omhylet er like breitt til begge sider.
   const lean = p.lut * s
-  const sig = (u: number) => lean * smooth(u) - lean / 2
+  // Ryggfallet: over setekanten sig planet BAKOVER i staden for framover,
+  // og det er heile skilnaden på ein rygg som står rett opp og ein ein kan
+  // lene seg i. Han byrjar nøyaktig ved setekanten, so kroppen under er
+  // urørd — u − 1 er null der og veks lineært over.
+  const rakeK = tanV * zTop
+  const sig = (u: number) => lean * smooth(u) - lean / 2 - rakeK * Math.max(0, u - 1)
   const xFoot = sig(0)
   const xSeat = sig(1)
 
@@ -130,13 +152,15 @@ function makeBodyRaw(p: Params): Body {
   const rt = rho(1)
   const As = A * rt
   const Bs = B * rt
+  /** kor langt ut i setet punktet ligg: 0 i midten, 1 ved kanten */
+  const qOf = (x: number, y: number) =>
+    Math.min(
+      1,
+      Math.pow(Math.pow(Math.abs(x - xSeat) / As, n) + Math.pow(Math.abs(y) / Bs, n), 1 / n),
+    )
   const sitSurf = (x: number, y: number) => {
     const xs = x - xSeat
-    const q = Math.min(
-      1,
-      Math.pow(Math.pow(Math.abs(xs) / As, n) + Math.pow(Math.abs(y) / Bs, n), 1 / n),
-    )
-    const dish = p.sokk * (1 - Math.pow(q, 1.4))
+    const dish = p.sokk * (1 - Math.pow(qOf(x, y), 1.4))
     // Lårlette: framkanten fell, og berre framkanten. Ein sal som fell i
     // begge endar er ein sal ein glir bakover i.
     const fx = Math.max(0, xs / As)
@@ -146,8 +170,23 @@ function makeBodyRaw(p: Params): Body {
   // 0,35 av setedjupna: gropa der ein faktisk kviler skal stå urørd, so
   // stiginga kan ikkje ha eit knekkpunkt inne i henne.
   const backRise = (x: number) => p.rygg * smooth((-(x - xSeat) / As - 0.35) / 0.65)
-  const seatSurf = (x: number, y: number) => sitSurf(x, y) + backRise(x)
-  const zHigh = zTop + p.rygg
+  /**
+   * Skålkanten stig kring HEILE setet, og det er det som skil ei skål frå
+   * ei plate med ein grop i. Gropa fell mot midten; skålkanten stig mot
+   * kanten, og saman gjev dei ein profil som held deg i staden for å la
+   * deg gli av. Eksponenten er høg med vilje: stigninga skal liggje i den
+   * ytste tredjedelen, so sitjeflata sjølv står urørd.
+   *
+   * Ribbene les dette som alt anna i feltet — ei X-ribbe gjennom skåla
+   * får to oppstig, eitt i kvar ende, og profilen hennar er ein U i
+   * staden for ein boge. Det er heile pod-forma, og ho kostar ikkje ei
+   * einaste ny line i ribs.ts.
+   */
+  const rimRise = (x: number, y: number) =>
+    p.skaal <= 0 ? 0 : p.skaal * Math.pow(qOf(x, y), 2.4)
+  const seatSurf = (x: number, y: number) =>
+    sitSurf(x, y) + backRise(x) + rimRise(x, y)
+  const zHigh = zTop + p.rygg + p.skaal
 
   // Skalaen planleddet vert rekna om til millimeter med. ρ er ein del av
   // planet; gradienten hans er kring A i den eine leia og B i den andre,
@@ -270,6 +309,7 @@ function makeBodyRaw(p: Params): Body {
 
   return {
     p, A, B, rhoMax, zTop, zHigh, xs, ys, pitchX, pitchY,
+    flatPlan: lean === 0 && rakeK === 0,
     rho, sig, gOf, seatSurf, sitSurf, arch, F, runsAt, topAt,
   }
 }

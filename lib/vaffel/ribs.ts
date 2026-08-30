@@ -127,13 +127,14 @@ function profileOf(
 
   // Planleddet, ferdig utrekna per rute.
   //
-  // Står planet stille, er feltet skiljeleg og tabellen er den gamle
-  // kolonnetabellen — same tal, ein potens mindre per rute. Sig planet, er
-  // det ikkje skiljeleg lenger, og dei to familiane har kvar sin kostnad:
+  // Står planet stille HEILE vegen opp — korkje sig eller ryggfall — er
+  // feltet skiljeleg og tabellen er den gamle kolonnetabellen: same tal,
+  // ein potens mindre per rute. Flyttar planet seg, er det ikkje
+  // skiljeleg lenger, og dei to familiane har kvar sin kostnad:
   // X-ribba står i eit fast x-plan, so sige er eit RAD-ledd hjå henne,
   // medan Y-ribba har sige langs sin eigen t-akse og må reknast per rute.
   const gCell = new Float64Array((nt + 1) * (nz + 1))
-  if (b.sig(0) === b.sig(1)) {
+  if (b.flatPlan) {
     for (let i = 0; i <= nt; i++) {
       const gc = Math.pow(cPerp + tPow[i], 1 / n)
       for (let j = 0; j <= nz; j++) gCell[j * (nt + 1) + i] = gc

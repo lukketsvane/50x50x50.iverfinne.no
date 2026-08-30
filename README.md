@@ -17,8 +17,14 @@ plata sin KANT**.
 
 **VAFFEL er sluttproduktet.** STRAUM og RIBBE står som argumentet kring
 valet, og RIBBE er den næraste naboen: same leddet, radialt i staden for
-kartesisk. Det er dei to — kartesisk og radialt kryssholdt — som skal
-dekkje formspennet framover; sjå `PLAN.md`, etappe 28.
+kartesisk. Det er dei to som ber formspennet: VAFFEL kan no reise ein
+rygg som fell bakover og ein skålkant som stig kring heile setet, RIBBE
+kan la bladtuppen stikke fram forbi skalet og gjera bandet så breitt at
+det vert ei hylle. Åtte av ni referansekrakkar let seg nå ved å skru.
+Den niande er ei vogge, og ho står att av di ho ikkje manglar ein akse —
+ho stiller eit anna spørsmål. Alt saman står i `PLAN.md`, etappe 28,
+saman med det runda faktisk lærte: **det er kuben som seier nei til
+ryggen, ikkje motoren.**
 
 Tekne heilt ut, og kvar sin grunn: FLETT (vevne band — band er ikkje
 plate), KARVE (limt blokk, frest ned — subtraksjon byggjer ikkje ei
@@ -44,7 +50,7 @@ står objektet der du forlét det.
 
 ## Inngangane
 
-Eit parameterrom med 24 til 36 band er ikkje eit grensesnitt — det er eit
+Eit parameterrom med 26 til 38 band er ikkje eit grensesnitt — det er eit
 arkiv. Panelet har difor tre nivå, og skyvarveggen er det siste av dei:
 
 **Posane.** Kvar motor ber ei lita liste namngjevne punkt — handdesigna

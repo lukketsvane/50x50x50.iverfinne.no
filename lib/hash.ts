@@ -34,17 +34,108 @@ import { getEngine, isEngineId } from "./engines"
  * kvar sin — «k» og «f» — før dei vart tekne ut. Dei to bokstavane er
  * BRENDE og skal aldri gjevast til ein ny motor, so ei gammal SKIVE-
  * eller LAFT-lenkje avkodar til ingenting i staden for til feil møbel.
+ *
+ * VAFFEL og RIBBE står på versjon TO. Formspennrunda gav VAFFEL to nye
+ * band (ryggfall og skålkant) og eit vidare ryggband, og RIBBE to nye
+ * (bladtupp og leddeling) og eit vidare bandbreiddband. Nye band flyttar
+ * kvar einaste siffer i nyttelasta, so dei to fekk kvar sin nye bokstav —
+ * store «V» og «R» — og dei gamle, små «v» og «r», les framleis dei
+ * gamle lenkjene gjennom GAMLE_BAND under. Det er heile grunnen til at
+ * den tabellen finst: ei delt lenkje skal peike på det møbelet ho vart
+ * delt av, og aldri på eit anna.
  */
 const MOTOR_BOKSTAV: Record<string, string> = {
-  vaffel: "v",
+  vaffel: "V",
   straum: "s",
-  ribbe: "r",
+  ribbe: "R",
   boyg: "b",
   skal: "l",
 }
-const BOKSTAV_MOTOR: Record<string, EngineId> = Object.fromEntries(
-  Object.entries(MOTOR_BOKSTAV).map(([m, b]) => [b, m as EngineId]),
-)
+const BOKSTAV_MOTOR: Record<string, EngineId> = {
+  ...Object.fromEntries(Object.entries(MOTOR_BOKSTAV).map(([m, b]) => [b, m as EngineId])),
+  // dei gamle versjonane: same motor, eige bandoppsett
+  v: "vaffel",
+  r: "ribbe",
+}
+
+/**
+ * Dei frosne banda til dei gamle versjonane: [nøkkel, min, steg, trinn], i
+ * NØYAKTIG den rekkjefylgja koding brukte den gongen. Meir treng ikkje ei
+ * avkoding: verdien er min + indeks·steg, og radiksen er trinn + 1.
+ *
+ * Nøklar som ikkje finst i motoren lenger fell stilt bort i clampen hans,
+ * og nøklar som er komne til etterpå får standardverdien sin same stad.
+ * Difor treng ikkje tabellen vedlikehald når motoren endrar seg vidare —
+ * han skal STÅ, og ein ny versjon får ein ny bokstav og ein ny post.
+ */
+const GAMLE_BAND: Record<string, readonly (readonly [string, number, number, number])[]> = {
+  // VAFFEL v1 — 24 band, slik dei stod til RYGGFALL og SKÅLKANT kom til
+  v: [
+    ["planN", 2, 0.05, 80],
+    ["planA", 130, 1, 115],
+    ["planB", 130, 1, 115],
+    ["hogd", 350, 1, 120],
+    ["fot", 0.55, 0.005, 160],
+    ["midje", 0, 0.005, 68],
+    ["midjeZ", 0.18, 0.005, 108],
+    ["midjeW", 0.14, 0.005, 96],
+    ["skulder", 0.86, 0.005, 60],
+    ["lut", -50, 1, 100],
+    ["sokk", 0, 0.5, 84],
+    ["framkant", 0, 0.5, 52],
+    ["rygg", 0, 1, 70],
+    ["kantR", 2, 0.5, 48],
+    ["ribbX", 3, 1, 12],
+    ["ribbY", 3, 1, 12],
+    ["ribbT", 6, 0.5, 36],
+    ["pressfit", 0.05, 0.01, 35],
+    ["lapp", 0.3, 0.01, 40],
+    ["bogeH", 0, 0.005, 172],
+    ["bogeBX", 0, 0.005, 180],
+    ["bogeBY", 0, 0.005, 180],
+    ["bogeN", 1.4, 0.05, 72],
+    ["fresD", 4, 0.5, 16],
+  ],
+  // RIBBE v1 — 36 band, slik dei stod til BLADTUPP og LEDDELING kom til
+  r: [
+    ["planN", 2, 0.05, 90],
+    ["planAsp", -0.5, 0.005, 200],
+    ["planR", 120, 1, 140],
+    ["flikar", 0, 1, 8],
+    ["flik", 0, 0.005, 44],
+    ["footR", 0.4, 0.005, 130],
+    ["taper", 0.5, 0.01, 190],
+    ["waist", 0, 0.005, 72],
+    ["waistZ", 0.2, 0.005, 130],
+    ["waistW", 0.12, 0.005, 116],
+    ["swell", 0, 0.005, 60],
+    ["blades", 6, 1, 28],
+    ["bladeT", 8, 0.5, 32],
+    ["twist", -40, 1, 80],
+    ["inner", 0.02, 0.005, 68],
+    ["innerZ", 0.15, 0.005, 150],
+    ["innerW", -0.6, 0.01, 160],
+    ["footArc", 0, 1, 150],
+    ["hubGap", 0, 0.5, 48],
+    ["bands", 2, 1, 4],
+    ["bandZ0", 0.04, 0.005, 72],
+    ["bandZ1", 0.55, 0.005, 84],
+    ["bandT", 8, 0.5, 32],
+    ["bandW", 22, 0.5, 96],
+    ["bandOut", 0, 0.5, 68],
+    ["seatZ", 360, 1, 120],
+    ["seatT", 16, 0.5, 36],
+    ["dish", 0, 0.5, 52],
+    ["moon", 0, 0.005, 100],
+    ["moonR", 0.5, 0.01, 170],
+    ["moneV", 0, 5, 72],
+    ["lip", 0, 0.5, 52],
+    ["fit", 0.05, 0.05, 23],
+    ["relief", 3, 0.5, 18],
+    ["corner", 0, 0.5, 28],
+    ["bit", 2, 0.5, 16],
+  ],
+}
 
 /** Frosne rekkjefylgjer for dei tre vala utanfor parameterrommet — nye
  *  ledd VERT LAGDE TIL bakarst. Radiksane har rom å vekse i, so eit
@@ -144,11 +235,19 @@ export function lesHash(
     acc = acc! / BigInt(radix)
     return d
   }
+  // Ein gammal bokstav les det gamle bandoppsettet; ein ny les motoren
+  // slik han står i dag.
+  const gamal = GAMLE_BAND[bare[0]]
+  const band: readonly (readonly [string, number, number, number])[] =
+    gamal ??
+    eng.keys.map((k) => {
+      const r = eng.ranges[k]
+      return [k, r.min, r.step, trinn(r.min, r.max, r.step)] as const
+    })
   const obj: Record<string, unknown> = { engine }
-  for (const k of [...eng.keys].reverse()) {
-    const r = eng.ranges[k]
-    const n = trinn(r.min, r.max, r.step)
-    obj[k] = +(r.min + dra(n + 1) * r.step).toFixed(4)
+  for (let i = band.length - 1; i >= 0; i--) {
+    const [k, min, step, n] = band[i]
+    obj[k] = +(min + dra(n + 1) * step).toFixed(4)
   }
   // ein indeks utanfor lista (frå ei framtidig lenkje) fell stilt til standard
   obj.material = MATERIAL[dra(MATERIAL_RADIX)] ?? MATERIAL[0]

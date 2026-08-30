@@ -45,6 +45,13 @@ export type Shell = {
   rho(u: number): number
   /** ytre radius i skalet, mm */
   rOuter(th: number, z: number): number
+  /**
+   * Ytre radius for BLADET, mm. Bladet treng ikkje slutte der skalet gjer:
+   * tuppen kan stikke fram forbi det, og då er silhuetten teikna av tjueto
+   * frie tunger i staden for av éin jamn kontur. Nedst er tuppen null — der
+   * er bladet ein fot som skal stå i skalet — og han veks mot toppen.
+   */
+  rBlade(th: number, z: number): number
   /** den indre kanten av bladet — ein eigen kurve, ikkje eit offset, mm */
   rInner(z: number): number
   /** ytre radius av eit band, mm */
@@ -104,6 +111,13 @@ function makeShellRaw(p: Params): Shell {
     superR(th, p.planN, p.planAsp) * (1 + p.flik * Math.cos(nFlik * th))
   const rOuter = (th: number, z: number) => box.R * gOf(th) * rho(uOf(z))
 
+  // Tuppen veks frå ingenting i midja og opp: under 0,45 av bladhøgda er
+  // han null, over den stig han jamt til full lengd øvst. Hjørneradien
+  // rundar han av, so tunga endar i ein boge og ikkje i ein spiss.
+  const tipOut = (z: number) =>
+    p.bladTupp <= 0 ? 0 : p.bladTupp * smooth((uOf(z) - 0.45) / 0.55)
+  const rBlade = (th: number, z: number) => rOuter(th, z) + tipOut(z)
+
   /**
    * Den indre kanten fylgjer ikkje den ytre. Han stig frå navet og legg
    * seg så på sin eigen radius, nesten ein sylinder — og det er difor
@@ -142,7 +156,12 @@ function makeShellRaw(p: Params): Shell {
   // og ikkje bladet som lagar silhuetten i si eiga høgd — ligg dei i flukt,
   // vert sporet i bladet ei sagtann heile vegen rundt.
   const bandOuter = (th: number, j: number) => rOuter(th, bandZ[j]) + p.bandOut
-  const bandInner = (th: number, j: number) => bandOuter(th, j) - p.bandW
+  // Bandbreidda kan vera større enn ringen sin eigen radius. Då er bandet
+  // ikkje ein ring lenger — det er ei HYLLE, ei full plate med eit lite hol
+  // i midten, og blada står i henne med same kryssholdte leddet som før.
+  // Holet må stå att: ein plate utan hol er ein plate blada ikkje kjem
+  // gjennom, og seks millimeter er det fresen treng for å byrje snittet.
+  const bandInner = (th: number, j: number) => Math.max(6, bandOuter(th, j) - p.bandW)
 
   const seatOuter = (th: number) => rOuter(th, zBlade) + p.lip
 
@@ -200,6 +219,7 @@ function makeShellRaw(p: Params): Shell {
     uOf,
     rho,
     rOuter,
+    rBlade,
     rInner,
     bandOuter,
     bandInner,
@@ -287,6 +307,9 @@ function fitToCube(sh: Shell, box: { R: number }, gOf: (th: number) => number) {
     prop > 1e-9 ? (want / 2 - add) / prop : Infinity
   // skalet, med halve bladtjukna som monn for at bladhjørna står på skrå
   caps.push(capOf(half * rhoMax, p.bladeT / 2))
+  // bladtuppen står lengst ute der skalet er vidast OVER midja, og han er
+  // eit fast tillegg i millimeter — difor i teljaren og ikkje i nemnaren
+  if (p.bladTupp > 0) caps.push(capOf(half * sh.rho(1), p.bladeT / 2 + p.bladTupp))
   for (let j = 0; j < sh.bandZ.length; j++) {
     caps.push(capOf(half * sh.rho(sh.uOf(sh.bandZ[j])), p.bandOut))
   }
