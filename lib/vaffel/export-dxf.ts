@@ -13,13 +13,19 @@
  * fjorten gonger klaringa, og då fell rutenettet frå kvarandre.
  */
 import { shoelace, type Pt } from "../core"
-import type { Part } from "./parts"
-import { placedRings, type Nesting } from "./nest"
+import { placedRings } from "./nest"
+import type { NestDel, Nesting } from "../nestraster"
 
 /** luka mellom arka i uttaket, mm */
 const SHEET_GAP = 200
 
-export function partsToDxf(nesting: Nesting, plyT: number, kerf = 3): string {
+/**
+ * Kuttfila tek ein GENERISK pakking, som kuttarket. Ho rører berre
+ * omrisset, hòla og namnet — det kvar einaste del i sandkassen har — so
+ * ei importert GLB kan skrivast av den same rutina. Sjå kommentaren i
+ * `export-svg.ts`.
+ */
+export function partsToDxf(nesting: Nesting<NestDel>, plyT: number, kerf = 3): string {
   const out: string[] = []
   const h = kerf / 2
   const pitch = nesting.sheetH + SHEET_GAP
