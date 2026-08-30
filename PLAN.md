@@ -1579,6 +1579,84 @@ dei harde, `npm run build` grøn, `npx tsc --noEmit` rein.
 
 ---
 
+### 29 · Pakkinga: eit tal å optimere mot, og eit løfte å halde — GJORD
+
+**Kvifor.** «Betre nesting» var ei kjensle og ikkje eit tal. `scripts/
+nesting.ts` målte standardobjektet i kvar motor — eitt punkt per motor —
+og eit punkt kan ein flytte utan å flytte pakkinga. Fyrste steget var
+difor ikkje ei betring; det var ein BENK.
+
+**`scripts/nestbenk.ts`** pakkar kvart einaste punkt i settet — standard
+pluss alle posane, 32 delelister i dag — i båe modusane pakkaren har, og
+melder middelet, det verste, arktalet og tida. Talet som tel er snittet:
+eit tillegg som lyfter snittet og ikkje senkar det verste er ei betring,
+alt anna er ei omfordeling.
+
+Utgangspunktet, målt: **levande 46,3 %**, **tett 49,1 %**, 42 ark.
+
+**Og so det som ikkje er eit tal.** Benken måler dessutan LUFTA: avstanden
+mellom kvar del og kvar annan del på same arket, kant mot kant. Det er
+det einaste løftet pakkaren gjev — åtte millimeter, som er fresen pluss
+monn — og ingen prøve hadde halde auge med det. Grunnen til at det er
+farleg er at det ikkje syner seg i utnyttinga: **ei pakking som lèt
+delane gå inn i kvarandre får BETRE tal.** Ein feil der les som ei
+forbetring heilt til nokon kuttar plata.
+
+#### Fire framlegg, tre forkasta
+
+| framlegg | kva han gav | dom |
+|---|---|---|
+| kontaktval: mellom plasseringar som ikkje gjer stripa lengre, ta den som ligg tettast inntil naboane | +0,1 pp, 15 % meir tid | **ut** — innanfor støyen |
+| finare rastercelle i levande modus (6 → 4) | +1,5 pp, 3 × tida | **ut** — verste kastet går frå 59 til 170 ms, og avlen sitt tak er 80 |
+| ommerke maskene i staden for å rasterisere kvar stilling | 22 % raskare | **ut** — og det er den viktige: sjå under |
+| spegla stillingar i eksporten (fire → åtte) | +0,5 pp, ~2 × tida | **inn** — eksporten skjer éin gong |
+
+**Ommerkinga, og kva benken fanga.** Ei kvart omdreiing flyttar vel celler
+til celler? Nei — ikkje når boksen ikkje er eit heilt tal celler høg. Då
+straddar ei rotert celle TO celler i det nye rutenettet, og ommerkinga
+lèt den eine stå tom. Maska vart 22 % billegare og la delar **6,1 mm frå
+kvarandre der kravet er 8**. Utnyttingstalet gjekk OPP. Utan luftprøva
+hadde det stått som ei forbetring i denne tabellen.
+
+Kvar stilling rasteriserer difor sitt eige polygon, og speglinga vert
+rekna inn i POLYGONET og ikkje i cellene etterpå.
+
+**Spegling er lovleg her,** og det er verdt å skrive ned kvifor: kvart
+einaste snitt i sandkassen går heilt gjennom plata — spor, hòl,
+avlasting, mortis — og båe sidene av ei finérplate er finér. Ein spegla
+del, snudd om på bordet, ER den opphavlege delen. Fyrste dagen ein motor
+får eit snitt som ikkje går gjennom — ei lomme, ein fas, ein halvdjup
+fals — sluttar dette å halda.
+
+**Etter:** levande **46,3 %** (uendra, som det skal vera — ingenting i den
+vegen vart rørt), tett **49,6 %**, 41 ark. Minste målte luft: 12,00 mm med
+cella på 6, 8,00 mm med cella på 4.
+
+#### Funnet: garantien er tett, og cella på 4 ligg på grensa
+
+Provet seier at to masker som ikkje deler celle ligg minst 2·cell frå
+kvarandre. Benken måler nøyaktig det: 12,00 og 8,00. Cella på 4 med luft
+på 8 har altso INGEN monn — ho ligg på grensa provet set. Går cella
+lågare utan at `gap` fylgjer med, held ikkje lufta, og feilen vil sjå ut
+som betre utnytting.
+
+#### Att
+
+**Skanninga, ikkje maskene.** Tida ligg i `fits` over rutenettet og ikkje
+i å byggje maskene — det er difor ommerkinga berre gav 22 %. Ein pakkar
+som skal ha råd til cella på 4 i levande modus må gjera SØKET billegare,
+ikkje maska. Ei skyline-avgrensing er det vanlege svaret, men ho kan ikkje
+leggje ein del ned i ei LOMME under kanten, og det er nettopp lommene
+denne pakkaren lever av: hòlet i ein ring er ledig plate.
+
+**Taket er ikkje pakkaren.** Delane er berre 50–67 % av sine eigne
+omskrivne boksar (vaffel 66,6, straum 52,0, ribbe 49,9). RIBBE pakkar til
+47–49 % og ligg altso på 96 % av det ei rein boks-pakking kunne gjeve —
+han grip alt inn i seg sjølv. Rommet som er att ligg i VAFFEL og STRAUM,
+og det ligg i FORMA på delane like mykje som i pakkinga av dei.
+
+---
+
 ---
 
 ## 6 Kva som skal målast
@@ -1710,3 +1788,4 @@ kjem frå éin stad.
 | `scripts/plan-feasible.ts` | kor stor del av parameterrommet som er eit møbel, og kva reglar som fell |
 | `scripts/typologi-avstand.ts` | om to motorar er same krakken: skugge på tre sider pluss deleliste |
 | `scripts/lenkjer.ts` | om ei delt lenkje framleis peikar på det same møbelet — den einaste prøva som ser på tilstand utanfor koden |
+| `scripts/nestbenk.ts` | plateutnyttinga over HEILE settet, i båe pakkemodusane — og lufta mellom kvar del og kvar annan del |

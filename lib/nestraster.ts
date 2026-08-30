@@ -9,12 +9,23 @@
  * ei bitmaske av YTTERKONTUREN sin — ikkje av omrisset. Det er heile
  * skilnaden: bogen under kvar ribbe er eit stort, tomt og fullt brukbart
  * felt, og ei ribbe snudd 180° grip inn i naboen i staden for å leggje
- * seg oppå boksen hans. Kvar del vert prøvd i dei fire kvartrotasjonane
- * og lagd på den lågaste (og so venstraste) ledige plassen som gjev
- * lågast topp; det er lengda pakkinga når opp på plata som avgjer kor
- * mange plater ein må kjøpa. Store hòl i ein del er LEDIG plate: skrotet
- * i ringen sitt senter fell ut når hòlet vert kutta same kva, so neste
- * del kan liggje der — med full luft mot hòlranda.
+ * seg oppå boksen hans. Kvar del vert prøvd i fire kvartrotasjonar — og
+ * i eksporten i åtte, dei spegla med — og lagd på den lågaste (og so
+ * venstraste) ledige plassen som gjev lågast topp; det er lengda
+ * pakkinga når opp på plata som avgjer kor mange plater ein må kjøpa.
+ * Store hòl i ein del er LEDIG plate: skrotet i ringen sitt senter fell
+ * ut når hòlet vert kutta same kva, so neste del kan liggje der — med
+ * full luft mot hòlranda.
+ *
+ * KVAR STILLING RASTERISERER SITT EIGE POLYGON. Det ser ut som arbeid
+ * attende — ei kvart omdreiing flyttar då vel celler til celler? — men
+ * det gjer ho ikkje når boksen ikkje er eit heilt tal celler høg: ei
+ * rotert celle straddar TO celler i det nye rutenettet, og ommerking
+ * ville late den eine av dei stå tom. Prøvd og målt: ommerking er 22 %
+ * raskare og legg delar 6,1 mm frå kvarandre der kravet er 8. Ei
+ * pakking som let delane gå inn i kvarandre får BETRE utnyttingstal, so
+ * feilen les som ei forbetring heilt til nokon kuttar plata.
+ * `scripts/nestbenk.ts` er prøva som fanga han.
  *
  * Maska er dilatert med éi celle på kvar side, og det er ikkje pynt: to
  * masker som ikkje deler celle er då garanterte å liggje minst `gap`
@@ -23,6 +34,12 @@
  * enn to celleindeksar frå kvarandre.) Prisen er at lufta i praksis vert
  * ei celle eller to romslegare enn minstekravet; det er rasteret sin
  * natur, og han er billegare enn ei ny plate.
+ *
+ * Garantien er nøyaktig 2·cell, og benken måler henne: med cella på 6 er
+ * minste målte avstand 12,00 mm, med cella på 4 er ho 8,00. Det siste
+ * talet er kravet SJØLV, utan ein einaste millimeter monn — cella på 4
+ * ligg på grensa provet set, og går ho lågare utan at `gap` fylgjer med,
+ * held ikkje lufta lenger.
  *
  * Deterministisk: ingen slump og inga klokke — same delar inn gjev same
  * pakking ut. Like delar (same `part.id`) deler bitmasker og
@@ -42,12 +59,30 @@ export type NestDel = {
   area: number
 }
 
-/** rot er kvarte omdreiingar MOT klokka: 0, 90, 180, 270 grader */
+/**
+ * Legginga: åtte stillingar, ikkje fire.
+ *
+ * `rot & 3` er kvarte omdreiingar mot klokka — 0, 90, 180, 270 — og
+ * `rot >> 1 & 4`… nei: `rot >= 4` tyder at delen i tillegg er SPEGLA om
+ * si eiga vassrette midtline, før omdreiinga.
+ *
+ * Spegling er lovleg her, og det er ikkje ei forenkling. Kvart einaste
+ * snitt i sandkassen går HEILT GJENNOM plata — spor, hòl, avlasting,
+ * mortis — og båe sidene av ei finérplate er finér. Ein spegla del,
+ * snudd om på bordet, ER difor den opphavlege delen. Fyrste dagen ein
+ * motor får eit snitt som ikkje går gjennom — ei lomme, ein fas, ein
+ * halvdjup fals — sluttar dette å halda, og då må speglinga av.
+ *
+ * Vinsten er at ei krum ribbe kan leggje seg inntil naboen sin med
+ * krumminga same veg i staden for motsett. Fire stillingar kan ikkje
+ * gjera det; åtte kan.
+ */
+export type Rot = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type Placed<P extends NestDel = NestDel> = {
   part: P
   x: number
   y: number
-  rot: 0 | 1 | 2 | 3
+  rot: Rot
 }
 export type Sheet<P extends NestDel = NestDel> = {
   w: number
@@ -74,6 +109,14 @@ export type NestVal = {
   /** eksportkvalitet: prøv alle sorteringane og ta den beste pakkinga.
    *  Kostar tre pakkingar; den levande målinga lèt det vera. */
   tett?: boolean
+  /**
+   * Kor mange stillingar kvar del vert prøvd i: fire omdreiingar, eller
+   * åtte når dei spegla er med. `tett` set åtte sjølv. Speglinga gjev
+   * kring ein halv prosent til på arket og kostar kring femti prosent
+   * meir tid — rett handel for eksporten, som skjer éin gong, og feil
+   * for målinga, som kjem att på kvart skyvarslepp.
+   */
+  stillingar?: 4 | 8
 }
 
 const SORTERINGAR: Record<
@@ -111,7 +154,9 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
   if (val.tett) {
     let beste: Nesting<P> | null = null
     for (const s of Object.keys(SORTERINGAR) as (keyof typeof SORTERINGAR)[]) {
-      const ns = nestRaster(parts, { ...val, tett: false, sortering: s })
+      // åtte stillingar i kvar av dei tre pakkingane; berre sorteringa
+      // skil dei. `tett` sjølv må av, elles går rekursjonen i ring.
+      const ns = nestRaster(parts, { ...val, tett: false, stillingar: 8, sortering: s })
       const lengd = ns.sheets.reduce((q, a) => q + a.used, 0)
       const bLengd = beste ? beste.sheets.reduce((q, a) => q + a.used, 0) : Infinity
       if (
@@ -127,6 +172,17 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
   const { sheetW, sheetH, gap, cell } = val
   /** dilatering, celler på kvar side av maska */
   const DIL = 1
+  /**
+   * Kor mange stillingar kvar del vert prøvd i.
+   *
+   * Levande: fire omdreiingar. Speglinga gjev kring ein halv prosent til
+   * på arket og kostar femti prosent meir tid, og det er feil handel når
+   * talet skal kome att på kvart skyvarslepp.
+   *
+   * Tett: åtte — dei fire pluss dei spegla. Eksporten skjer éin gong, og
+   * der er ein halv prosent av ei plate verdt tre sekund.
+   */
+  const STILLINGAR = val.stillingar ?? 4
   /** arkgrida: éi celle margin til dilateringa på kvar side, pluss slark */
   const GW = Math.ceil(sheetW / cell) + 2 * DIL + 1
   const GH = Math.ceil(sheetH / cell) + 2 * DIL + 1
@@ -141,7 +197,7 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
    * celle ein trygt kan kutte ved. Returnerer null når delen ikkje får
    * plass på ei tom plate i denne leia.
    */
-  const buildMask = (part: P, rot: 0 | 1 | 2 | 3): Mask | null => {
+  const buildMask = (part: P, rot: Rot): Mask | null => {
     const d = dims(part)
     const rw = rot & 1 ? d.h : d.w
     const rh = rot & 1 ? d.w : d.h
@@ -166,16 +222,24 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
       const n = ring.length
       const tx = new Float64Array(n)
       const ty = new Float64Array(n)
+      const q = rot & 3
       for (let i = 0; i < n; i++) {
         const u = ring[i][0] - d.x0
-        const v = ring[i][1] - d.y0
-        if (rot === 1) {
+        // Speglinga fyrst, om ho gjeld: om den vassrette midtlina, so
+        // breidd og høgd står urørde og omdreiinga under er den same.
+        // Ho vert rekna inn i POLYGONET og ikkje i cellene etterpå —
+        // ei spegla celle er ei celle, men ei ROTERT celle er det ikkje
+        // når boksen ikkje er eit heilt tal celler høg, og då fell ei
+        // celle utanfor maska. Difor rasteriserer kvar stilling sitt
+        // eige polygon.
+        const v = rot >= 4 ? d.h - (ring[i][1] - d.y0) : ring[i][1] - d.y0
+        if (q === 1) {
           tx[i] = d.h - v
           ty[i] = u
-        } else if (rot === 2) {
+        } else if (q === 2) {
           tx[i] = d.w - u
           ty[i] = d.h - v
-        } else if (rot === 3) {
+        } else if (q === 3) {
           tx[i] = v
           ty[i] = d.w - u
         } else {
@@ -355,15 +419,15 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
     return -1
   }
 
-  /** prøv dei fire rotasjonane på dette arket og legg delen der toppen
-   *  vert lågast — sekundært lågast rad, so lengst til venstre */
+  /** prøv stillingane på dette arket og legg delen der toppen vert
+   *  lågast — sekundært lågast rad, so lengst til venstre */
   const tryPlace = (ark: Ark, part: P, ms: (Mask | null)[]): boolean => {
     let best: Mask | null = null
     let bestRot = 0
     let bestGi = 0
     let bestGj = 0
     let bestTop = Infinity
-    for (let r = 0; r < 4; r++) {
+    for (let r = 0; r < STILLINGAR; r++) {
       const m = ms[r]
       if (!m) continue
       const pos = scan(ark, m, part.id + "|" + r)
@@ -388,9 +452,10 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
       part,
       x: bestGi * cell,
       y: bestGj * cell,
-      rot: bestRot as 0 | 1 | 2 | 3,
+      rot: bestRot as Rot,
     })
-    if (bestTop > ark.sheet.used) ark.sheet.used = bestTop
+    const topp = bestGj * cell + best.rh
+    if (topp > ark.sheet.used) ark.sheet.used = topp
     return true
   }
 
@@ -403,7 +468,8 @@ export function nestRaster<P extends NestDel>(parts: P[], val: NestVal): Nesting
   const masksFor = (q: P) => {
     let ms = memo.get(q.id)
     if (!ms) {
-      ms = [buildMask(q, 0), buildMask(q, 1), buildMask(q, 2), buildMask(q, 3)]
+      ms = []
+      for (let r = 0; r < STILLINGAR; r++) ms.push(buildMask(q, r as Rot))
       memo.set(q.id, ms)
     }
     return ms
@@ -451,15 +517,18 @@ export function skalerDelar<P extends NestDel>(parts: P[], s: number): P[] {
   }))
 }
 
-/** delen sine konturar der han faktisk ligg på plata */
+/** delen sine konturar der han faktisk ligg på plata — same avbilding
+ *  som `buildMask`, spegling og alt, so maska og teikninga kan ikkje
+ *  kome i utakt */
 export function placedRings(q: Placed): { outline: Pt[]; holes: Pt[][] } {
   const d = dims(q.part)
+  const r = q.rot & 3
   const map = (p: Pt): Pt => {
     const x = p[0] - d.x0
-    const y = p[1] - d.y0
-    if (q.rot === 1) return [q.x + d.h - y, q.y + x]
-    if (q.rot === 2) return [q.x + d.w - x, q.y + d.h - y]
-    if (q.rot === 3) return [q.x + y, q.y + d.w - x]
+    const y = q.rot >= 4 ? d.h - (p[1] - d.y0) : p[1] - d.y0
+    if (r === 1) return [q.x + d.h - y, q.y + x]
+    if (r === 2) return [q.x + d.w - x, q.y + d.h - y]
+    if (r === 3) return [q.x + y, q.y + d.w - x]
     return [q.x + x, q.y + y]
   }
   return { outline: q.part.outline.map(map), holes: q.part.holes.map((h) => h.map(map)) }
