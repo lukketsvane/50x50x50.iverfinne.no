@@ -19,6 +19,8 @@ export type NudgeAxis = "vertical" | "horizontal" | "pinch"
  *                        innramminga er automatisk, so gesten er ledig
  *                        for det klypa tyder: sprikande fingrar gjer
  *                        møbelet breiare.
+ *  - ctrl + hjul       → same klypet, på ei styreflate. Det er det einaste
+ *                        klypet skrivebordet sender.
  *  - tre fingrar       → onLight, styrer hovudlyset. Kameraet står stille;
  *                        posituren frå før fingrane landa vert lagd
  *                        tilbake med det same gesten er avgjord, slik at
@@ -127,16 +129,19 @@ export function GestureParams({
       const dy = c.cy - last.cy
       const dd = c.d - last.d
       if (mode === "none") {
-        // gesten vert klassifisert éin gong, etter ei lita daudsone
-        if (Math.abs(dd) > Math.max(Math.abs(dx), Math.abs(dy)) * 1.2 && Math.abs(dd) > 5) {
-          mode = "pinch"
-        } else if (Math.abs(dy) > Math.abs(dx) * 1.3 && Math.abs(dy) > 5) {
-          mode = "v"
-        } else if (Math.abs(dx) > Math.abs(dy) * 1.3 && Math.abs(dx) > 5) {
-          mode = "h"
-        } else {
-          return
-        }
+        // Gesten vert klassifisert ÉIN gong, etter ei daudsone, og alle
+        // kandidatane vert målte i SAME eining: pikslar. Det var dei ikkje
+        // før — klypet vart samanlikna med draget utan at nokon av dei var
+        // normaliserte — og då vann klypet på skrå drag, av di avstanden
+        // mellom to fingrar endrar seg fortare enn midtpunktet flyttar seg
+        // når begge fingrane går kvar sin veg.
+        const D = Math.abs(dd)
+        const X = Math.abs(dx)
+        const Y = Math.abs(dy)
+        if (D > 6 && D > 1.2 * Math.max(X, Y)) mode = "pinch"
+        else if (Y > 6 && Y > 1.3 * Math.max(X, D)) mode = "v"
+        else if (X > 6 && X > 1.3 * Math.max(Y, D)) mode = "h"
+        else return
         // alle to-fingers-gestane legg kameraet tilbake: rotasjonen frå
         // den fyrste fingeren som landa skal ikkje verte hengande att
         restore()
@@ -182,12 +187,40 @@ export function GestureParams({
       }
     }
 
+    /**
+     * KLYPET PÅ EI STYREFLATE.
+     *
+     * Nettlesaren sender det som eit hjul med ctrl nede, og det er det
+     * einaste klypet ein får på skrivebordet: to fingrar på ei styreflate
+     * når aldri fram til sida som pointer-hendingar i det heile. Utan
+     * dette fanst storleiken berre på telefon — på ei maskin måtte ein
+     * opne panelet og finne skyvaren.
+     *
+     * `preventDefault` er ikkje valfritt: utan han zoomar nettlesaren
+     * heile sida i staden, og då veks panelet og teksten med objektet.
+     */
+    const hjul = (e: WheelEvent) => {
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      e.stopPropagation()
+      // Hjulhakk er ikkje pikslar, og dei to kjeldene er ikkje like: ei
+      // styreflate sender mange små hakk (deltaY kring 2), ei mus sender
+      // få store (kring 100 per hakk). Éin faktor kan ikkje tene begge
+      // godt, so han er vald etter MUSA — eit hakk skal flytte bandet ein
+      // merkbar bit og ikkje slå det i taket. Styreflata vert då litt
+      // roleg, og det er rett veg å bomme: ein gest som gjer for lite kan
+      // gjentakast, ein som gjer for mykje må angrast.
+      onNudge("pinch", -e.deltaY * 0.55)
+    }
+
     el.addEventListener("pointerdown", down)
+    el.addEventListener("wheel", hjul, { passive: false, capture: true })
     window.addEventListener("pointermove", move, { passive: true })
     window.addEventListener("pointerup", up)
     window.addEventListener("pointercancel", up)
     return () => {
       el.removeEventListener("pointerdown", down)
+      el.removeEventListener("wheel", hjul, { capture: true } as EventListenerOptions)
       window.removeEventListener("pointermove", move)
       window.removeEventListener("pointerup", up)
       window.removeEventListener("pointercancel", up)
