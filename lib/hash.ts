@@ -30,10 +30,17 @@ import { getEngine, isEngineId } from "./engines"
  * gamle står att i tabellen og les gamle lenkjer. Bokstaven «p» er
  * verna (#p= er JSON-forma), og base64url-teikna i nyttelasta kan aldri
  * innehalde «=», so formene kan ikkje forvekslast. Fjerna motorar
- * (flett, kote, karve) fekk aldri ein bokstav. SKIVE og LAFT rakk å få
- * kvar sin — «k» og «f» — før dei vart tekne ut. Dei to bokstavane er
- * BRENDE og skal aldri gjevast til ein ny motor, so ei gammal SKIVE-
- * eller LAFT-lenkje avkodar til ingenting i staden for til feil møbel.
+ * (flett, kote, karve) fekk aldri ein bokstav. LAFT rakk å få «f» før
+ * han vart teken ut; den bokstaven er BRENDE og skal aldri gjevast til
+ * ein ny motor, so ei gammal LAFT-lenkje avkodar til ingenting i staden
+ * for til feil møbel.
+ *
+ * SKIVE fekk «k», var ute ei stund, og er ATTE — med nøyaktig dei same
+ * banda han gjekk ut med. Difor får han «k» attende og ikkje ein ny
+ * bokstav: ei SKIVE-lenkje frå før utgangen peikar på det same møbelet
+ * no som ho gjorde då. Hadde eitt einaste band vore rørt i mellomtida,
+ * måtte han hatt ein ny bokstav og det gamle bandoppsettet i GAMLE_BAND
+ * under — det er den prøva `scripts/lenkjer.ts` gjer, og han held.
  *
  * VAFFEL og RIBBE står på versjon TO. Formspennrunda gav VAFFEL to nye
  * band (ryggfall og skålkant) og eit vidare ryggband, og RIBBE to nye
@@ -46,6 +53,7 @@ import { getEngine, isEngineId } from "./engines"
  */
 const MOTOR_BOKSTAV: Record<string, string> = {
   vaffel: "V",
+  skive: "k",
   straum: "s",
   ribbe: "R",
   boyg: "b",

@@ -3,15 +3,16 @@
 Ein parametrisk sandkasse for sitjemøbel, bygd til AHO-oppgåva
 **50 × 50 × 50**: eit møbel som skal stå inne i ein kube på 500 millimeter.
 
-Sandkassen har tre typologiar, og dei er ikkje tre former. Dei er tre
+Sandkassen har fire typologiar, og dei er ikkje fire former. Dei er fire
 svar på det same spørsmålet: **korleis byggjer ein ei krum sitjeflate av
-flate plater?** Alle tre svarar på ein måte ingen av dei seier høgt: dei
-SNITTAR. Og fylgja er den same i alle tre, og ho er fysisk — **du sit på
+flate plater?** Alle fire svarar på ein måte ingen av dei seier høgt: dei
+SNITTAR. Og fylgja er den same i alle fire, og ho er fysisk — **du sit på
 plata sin KANT**.
 
 | typologi | produksjonsveg | leddet |
 |---|---|---|
 | **VAFFEL** | kryssholdte ribber i to rette retningar | kryssholdt |
+| **SKIVE** | parallelle skiver med luft imellom, tredde på stavar | stav og skive |
 | **STRAUM** | éin kropp skoren i skrå skiveplan, finnar sette i spor | gjennomspor |
 | **RIBBE** | radiale blad og vassrette band | kryssholdt |
 
@@ -26,13 +27,16 @@ ho stiller eit anna spørsmål. Alt saman står i `PLAN.md`, etappe 28,
 saman med det runda faktisk lærte: **det er kuben som seier nei til
 ryggen, ikkje motoren.**
 
+SKIVE var ute ei runde og er ATTE. Argumentet mot han var at han berre
+snittar éin veg; det var feil. Ei skive treng ikkje møte nokon på tvers,
+og då er heile konturen hennar fri — det er ein annan ting enn to
+retningar, ikkje ein fattigare versjon av dei.
+
 Tekne heilt ut, og kvar sin grunn: FLETT (vevne band — band er ikkje
 plate), KARVE (limt blokk, frest ned — subtraksjon byggjer ikkje ei
 flate, han grev henne fram), KOTE (vassrette koter på stavar, som aldri
-nådde flata: setet var riller), LAFT (to kryssande blad og eit flatt
-sete — han NEKTA spørsmålet, og ei flat sitjeflate er eit anna prosjekt)
-og SKIVE (parallelle skiver på stavar — han snitta berre éin veg, og alt
-han kunne seie seier VAFFEL og RIBBE betre). BØYG (pressbøygde skal) og
+nådde flata: setet var riller) og LAFT (to kryssande blad og eit flatt
+sete — han NEKTA spørsmålet). BØYG (pressbøygde skal) og
 VIKING (overlappande bord klinka til to spant) står på stillaset og er
 ikkje i nedtrekket; SKAL (dei stabla lamellane) er teken ut av
 registeret, men kjelda står att for dokumentpipelinen.
@@ -141,6 +145,8 @@ godt — det gjer det berre mogleg.
 | `lib/worker.ts` | motoren i eigen tråd; han veit ikkje kva typologi han byggjer |
 | `lib/avl.ts` | avlen: generativt søk mot mindre materiale, bak same kontrakt |
 | `lib/vaffel/` | kartesiske ribber i to retningar — sluttproduktet |
+| `lib/skive/` | parallelle skiver på stavar |
+| `lib/gjest/` | ei GLB utanfrå, snitta til dei same ribbene: GLB-lesar, plansnitt, vev |
 | `lib/straum/` | skrå skiveplan og finnar i spor |
 | `lib/ribbe/` | radiale blad og band, kryssholdte |
 | `lib/boyg/` | pressbøygde skal, under bygging |
