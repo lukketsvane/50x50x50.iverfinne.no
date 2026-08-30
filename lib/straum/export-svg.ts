@@ -33,6 +33,29 @@ function path(rings: Pt[][]): string {
  * ein del som er spegelvendt i høve til DXF-en er ein del som vert kutta
  * spegelvendt.
  */
+/**
+ * ALLE arka i éi fil, stabla under kvarandre. Arka i STRAUM kan ha ulik
+ * storleik (finner, sokkel og kappe har kvar si platetjukn), so kvart
+ * band er så høgt som sitt eige ark.
+ */
+export function alleArkSvg(nesting: Nesting): string {
+  const GAP = 60
+  const W = Math.max(...nesting.sheets.map((s) => s.w))
+  const total = nesting.sheets.reduce((a, s) => a + s.h, 0) + GAP * (nesting.sheets.length - 1)
+  const out: string[] = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${total}mm" viewBox="0 0 ${W} ${total}">`,
+  ]
+  let off = 0
+  nesting.sheets.forEach((s, i) => {
+    const eitt = sheetSvg(nesting, i)
+    const indre = eitt.slice(eitt.indexOf(">") + 1, eitt.lastIndexOf("</svg>"))
+    out.push(`<g transform="translate(0,${off})">${indre}</g>`)
+    off += s.h + GAP
+  })
+  out.push(`</svg>`)
+  return out.join("\n")
+}
+
 export function sheetSvg(nesting: Nesting, i: number): string {
   const s = nesting.sheets[Math.max(0, Math.min(nesting.sheets.length - 1, i))]
   if (!s) return `<svg xmlns="http://www.w3.org/2000/svg"/>`
@@ -66,42 +89,84 @@ export function sheetSvg(nesting: Nesting, i: number): string {
 }
 
 /**
- * Konturkartet: alle finneemna lagde oppå kvarandre i sitt eige plan, med
- * sokkel- og kappeomrissa under. Kvar femte profil står tjukkare, slik at
- * auga kan telje seg gjennom stabelen utan å telje kvar linje.
+ * Konturkartet: finneemna lagde oppå kvarandre i sitt eige felt, og sokkel-
+ * og kappeplatene i sitt — med SAME målestokk, so storleiken kan lesast på
+ * tvers. Kvar femte finneprofil står tjukkare, slik at auga kan telje seg
+ * gjennom stabelen utan å telje kvar linje.
+ *
+ * Dei to familiane fekk kvar sitt felt av ein grunn: finnane er STÅANDE
+ * snitt gjennom kroppen og platene er LIGGJANDE plan, og lagde oppå
+ * kvarandre i eitt koordinatsystem las ingen nokon av delane — det var
+ * berre ein graut av strekar. Arket er fast og innhaldet skalert inn;
+ * kuttfila er ARK-en, denne teikninga er til å lesa.
  */
 export function contourMapSvg(build: Build): string {
-  let x0 = Infinity
-  let y0 = Infinity
-  let x1 = -Infinity
-  let y1 = -Infinity
-  for (const q of build.parts) {
-    const b = bbox(q.outline)
-    if (b.x0 < x0) x0 = b.x0
-    if (b.x1 > x1) x1 = b.x1
-    if (b.y0 < y0) y0 = b.y0
-    if (b.y1 > y1) y1 = b.y1
+  const W = 1200
+  const H = 700
+  const M = 40
+
+  const famBox = (parts: { outline: Pt[] }[]) => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+    for (const q of parts) {
+      const b = bbox(q.outline)
+      if (b.x0 < x0) x0 = b.x0
+      if (b.x1 > x1) x1 = b.x1
+      if (b.y0 < y0) y0 = b.y0
+      if (b.y1 > y1) y1 = b.y1
+    }
+    if (!Number.isFinite(x0)) { x0 = x1 = y0 = y1 = 0 }
+    return { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0 }
   }
-  const pad = 30
-  const w = x1 - x0 + 2 * pad
-  const h = y1 - y0 + 2 * pad
+  const fb = famBox(build.fins)
+  const pb = famBox(build.plates)
+
+  // venstre felt til finnane, høgre til platene — felles målestokk
+  const finSlotW = W * 0.5
+  const plateSlotW = W - finSlotW - 3 * M
+  const slotH = H - 2 * M - 30
+  const sc = Math.min(
+    finSlotW / Math.max(1, fb.w),
+    plateSlotW / Math.max(1, pb.w),
+    slotH / Math.max(1, fb.h),
+    slotH / Math.max(1, pb.h),
+  )
+
   const out: string[] = []
   out.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${num(w)}mm" height="${num(h)}mm" viewBox="0 0 ${num(w)} ${num(h)}">`,
-    `<rect x="0" y="0" width="${num(w)}" height="${num(h)}" fill="#fff"/>`,
-    `<g transform="translate(${num(pad - x0)},${num(h - pad + y0)}) scale(1,-1)">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`,
+    `<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`,
   )
-  build.plates.forEach((q) => {
-    out.push(
-      `<path d="${path([q.outline, ...q.holes])}" fill="none" stroke="#c8c2b6" stroke-width="0.8" fill-rule="evenodd"/>`,
-    )
-  })
+
+  // finnane: sentrerte i sitt felt, Y snudd — emna står oppreiste
+  const fcx = M + finSlotW / 2
+  const fcy = 30 + M + slotH / 2
+  const fmap = (q: Pt): Pt => [
+    fcx + (q[0] - (fb.x0 + fb.x1) / 2) * sc,
+    fcy - (q[1] - (fb.y0 + fb.y1) / 2) * sc,
+  ]
   build.fins.forEach((q, i) => {
     const bold = i % 5 === 0
     out.push(
-      `<path d="${path([q.outline, ...q.holes])}" fill="none" stroke="${bold ? "#111" : "#777"}" stroke-width="${bold ? 1.2 : 0.5}" fill-rule="evenodd"/>`,
+      `<path d="${path([q.outline.map(fmap), ...q.holes.map((h) => h.map(fmap))])}" fill="none" stroke="${bold ? "#111" : "#999"}" stroke-width="${bold ? 1.3 : 0.6}" fill-rule="evenodd"/>`,
     )
   })
-  out.push(`</g>`, `</svg>`)
+
+  // platene: konsentriske i sitt felt, som eit kotekart
+  const pcx = M + finSlotW + M + plateSlotW / 2
+  const pcy = fcy
+  const pmap = (q: Pt): Pt => [
+    pcx + (q[0] - (pb.x0 + pb.x1) / 2) * sc,
+    pcy - (q[1] - (pb.y0 + pb.y1) / 2) * sc,
+  ]
+  build.plates.forEach((q) => {
+    out.push(
+      `<path d="${path([q.outline.map(pmap), ...q.holes.map((h) => h.map(pmap))])}" fill="none" stroke="#8a8377" stroke-width="0.9" fill-rule="evenodd"/>`,
+    )
+  })
+
+  out.push(
+    `<text x="${M}" y="30" font-family="monospace" font-size="16" fill="#111">STRAUM · ${build.fins.length} finneemne over kvarandre · sokkel og kappe</text>`,
+    `</svg>`,
+  )
   return out.join("\n")
 }

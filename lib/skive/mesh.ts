@@ -149,11 +149,45 @@ function bridge(outline: Pt[], holes: Pt[][]): Pt[] {
 // =============================================================================
 // LAG — skivene og stavane slik dei står
 // =============================================================================
-/** éi skive som prisme: to plateflater og kutt heile vegen rundt.
+/**
+ * Ringen flytt c mm mot materialsida. Vindinga ber retninga: konturen går
+ * mot klokka og hòla med klokka, so venstre for ferdselsretninga er alltid
+ * gods — same formel for begge. Kvassare hjørne enn ~70° vert avgrensa,
+ * elles ville gjæringa skyte punktet langt inn.
+ */
+function insetRing(ring: Pt[], c: number): Pt[] {
+  const n = ring.length
+  const out: Pt[] = []
+  for (let i = 0; i < n; i++) {
+    const p0 = ring[(i + n - 1) % n]
+    const p1 = ring[i]
+    const p2 = ring[(i + 1) % n]
+    let ax = p1[0] - p0[0], az = p1[1] - p0[1]
+    let bx = p2[0] - p1[0], bz = p2[1] - p1[1]
+    const aL = Math.hypot(ax, az) || 1; ax /= aL; az /= aL
+    const bL = Math.hypot(bx, bz) || 1; bx /= bL; bz /= bL
+    let mx = -az - bz
+    let mz = ax + bx
+    const mL = Math.hypot(mx, mz)
+    if (mL < 1e-6) { out.push([p1[0] - az * c, p1[1] + ax * c]); continue }
+    mx /= mL; mz /= mL
+    const cosH = mx * -az + mz * ax
+    const sSc = c / Math.max(0.34, cosH)
+    out.push([p1[0] + mx * sSc, p1[1] + mz * sSc])
+  }
+  return out
+}
+
+/** éi skive som prisme med FAS: to plateflater trekte inn, ei fasa rand
+ *  imellom, og kutt heile vegen rundt. Fasen er fresens kantpass — det er
+ *  han som gjer at stabelen les som bygde delar og ikkje som ekstrudering.
  *  rot er vifterotasjonen kring Z: plata står med normal n̂ = (−sin a, cos a)
  *  og u-akse û = (cos a, sin a) — offset langs n̂, profil langs û. */
 function sliceSolid(s: Soup, outline: Pt[], holes: Pt[][], y: number, t: number, rot = 0) {
   const h = t / 2
+  // fasen: aldri meir enn drygt fjerdedelen av tjukna, so veggen står att
+  const c = Math.min(2.5, t * 0.28)
+  const hw = h - c
   const ca = Math.cos(rot)
   const sa = Math.sin(rot)
   const at = (q: Pt, off: number): Vec3 => [
@@ -161,36 +195,51 @@ function sliceSolid(s: Soup, outline: Pt[], holes: Pt[][], y: number, t: number,
     q[0] * sa + (y + off) * ca,
     q[1],
   ]
-  // plateflatene — dei fine sidene som tek beis. Profilplanet er (x, z) og
-  // skiva står normalt på Y, so +y-sida skal peike +y.
+  // plateflatene — dei fine sidene som tek beis, trekte inn med fasen.
+  // Profilplanet er (x, z) og skiva står normalt på Y.
   s.k = 0
-  const merged = holes.length ? bridge(outline, holes) : outline
+  const oIn = insetRing(outline, c)
+  const hIn = holes.map((q) => insetRing(q, c))
+  const merged = hIn.length ? bridge(oIn, hIn) : oIn
   // Vindinga er kontrakten, ikkje normalen: positivt skolisseareal i
   // (x, z) gjev −y-normal i rommet, so botnloket brukar øyreklippinga si
   // rekkjefylgje beint fram og topploket den snudde — då går kvart lok
   // MOTSETT veg av veggen over den delte kanten, og skiva er lukka.
-  for (const [a, b, c] of earClip(merged)) {
-    tri(s, at(a, h), at(c, h), at(b, h), [0, 1, 0])
-    tri(s, at(a, -h), at(b, -h), at(c, -h), [0, -1, 0])
+  for (const [a, b, c2] of earClip(merged)) {
+    tri(s, at(a, h), at(c2, h), at(b, h), [0, 1, 0])
+    tri(s, at(a, -h), at(b, -h), at(c2, -h), [0, -1, 0])
   }
-  // kuttet: ytterkanten og stavhòla
+  // kuttet og fasen: rå kant. Fasen går frå veggen (full ring, ±hw) inn
+  // til plateflata (innsett ring, ±h) — kvar delt kant vert gådd motsett
+  // veg av grannen, so skalet held seg lukka.
   s.k = 1
-  const wall = (ring: Pt[], inward: boolean) => {
+  const R2 = Math.SQRT1_2
+  const band = (ring: Pt[], inn: Pt[]) => {
     for (let i = 0; i < ring.length; i++) {
+      const j = (i + 1) % ring.length
       const a = ring[i]
-      const b = ring[(i + 1) % ring.length]
+      const b = ring[j]
+      const ai = inn[i]
+      const bi = inn[j]
       let nx = b[1] - a[1]
       let nz = -(b[0] - a[0])
       const L = Math.hypot(nx, nz) || 1
       nx /= L; nz /= L
-      if (inward) { nx = -nx; nz = -nz }
       const n: Vec3 = [nx * ca, nx * sa, nz]
-      tri(s, at(a, -h), at(b, h), at(b, -h), n)
-      tri(s, at(a, -h), at(a, h), at(b, h), n)
+      // veggen
+      tri(s, at(a, -hw), at(b, hw), at(b, -hw), n)
+      tri(s, at(a, -hw), at(a, hw), at(b, hw), n)
+      // fasen, 45°: normalen er veggen og plateflata i lag
+      const nT: Vec3 = [(nx * ca - sa) * R2, (nx * sa + ca) * R2, nz * R2]
+      const nB: Vec3 = [(nx * ca + sa) * R2, (nx * sa - ca) * R2, nz * R2]
+      tri(s, at(b, hw), at(a, hw), at(ai, h), nT)
+      tri(s, at(b, hw), at(ai, h), at(bi, h), nT)
+      tri(s, at(a, -hw), at(b, -hw), at(bi, -h), nB)
+      tri(s, at(a, -hw), at(bi, -h), at(ai, -h), nB)
     }
   }
-  wall(outline, false)
-  for (const hole of holes) wall(hole, false)
+  band(outline, oIn)
+  for (let q = 0; q < holes.length; q++) band(holes[q], hIn[q])
 }
 
 /** staven som lukka sylinder langs Y — rå tre, kutt i attributtet */

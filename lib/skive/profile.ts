@@ -41,20 +41,6 @@ function seatTop(p: Params, x: number, gropEkstra: number): number {
   return p.hogd - (p.grop + gropEkstra) * bell - vipp
 }
 
-export type Profile = {
-  /** lukka kontur, mot klokka (positivt areal) */
-  outline: Pt[]
-  /** stavhòla, med klokka */
-  holes: Pt[][]
-  /** nøkkelpunkt til måling og reglar */
-  xNase: number
-  xRygg: number
-  ryggH: number
-  framfot: [number, number]
-  bakfot: [number, number]
-  area: number
-}
-
 /**
  * Silhuetten for morf-graden u i [0, 1], utan hòl. Same punkttal same kva
  * u og parametrar — det er kontrakten lofta byggjer på.

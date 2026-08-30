@@ -17,7 +17,9 @@ import {
   poseBag,
   randomBag,
   type Group,
+  type Hovuddrag,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 import { applyFix } from "./reparasjon"
@@ -41,6 +43,8 @@ export type Params = {
   sokk: number // setegropa på det djupaste, mm
   framkant: number // lårlette framme, mm
   rygg: number // kor høgt setekanten stig bak, mm
+  ryggV: number // kor mykje ryggen fell bakover på vegen opp, grader
+  skaal: number // kor høgt kanten stig kring heile setet, mm
   kantR: number // setekantradius, mm
 
   // --- RIBBER -------------------------------------------------------------
@@ -76,7 +80,11 @@ export const PARAM_RANGES: Record<string, Range> = {
 
   sokk: { min: 0, max: 42, step: 0.5, label: "setegrop", unit: "mm" },
   framkant: { min: 0, max: 26, step: 0.5, label: "lårlette", unit: "mm" },
-  rygg: { min: 0, max: 70, step: 1, label: "rygg", unit: "mm" },
+  // Taket er kuben og ikkje ein smak: 486 minus den lågaste setekanten
+  // (350) er 136, og over det er det ingen høgd att å setje ryggen i.
+  rygg: { min: 0, max: 136, step: 1, label: "rygg", unit: "mm" },
+  ryggV: { min: 0, max: 34, step: 1, label: "ryggfall", unit: "°" },
+  skaal: { min: 0, max: 86, step: 1, label: "skålkant", unit: "mm" },
   kantR: { min: 2, max: 26, step: 0.5, label: "kantradius", unit: "mm" },
 
   ribbX: { min: 3, max: 15, step: 1, label: "ribber langs X", int: true },
@@ -100,7 +108,11 @@ export const GROUPS: readonly Group[] = [
     label: "silhuett",
     keys: ["hogd", "fot", "midje", "midjeZ", "midjeW", "skulder", "lut"],
   },
-  { id: "sete", label: "sete", keys: ["sokk", "framkant", "rygg", "kantR"] },
+  {
+    id: "sete",
+    label: "sete",
+    keys: ["sokk", "framkant", "rygg", "ryggV", "skaal", "kantR"],
+  },
   {
     id: "ribber",
     label: "ribber",
@@ -139,11 +151,18 @@ export const DEFAULT_PARAMS: Params = {
   sokk: 26,
   framkant: 11,
   rygg: 0,
+  ryggV: 0,
+  skaal: 0,
   kantR: 14,
 
-  ribbX: 9,
-  ribbY: 9,
-  ribbT: 7.5,
+  // Åtte gonger åtte ribber på 6,5 held kvar einaste regel like godt som
+  // ni på 7,5 gjorde, og sparer godt over kiloen — plata inn fell med
+  // fjerdedelen, arkutnyttinga stig til 52 prosent. Bogen står urørd med
+  // vilje: han er spaken «form av lasta» dreg i, og standarden skal ha
+  // den monnen å gje.
+  ribbX: 8,
+  ribbY: 8,
+  ribbT: 6.5,
   pressfit: 0.15,
   lapp: 0.5,
 
@@ -156,49 +175,125 @@ export const DEFAULT_PARAMS: Params = {
   material: "bjork",
 }
 
-/** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring. */
+/** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring.
+ *  Settet er ei utstilling i rekkjefylgje — tre kroppar, so dei breie, so
+ *  strukturen, so sitjemåtane — og kvar pose er målt gjennom heile kjeda
+ *  med null brot. Tjukner som står eksplisitt, står der av di dei er
+ *  GRENSA for den posen; resten arvar standarden. */
 export const POSES: readonly Partial<Params>[] = [
-  // tett rutenett
-  { ribbX: 9, ribbY: 9, ribbT: 8, bogeH: 0.7, bogeBX: 0.72, bogeBY: 0.72 },
-  // mjuk sylinder
-  { planN: 2.1, planA: 192, planB: 192, midje: 0.04, fot: 1.0, bogeH: 0.5, bogeBX: 0.5, bogeBY: 0.5, ribbX: 8, ribbY: 8, ribbT: 9 },
-  // nesten kube
-  { planN: 5.8, planA: 200, planB: 200, midje: 0.11, midjeZ: 0.5, midjeW: 0.3, fot: 1.0, bogeH: 0.75, bogeBX: 0.8, bogeBY: 0.8, bogeN: 3.6 },
-  // timeglas
+  // timeglas: innsnørt midje over vid klokkefot og opa skulder
   { midje: 0.2, midjeW: 0.45, midjeZ: 0.45, fot: 1.18, skulder: 1.1, bogeH: 0.55 },
+  // amfora: rund kropp som smalnar mot foten, hals under setekanten og eit
+  // ope lepe. Svingen frå hals til lepe er på grensa motoren set — den
+  // ytste ribba må stå inne i kroppen i alle høgder.
+  {
+    planN: 2.3, planA: 210, planB: 210, fot: 0.96, midje: 0.13, midjeZ: 0.7,
+    midjeW: 0.25, skulder: 1.1, ribbX: 7, ribbY: 7, bogeH: 0.45,
+    bogeBX: 0.5, bogeBY: 0.5, bogeN: 2.2,
+  },
+  // nesten kube: superellipsen nesten ut i hjørna og brei, nesten firkanta
+  // kvelving — kuben lesen inn i møbelet, boren av fire hjørnebein på
+  // 66 % utnytting. Tjukna står eksplisitt av di det er ho som held det.
+  { planN: 5.8, planA: 200, planB: 200, midje: 0.11, midjeZ: 0.5, midjeW: 0.3, fot: 1.0, ribbX: 9, ribbY: 9, ribbT: 6.5, bogeH: 0.75, bogeBX: 0.8, bogeBY: 0.8, bogeN: 3.6 },
+  // tuva: låg og brei — setet 484 × 424 ved 386 mm, det lågaste og vidaste
+  // i settet, med grunn grop og stutt framkant so sitjehøgda held bandet
+  { planN: 5.2, planA: 215, planB: 245, hogd: 396, fot: 1.0, sokk: 12, framkant: 6, bogeH: 0.55 },
   // portalbenken: kvelvinga er BREI på tvers og smal i djupna — sett frå
-  // sida ein krakk, sett framanfrå ei bru. Det er den fyrste posen som
-  // ikkje har same boge i begge leier, og han finst berre av di breidda
-  // er delt i to.
+  // sida ein krakk, sett framanfrå ei bru.
   {
     planN: 3.4, planA: 176, planB: 236, hogd: 428, fot: 1.08, midje: 0.075,
-    skulder: 1.0, sokk: 20, framkant: 8, ribbX: 7, ribbY: 11, ribbT: 9,
+    skulder: 1.0, sokk: 20, framkant: 8, ribbX: 7, ribbY: 11,
     bogeH: 0.66, bogeBX: 0.42, bogeBY: 0.69, bogeN: 3.8,
   },
+  // hallen: spissbogar (bogeN 1,7) i åtti prosent av høgda i BEGGE leier —
+  // mest luft av alle posane, og lastkartet gløder på 80 % av kapasiteten.
+  // Tjukna 8 er målt nedanfrå: ved 7 står utnyttinga i 91 prosent, og den
+  // millimeteren er monen modellen ikkje reknar knekking med.
+  { planA: 205, planB: 205, fot: 1.12, ribbT: 8, bogeH: 0.8, bogeBX: 0.75, bogeBY: 0.75, bogeN: 1.7 },
   // lågryggstolen: setekanten stig seksti seks millimeter bak, og då er
-  // dette ikkje ein krakk lenger — det er ein stol med låg rygg. Setet ligg
-  // lågt (394) for at ryggen skal få høgd innanfor kuben, og planet er
-  // djupare enn det er breitt: ein sit MOT noko, og då treng ein djupn.
+  // dette ikkje ein krakk lenger — det er ein stol med låg rygg. Med
+  // ryggen er høgda 480, og slankleiken ligg på 74 av 75: tjukna 6,5 står
+  // eksplisitt av di ho er grensa, ikkje av vane.
   {
     planN: 3.2, planA: 198, planB: 178, hogd: 418, fot: 1.02, midje: 0.06,
-    skulder: 1.06, sokk: 30, framkant: 14, rygg: 66, ribbX: 9, ribbY: 9,
-    ribbT: 8, bogeH: 0.6, bogeBX: 0.55, bogeBY: 0.62, bogeN: 3.0,
+    skulder: 1.06, sokk: 30, framkant: 14, rygg: 66,
+    ribbT: 6.5, bogeH: 0.6, bogeBX: 0.55, bogeBY: 0.62, bogeN: 3.0,
   },
   // lenekrakken: planet sig fire og førti millimeter framover på vegen opp,
   // so setet heng framom føtene og ein sit halvvegs — perchen. Høgda er
-  // 466 og gropa er grunn med vilje: dette er ikkje ein stad å sitje lenge.
-  // Veltevinkelen fell av seg sjølv (18°), av di vippearmen vert målt frå
-  // setet og setet har flytt seg.
+  // 466 og gropa er grunn med vilje. Veltevinkelen held 18° av di
+  // vippearmen vert målt frå setet; tjukna 6,5 er grensa (slank 72 av 75).
   {
     planN: 3.0, planA: 200, planB: 200, hogd: 466, fot: 1.10, midje: 0.03,
     midjeZ: 0.4, midjeW: 0.3, skulder: 1.07, sokk: 12, framkant: 18, lut: 44,
-    ribbX: 8, ribbY: 8, ribbT: 9.5, bogeH: 0.66, bogeBX: 0.58, bogeBY: 0.58,
-    bogeN: 2.8,
+    ribbT: 6.5, bogeH: 0.66, bogeBX: 0.58, bogeBY: 0.58, bogeN: 2.8,
+  },
+  // --- FORMSPENNET: fire referansar, prøvde punkt for punkt ---------------
+  // eggekassa: fire ribber kvar veg og ikkje meir — den nedre grensa for
+  // kva som framleis les som eit rutenett. Tjukna må opp til tolv av di
+  // seksten ledd skal bera det som sytti gjorde, og han betaler seg: 66
+  // prosent av arket, det høgaste talet i heile settet.
+  {
+    planN: 5.6, planA: 190, planB: 190, hogd: 404, fot: 1.0, midje: 0,
+    skulder: 1.0, sokk: 8, framkant: 4, ribbX: 4, ribbY: 4, ribbT: 12,
+    bogeH: 0.5, bogeBX: 0.5, bogeBY: 0.5, bogeN: 3.2,
+  },
+  // skåla: skålkanten stig fire og åtti millimeter kring HEILE setet, og
+  // då er ribbeprofilen ein U og ikkje ein boge. Gropa er grunn med vilje —
+  // skåla skal koma av kanten som stig, ikkje av botnen som fell, elles
+  // et dei to kvarandre og sitjehøgda fell under bandet.
+  {
+    planN: 2.4, planA: 205, planB: 205, hogd: 396, fot: 1.02, midje: 0.1,
+    midjeZ: 0.4, midjeW: 0.3, skulder: 1.1, sokk: 10, framkant: 0, skaal: 84,
+    ribbX: 9, ribbY: 9, bogeH: 0.45, bogeBX: 0.45, bogeBY: 0.45, bogeN: 2.2,
+  },
+  // ryggstolen: ryggen stig ni og nitti millimeter over setekanten og fell
+  // atten grader bakover. Setekanten må ned til 392 for at toppen skal stå
+  // i kuben — det er den einaste staden i sandkassen der ein rygg KOSTAR
+  // sitjehøgd, og han gjer det krone for krone.
+  {
+    planN: 3.6, planA: 180, planB: 200, hogd: 392, fot: 1.04, midje: 0.05,
+    skulder: 1.02, sokk: 6, framkant: 4, rygg: 92, ryggV: 18,
+    ribbX: 8, ribbY: 8, bogeH: 0.6, bogeBX: 0.55, bogeBY: 0.6, bogeN: 3.0,
+  },
+  // lenestolen: rygg OG skålkant saman, so skalet går i eitt frå framkanten
+  // opp kring sidene og bak. Han er den einaste posen der begge dei to nye
+  // banda står oppe samstundes, og summen deira er det kuben har att over
+  // ein setekant på 388.
+  {
+    planN: 2.8, planA: 200, planB: 200, hogd: 388, fot: 1.02, midje: 0.05,
+    midjeZ: 0.42, midjeW: 0.3, skulder: 1.08, sokk: 6, framkant: 2,
+    rygg: 60, ryggV: 24, skaal: 36, ribbX: 9, ribbY: 9,
+    bogeH: 0.5, bogeBX: 0.48, bogeBY: 0.5, bogeN: 2.6,
   },
 ]
 
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = [
+  "timeglas", "amfora", "nesten kube", "tuva",
+  "portalbenken", "hallen", "lågryggstolen", "lenekrakken",
+  "eggekassa", "skåla", "ryggstolen", "lenestolen",
+]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag,
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["hogd", 1]] },
+  { id: "plan", label: "plan", keys: [["planA", 1], ["planB", 1]] },
+  { id: "midje", label: "midje", keys: [["midje", 1], ["midjeW", 0.5]] },
+  { id: "sete", label: "sete", keys: [["sokk", 1], ["framkant", 0.5]] },
+  { id: "ribber", label: "ribber", keys: [["ribbX", 1], ["ribbY", 1]] },
+  { id: "boge", label: "boge", keys: [["bogeH", 1], ["bogeBX", 0.6], ["bogeBY", 0.6]] },
+]
+
 /** kva to fingrar på lerretet skrur på */
-export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "midje" }
+export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "midje", pinch: "planA" }
 
 export function clampParams(o: unknown, prev: Params): Params {
   // Gamle lenkjer har eitt bogeB. Det talet ER dei to nye i den gamle
@@ -212,15 +307,20 @@ export function clampParams(o: unknown, prev: Params): Params {
   return clampBag(o, prev, PARAM_RANGES, PARAM_KEYS)
 }
 
+/** produksjonsval, ikkje form: tjukna og innpassinga vel ein etter plata
+ *  og maskina ein faktisk har — terningen rører dei aldri */
+const FREDA = ["ribbT", "pressfit", "lapp"] as const
+
 export function randomParams(
   rnd: () => number,
   prev: Params,
   locked: ReadonlySet<string> = new Set(),
 ): Params {
-  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, locked)
-  const q = posed ?? randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked)
+  const laast = new Set([...locked, ...FREDA])
+  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, laast)
+  const q = posed ?? randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, laast)
   // Terningen får kaste kva han vil, men krava er summar av fleire tal og
   // eit fritt kast bryt dei oftare enn ikkje. Reparasjonen rører berre
   // ulåste skyvarar, alltid innanfor banda — sjå reparasjon.ts.
-  return applyFix(q, locked, PARAM_RANGES)
+  return applyFix(q, laast, PARAM_RANGES)
 }

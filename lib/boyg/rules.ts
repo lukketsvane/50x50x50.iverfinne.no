@@ -42,6 +42,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: big <= CUBE,
     value: `${mm1(big)} av ${CUBE}`,
     why: "Oppgåva er ein kube på 500 mm. Djupna er summen av to foldar og eit setelaup, og kvar fold kostar radien sin to gonger — det er difor bøyeradiusen og djupna er same skyvar sett frå to sider.",
+    peikar: ["setelop", "foldR", "haleR", "breidd"],
   })
 
   // --- 2 sitjehøgda (hard) ---------------------------------------------------
@@ -52,6 +53,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.sitZ >= SIT_LO && m.sitZ <= SIT_HI,
     value: mm1(m.sitZ),
     why: `NS-EN 1729 set setehøgda for vaksne til ${SIT_LO}–${SIT_HI} mm. Talet er skanna av fanen: det er høgda på den flata som til kvar tid ligg øvst, ikkje på eit punkt i ein parameter.`,
+    peikar: ["hogd"],
   })
 
   // --- 3 bøyeradius (hard) ---------------------------------------------------
@@ -63,6 +65,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: b.minR >= krav - 0.01,
     value: `${nn(b.minR, 0)} mm mot ${nn(krav, 0)}`,
     why: `Ei finérplate sprekk når ho vert bøygd tettare enn nokre titals gonger tjukna si. Pressa er føresetnaden her: med vått lim og trykk får laga gli på kvarandre, og faktoren står på ${nn(p.boyefaktor, 1)}. Det inste skalet ligg rett på forma og er difor det som avgjer — kvart skal utanpå har ein større radius og har det lettare.`,
+    peikar: ["plyT", "boyefaktor", "foldR", "haleR"],
   })
 
   // --- 4 nestinga (hard) -----------------------------------------------------
@@ -73,6 +76,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: b.minGap >= 0.6,
     value: mm1(b.minGap),
     why: "To skal som skjer gjennom kvarandre er ikkje eit møbel. Skala er parallellkurver og held difor lufta si av seg sjølv — men vifta er ei VRIDING oppå, og ho et av lufta i den eine enden av skalet. Meir vifte krev meir klaring.",
+    peikar: ["klaring", "steg", "stegkurve", "klaringfall"],
   })
 
   // --- 5 dybelen finn gods (hard) --------------------------------------------
@@ -83,6 +87,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: b.feil.indexOf("dybel") < 0 && dy.kant >= 1.5 * p.pinnD,
     value: `${nn(dy.kant, 0)} mm kant`,
     why: `Dybelen er den einaste festen i heile møbelet, og han står i ${dy.plan} skjerplan. Han må treffe kvart einaste skal, og hòlet treng gods rundt seg: under halvanna diameter frå enden riv finéren ut i staden for å bera.`,
+    peikar: ["pinnstad", "pinnD", "steg"],
   })
 
   // --- 6 velting (hard) ------------------------------------------------------
@@ -93,6 +98,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.tipAngle >= 12,
     value: `${nn(m.tipAngle, 1)}°`,
     why: "NS-EN 1022. Det er halane som gjer arbeidet: dei ligg bakover og spriker, og kvar millimeter dei når lenger bak er ein millimeter meir vippearm. Ein kort hale under eit djupt sete er nett den feilen denne typologien inviterer til.",
+    peikar: ["haleV", "halevri", "hogd", "steg"],
   })
 
   // --- 7 utkraget (hard) -----------------------------------------------------
@@ -103,6 +109,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.util <= 1,
     value: `${nn(m.util * 100, 0)} %`,
     why: `1600 N etter NS-EN 1728, delt på dei ${m.list.find((q) => q.id === "barande")?.value ?? 1} skala som ligg innanfor sitjebandet. Setet er ei tynn plate mellom to føter, og krona på tvers er det som gjer snittet til eit renne i staden for eit ark — utan henne held det ikkje.`,
+    peikar: ["krone", "plyT", "klaring", "breidd"],
   })
 
   // --- 8 hòltrykk i plata (hard) ---------------------------------------------
@@ -113,6 +120,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: dy.sigmaH <= dy.capH,
     value: `${nn(dy.sigmaH, 1)} av ${nn(dy.capH, 0)} MPa`,
     why: "NS-EN 1995-1-1 (8.36): hòltrykkfastleiken i kryssfinér er 50·t^0,6·d^−0,3. Ein tynn dybel i ei tynn plate gjev lite lager, og då er det ikkje dybelen som ryk — det er hòlet som vert ovalt.",
+    peikar: ["pinnD", "plyT", "skal"],
   })
 
   // --- 9 klemfare (mjuk) -----------------------------------------------------
@@ -124,6 +132,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: !klem,
     value: mm1(p.klaring),
     why: `Ei opning mellom ${KLEM_LO} og ${KLEM_HI} mm tek ein finger og slepper han ikkje att, og her er ho der ${Math.max(0, Math.round(p.skal) - 1)} gonger på rad. Anten skal fanen vera tett nok til at ingen finger kjem inn, eller open nok til at han kjem ut att.`,
+    peikar: ["klaring"],
   })
 
   // --- 10 rasling (mjuk) -----------------------------------------------------
@@ -134,6 +143,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: p.klaring >= 1.6,
     value: mm1(p.klaring),
     why: "Under halvannan millimeter er ikkje luft, det er toleranse. Skala kjem til å røre kvarandre i ein flekk og hoppe frå flekk til flekk når nokon set seg — ein krakk som klikkar. Anten skal dei bera på kvarandre heilt, eller gå heilt klar.",
+    peikar: ["klaring"],
   })
 
   // --- 11 sprett attende (mjuk) ----------------------------------------------
@@ -144,6 +154,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: p.sprett <= 5,
     value: `${nn(p.sprett, 1)}° · form ${nn(p.foldV + p.sprett, 0)}°`,
     why: `Eit skal slepper forma og rettar seg nokre grader ut att. Forma må difor overbøyast: skal folden stå på ${nn(p.foldV, 0)}°, må forma skjerast til ${nn(p.foldV + p.sprett, 0)}°. Over fem grader er spriket så stort at to skal ikkje kjem like ut av same press, og då finst det ikkje ei nesting lenger.`,
+    peikar: ["sprett"],
   })
 
   // --- 12 finéroppbygget (mjuk) ----------------------------------------------
@@ -155,6 +166,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: lag % 2 === 1 && lag >= 5,
     value: `${lag} lag à ${nn(p.finer, 1)} mm`,
     why: "Eit balansert oppbygg har ULIKE tal lag, so kryssbindinga er symmetrisk om midtlaget — eit partal lag skeivar seg når trekket skiftar. Og under fem lag finst det ikkje nok kryss til at plata er kryssfinér i det heile.",
+    peikar: ["finer", "plyT"],
   })
 
   // --- 13 dybelen står rett (mjuk) -------------------------------------------
@@ -165,6 +177,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: dy.skeiv <= 12,
     value: `${nn(dy.skeiv, 1)}°`,
     why: "Dybelen er ei rett line gjennom ein bøygd stabel. Han står vinkelrett på det midtre skalet og skeivare og skeivare utover; over tolv grader er hòlet så ovalt at det må borast med mal og ikkje med hand.",
+    peikar: ["steg", "stegkurve", "pinnstad"],
   })
 
   // --- 14 sitjeflate (mjuk) --------------------------------------------------
@@ -176,6 +189,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: seatMin >= 300,
     value: mm1(seatMin),
     why: "Under 300 mm på den korte leia sit ein på kanten. Djupna er skanna, ikkje sett: ho er den samanhengande strekninga der oversida ligg i toppbandet og er flatare enn 28 grader — resten er skråning.",
+    peikar: ["breidd", "setelop", "setekrum", "breiddfall"],
   })
 
   // --- 15 støtteflate (mjuk) -------------------------------------------------
@@ -186,6 +200,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.footArea >= 80000,
     value: `${nn(m.footArea / 100, 0)} cm²`,
     why: "Under 800 cm² står møbelet på for lite, same kva veltevinkelen seier. Saleskjeringa er skyvaren: ein ende kappa tvert av står på ein kant av finér, ein ende kappa i golvplanet ligg med heile flata si.",
+    peikar: ["sale", "breidd", "haleV", "steg"],
   })
 
   // --- 16 plater (mjuk) ------------------------------------------------------
@@ -196,6 +211,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: ns.sheets.length <= 3,
     value: `${ns.sheets.length} × 2500 × 1250`,
     why: "Blankettane er lange strimler og legg seg godt på plate, men dei er ikkje like: kvart skal utanpå det førre er lengre. Over tre plater er fanen for stor eller skala for breie til at det er ei kuttfil lenger.",
+    peikar: ["skal", "breidd", "setelop"],
   })
 
   // --- 17 masse (mjuk) -------------------------------------------------------
@@ -206,6 +222,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: m.mass <= 11,
     value: `${nn(m.mass, 2)} kg`,
     why: "Ein pressbøygd krakk skal kunne lyftast med ei hand. Godset er tynt av natur her, so over elleve kilo tyder at skala er for mange eller for breie — ikkje at plata er for tjukk.",
+    peikar: ["skal", "breidd", "plyT"],
   })
 
   // --- 18 forma (mjuk) -------------------------------------------------------
@@ -223,6 +240,7 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: spenn <= 2.6,
     value: `${nn(spenn, 2)} × frå inst til ytst`,
     why: "Alle skala kjem av same form med innlegg imellom. Vert det ytste skalet meir enn tre gonger så late i folden som det inste, ser dei ikkje lenger ut som same familie — og då er det to former og ikkje éi.",
+    peikar: ["foldR", "klaring", "skal", "plyT"],
   })
 
   // --- 19 materialet (mjuk) --------------------------------------------------
@@ -233,6 +251,17 @@ export function checkRules(p: Params, m: Metrics): Rule[] {
     ok: p.material !== "poppel",
     value: MATERIALS[p.material as keyof typeof MATERIALS].label,
     why: "Poppelkjerne er lett, men han er òg mjuk i hòlet, og her går heile lasta gjennom éin dybel i eitt hòl per skal. Bjørk og bøk toler lageret.",
+  })
+
+  // --- plateutnytting (mjuk) -------------------------------------------------
+  add({
+    id: "plateutnytting",
+    label: "plateutnytting",
+    hard: false,
+    ok: m.sheetUtil >= 0.38,
+    value: `${nn(m.sheetUtil * 100, 0)} %`,
+    why: "Blankettar er lange rektangel og nestar betre enn noka anna typologi her — det er ein av grunnane til at pressbøying finst. Under 38 prosent kastar breidda og fanen meir enn forma treng.",
+    peikar: ["breiddfall", "breidd", "skal", "skulder"],
   })
 
   return out

@@ -29,7 +29,6 @@
 import {
   CUBE,
   MATERIALS,
-  SEAT_LOAD,
   armToHull,
   capacities,
   hull,
@@ -43,7 +42,9 @@ import {
   type Pt,
   keep,
 } from "../core"
-import { crossings, makeBody, spans, type Body } from "./body"
+import { makeBody, type Body } from "./body"
+import { lastProfil, snittMaskin } from "./last"
+import { nest } from "./nest"
 import { buildParts, type Build } from "./parts"
 import { buildMesh, DETAIL } from "./surface"
 import type { Params } from "./params"
@@ -55,18 +56,6 @@ const SIT_BAND = 0.62
 
 export type Prebuilt = { body?: Body; build?: Build }
 
-type Seg = {
-  /** vassrett tverrsnitt av stykket, mm² */
-  dA: number
-  x: number
-  y: number
-  /** retning og halve lengder for eige andremoment */
-  ux: number
-  uy: number
-  L: number
-  w: number
-}
-
 const MAAL_NETT = keep<ReturnType<typeof buildMesh>>(2)
 
 export function measure(p: Params, pre: Prebuilt = {}): Metrics {
@@ -74,7 +63,7 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   const B = pre.build ?? buildParts(bd)
   const mat: Material = (p.material as Material) in MATERIALS ? (p.material as Material) : "bjork"
   const { capC, capM, rho } = capacities(mat)
-  const { cosA, e1 } = bd.frame
+  const { cosA } = bd.frame
 
   // --- ytre mål -----------------------------------------------------------
   // Midtre detaljnivå: boksen er den same på «lav» som på «hog» til under
@@ -182,145 +171,17 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   const tipAngle = (Math.atan2(tipArm, Math.max(seatZ, 1e-6)) * 180) / Math.PI
 
   // --- snittet gjennom det som verkeleg er material -----------------------
-  const zS0 = 2 * p.sokkelT
-  const zS1 = bd.H - 4 * p.kappeT
-  /** kva høgder kvart skiveplan har eit stykke som vart ståande */
-  const alive = new Map<number, [number, number][]>()
-  B.fins.forEach((q) => {
-    const cur = alive.get(q.plane)
-    if (cur) cur.push([q.zLo, q.zHi])
-    else alive.set(q.plane, [[q.zLo, q.zHi]])
-  })
-
-  /** dei vassrette stykka i eit snitt, som rektangel */
-  const cut = (z: number): Seg[] => {
-    const out: Seg[] = []
-    const vp = bd.voidPoly(z, 160)
-    if (z > zS0 && z < zS1) {
-      const poly = bd.sectionPoly(z, 160)
-      // finnesona: berre finnane ber, og kvar finne er eit rektangel på
-      // tvers av rekkja — tjukna i planet er tjukna delt på cosinus til
-      // skråstillinga, av di snittet gjennom ei skrå plate er breiare enn
-      // plata
-      const w = p.finneT / cosA
-      bd.planes.forEach((u, k) => {
-        const runs = alive.get(k)
-        if (!runs || !runs.some((r) => z >= r[0] - 0.5 && z <= r[1] + 0.5)) return
-        const b = bd.bOf(u, z)
-        const o = bd.toWorld(u, 0, b)
-        let seg = spans(crossings(poly, o[0], o[1], e1[0], e1[1]))
-        if (vp) {
-          const inn = spans(crossings(vp, o[0], o[1], e1[0], e1[1]))
-          if (inn.length) {
-            const a = inn[0][0]
-            const c = inn[inn.length - 1][1]
-            const nx: [number, number][] = []
-            for (const s of seg) {
-              if (c <= s[0] || a >= s[1]) nx.push(s)
-              else {
-                if (a > s[0]) nx.push([s[0], a])
-                if (c < s[1]) nx.push([c, s[1]])
-              }
-            }
-            seg = nx
-          }
-        }
-        for (const s of seg) {
-          const m = (s[0] + s[1]) / 2
-          const q = bd.toWorld(u, m, b)
-          out.push({
-            dA: (s[1] - s[0]) * w,
-            x: q[0],
-            y: q[1],
-            ux: e1[0],
-            uy: e1[1],
-            L: s[1] - s[0],
-            w,
-          })
-        }
-      })
-      return out
-    }
-    // sokkel- og kappesona: heile snittet ber, men over botnen av salen er
-    // det berre det som ligg under den freste flata som finst
-    const c = bd.ctr(z)
-    const NR = 10
-    for (let i = 0; i < 180; i++) {
-      const th = (i / 180) * TAU
-      const dth = TAU / 180
-      const ro = bd.ro(th, z)
-      const riv = bd.ri(th, z)
-      const dr = (ro - riv) / NR
-      if (!(dr > 0)) continue
-      for (let k = 0; k < NR; k++) {
-        const r = riv + (k + 0.5) * dr
-        const x = c[0] + r * Math.cos(th)
-        const y = c[1] + r * Math.sin(th)
-        if (z > bd.seatTop(x, y)) continue
-        const dA = r * dr * dth
-        out.push({ dA, x, y, ux: 1, uy: 0, L: 0, w: 0 })
-      }
-    }
-    return out
-  }
-
-  const stress = (z: number) => {
-    const segs = cut(z)
-    let A = 0
-    let gx = 0
-    let gy = 0
-    for (const s of segs) {
-      A += s.dA
-      gx += s.x * s.dA
-      gy += s.y * s.dA
-    }
-    if (!(A > 1)) return null
-    gx /= A
-    gy /= A
-    const ex = cs[0] - gx
-    const ey = cs[1] - gy
-    const e = Math.hypot(ex, ey)
-    let W = 0
-    if (e > 1e-6) {
-      const ux = ex / e
-      const uy = ey / e
-      let I = 0
-      let c = 0
-      for (const s of segs) {
-        const d = (s.x - gx) * ux + (s.y - gy) * uy
-        // eige andremoment om tyngdepunktet sitt: rektangelet ligg med
-        // lengda langs rada og breidda på tvers av henne
-        const a1 = (s.ux * ux + s.uy * uy) * s.L
-        const a2 = (-s.uy * ux + s.ux * uy) * s.w
-        I += s.dA * (d * d + (a1 * a1 + a2 * a2) / 12)
-        const far = Math.abs(d) + (Math.abs(a1) + Math.abs(a2)) / 2
-        if (far > c) c = far
-      }
-      W = c > 1e-6 ? I / c : 0
-    }
-    const sc = SEAT_LOAD / A
-    const sm = W > 0 ? (SEAT_LOAD * e) / W : 0
-    return { z, A, sc, sm, util: sc / capC + sm / capM }
-  }
-
-  let worst: ReturnType<typeof stress> = null
-  const NS = 72
-  for (let i = 0; i <= NS; i++) {
-    const q = stress((i / NS) * (bd.H - 4 * p.kappeT))
-    if (q && (!worst || q.util > worst.util)) worst = q
-  }
-  if (worst) {
-    const h = (bd.H - 4 * p.kappeT) / NS
-    for (let i = -6; i <= 6; i++) {
-      const q = stress(Math.max(0.5, worst.z + (i * h) / 6))
-      if (q && q.util > worst.util) worst = q
-    }
-  }
-  const minSecArea = worst ? worst.A : 0
-  const minSecZ = worst ? worst.z : 0
-  const sigmaC = worst ? worst.sc : Infinity
-  const sigmaM = worst ? worst.sm : 0
-  const util = worst ? worst.util : Infinity
+  // Maskineriet bur i last.ts og tener tavla, volumintegralet og
+  // lastkartet med SAME snitta — difor kan ikkje kartet og tavla seie
+  // kvar sitt tal.
+  const mask = snittMaskin(p, bd, B)
+  const lp = lastProfil(mask, bd.H, p.kappeT)
+  const worst = lp.verste
+  const minSecArea = worst.A
+  const minSecZ = worst.z
+  const sigmaC = worst.sc
+  const sigmaM = worst.sm
+  const util = worst.util
 
   // --- volum og tyngdepunkt -----------------------------------------------
   // Same snittet, integrert over høgda. Det er den einaste ærlege massen
@@ -332,16 +193,16 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     if (!(z1 - z0 > 0.5)) return
     for (let i = 0; i < n; i++) {
       const z = z0 + ((z1 - z0) * (i + 0.5)) / n
-      const segs = cut(z)
+      const segs = mask.cut(z)
       let A = 0
       for (const s of segs) A += s.dA
       volume += (A * (z1 - z0)) / n
       mom += (A * z * (z1 - z0)) / n
     }
   }
-  band(0, zS0, 8)
-  band(zS0, zS1, 120)
-  band(zS1, bd.H, 24)
+  band(0, mask.zS0, 8)
+  band(mask.zS0, mask.zS1, 120)
+  band(mask.zS1, bd.H, 24)
   const comZ = volume > 0 ? mom / volume : 0
   const mass = (volume * rho) / 1e9
 
@@ -354,10 +215,19 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   }
   for (const q of B.fins) legs += q.legs
 
+  // --- plata ----------------------------------------------------------------
+  // Avfallsrekninga på arket. Nemnaren er den stripa av arka som faktisk
+  // går gjennom maskina — breidda gonger brukt lengd, summert — same
+  // rekning som i dei andre motorane, så talet kan samanliknast.
+  const nst = nest(B.parts)
+  const sheetArea = nst.sheets.reduce((s, q) => s + q.used * q.w, 0)
+  const sheetUtil = sheetArea > 0 ? nst.used / sheetArea : 0
+
   const mm = (v: number) => nn(v, 0)
   const mm1 = (v: number) => nn(v, 1)
   const cm2 = (v: number) => nn(v / 100, 0) + " cm²"
   const dm3 = (v: number) => nn(v / 1e6, 2) + " dm³"
+  const m2 = (v: number) => nn(v / 1e6, 2) + " m²"
   const pct = (v: number) => nn(v * 100, 0) + " %"
   const kg = (v: number) => nn(v, 2)
   const mpa = (v: number) => nn(v, 2)
@@ -399,6 +269,9 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     ["gap", "luft mellom finnane", bd.pitch * cosA - p.finneT, "mm", mm1],
     ["slot", "sporbreidd i planet", p.finneT / cosA + p.pressfit, "mm", mm1],
     ["parts", "delar", B.parts.length, "stk", mm],
+    ["sheets", "plater", nst.sheets.length, "stk", mm],
+    ["sheetArea", "plate medgått", sheetArea, "mm²", m2],
+    ["sheetUtil", "plateutnytting", sheetUtil, "", pct],
     ["plyArea", "finérareal", plyArea, "mm²", cm2],
     ["volume", "godsvolum", volume, "mm³", dm3],
     ["solid", "kroppen som massiv", solidVol, "mm³", dm3],
@@ -440,6 +313,9 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     massCut,
     parts: B.parts.length,
     plyArea,
+    sheets: nst.sheets.length,
+    sheetArea,
+    sheetUtil,
     units: B.fins.length,
     unitLabel: "finnar",
     list,

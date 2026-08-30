@@ -17,7 +17,9 @@ import {
   poseBag,
   randomBag,
   type Group,
+  type Hovuddrag,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 // body.ts importerer berre TYPEN Params herifrå, so importen er asyklisk
@@ -183,9 +185,14 @@ export const DEFAULT_PARAMS: Params = {
   framkant: 6,
   kantR: 12,
 
-  finneT: 9,
-  sokkelT: 12,
-  kappeT: 12,
+  // Ni og tolv millimeter bar tolv gonger lasta utan at nokon hadde
+  // spurt: åtte og ti held kvar einaste regel og sparer nesten kiloen —
+  // plata inn fell frå 27 til 23 kubikkdesimeter. Modellen reknar ikkje
+  // knekking, so botnen av banda (6 og 8) får stå urørd: dette er
+  // sparsemd med tryggingsmon, ikkje eit kappløp mot minimum.
+  finneT: 8,
+  sokkelT: 10,
+  kappeT: 10,
   pressfit: 0.15,
   fresD: 6,
   material: "bjork",
@@ -226,19 +233,34 @@ export const GROUPS: readonly Group[] = [
 
 export const PARAM_KEYS: readonly string[] = GROUPS.flatMap((g) => [...g.keys])
 
-/** Kuraterte posar: tre handdesigna utgangspunkt terningen jittrar kring. */
+/** Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring.
+ *  Tjuknene i kvar pose er målte, ikkje arva: kvar pose stoggar eitt steg
+ *  før den regelen som faktisk bit (spor mot plate for dei fleste,
+ *  klemfare for dokumentobjektet), med golv på finneT 7 og plater 8,5 —
+ *  modellen reknar ikkje knekking, so botnen av banda står urørd. */
 export const POSES: readonly Partial<Params>[] = [
-  // vridd søyle
-  { vridFot: -60, vridSete: 60, finnar: 11, skraa: 18 },
-  // timeglas
-  { midjeB: 110, midjeD: 80, seteB: 430, seteD: 400, fotB: 400, fotD: 380, morfNed: 6, morfOpp: 3 },
+  // vridd søyle: eit kvadratisk prisme (morf 7/7) der vridinga les i
+  // kantane — før var ho berre standardsilhuetten med større vriding
+  {
+    vridFot: -70, vridSete: 70, morfNed: 7, morfOpp: 7,
+    seteB: 380, seteD: 380, fotB: 370, fotD: 370, midjeB: 250, midjeD: 250,
+    finnar: 11, skraa: 16, veggT: 30, tomFra: 0.05, tomTil: 0.89,
+    finneT: 7.5, sokkelT: 8.5, kappeT: 8.5,
+  },
+  // timeglas: vridinga null med vilje — det reine, symmetriske
+  // dobbeltkjegle-glaset, ikkje standarden med anna midje
+  {
+    vridFot: 0, vridSete: 0, midjeB: 110, midjeD: 80, seteB: 430, seteD: 400,
+    fotB: 400, fotD: 380, morfNed: 6, morfOpp: 3, sokkelT: 9, kappeT: 9,
+  },
   // dokumentobjektet: tett og mjukt — delinga pressa UNDER fingermålet
   // med ein finare fres, og ei fyldigare midje so plana ikkje deler seg
-  // i fleire lause stykke enn verkstaden orkar setje i
+  // i fleire lause stykke enn verkstaden orkar setje i. finneT 9 er
+  // golvet her: 8,5 opnar spalta til 5,4 mm og inn i fingerbandet.
   {
     finnar: 29, veggT: 28, skraa: 8, vridFot: -10, vridSete: 25,
     seteB: 400, seteD: 350, fotB: 360, fotD: 330, midjeB: 240, midjeD: 200,
-    fresD: 3,
+    fresD: 3, finneT: 9,
   },
   // amfora: buken sit over midja og er breiare enn både munning og fot —
   // ni plan so lufta mellom finnane står klar av fingerbandet, og midja
@@ -246,6 +268,7 @@ export const POSES: readonly Partial<Params>[] = [
   {
     mage: 76, mageH: 0.7, midjeB: 140, midjeD: 110, seteB: 360, seteD: 345,
     fotB: 310, fotD: 300, finnar: 9, morfOpp: 3,
+    finneT: 7, sokkelT: 8.5, kappeT: 8.5,
   },
   // diagonaltrauet: salen vridd 50 grader ut av verdsaksane, so trauet går
   // frå hjørne til hjørne og ikkje på tvers. Setet er kvadratisk nettopp
@@ -258,11 +281,51 @@ export const POSES: readonly Partial<Params>[] = [
     seteB: 430, seteD: 430, fotB: 345, fotD: 345, midjeB: 205, midjeD: 205,
     veggT: 40, finnar: 13, skraa: 6, vridFot: 0, vridSete: 22,
     morfNed: 4, morfOpp: 2.6, tomskyv: 12, tomretning: 50,
+    finneT: 7.5, sokkelT: 8.5, kappeT: 8.5,
+  },
+  // heilarket: skrå null, pressfit null, éi tjukn — kvar del av SAME
+  // åtte millimeter plate, og heile møbelet av EITT ark. Det eksakte
+  // sporet er friksjonsfuga: fresen sitt kutt gjev klaringa.
+  {
+    skraa: 0, pressfit: 0, finneT: 8, sokkelT: 8, kappeT: 8,
+    vridFot: 0, vridSete: 0, finnar: 10, seteB: 400, seteD: 380,
+    fotB: 360, fotD: 340, midjeB: 220, midjeD: 190, morfNed: 2.6, morfOpp: 2.2,
+  },
+  // tua: låg og brei — 470-kanalar mot kubeveggen, sitjehøgd kring 400 og
+  // veltevinkel 28,5° — det trygge, jordnære hjørnet av rommet
+  {
+    hogd: 410, salsokk: 20, sidesokk: 8, kantR: 22,
+    seteB: 470, seteD: 470, fotB: 470, fotD: 470, midjeB: 330, midjeD: 300,
+    morfNed: 3.4, morfOpp: 2.2, finnar: 12, skraa: 10, veggT: 26,
+    tomFra: 0.045, tomTil: 0.92, finneT: 7.5, sokkelT: 8.5, kappeT: 8.5,
   },
 ]
 
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = [
+  "vridd søyle", "timeglas", "dokumentobjektet", "amfora",
+  "diagonaltrauet", "heilarket", "tua",
+]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag: bag as Pose["bag"],
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["hogd", 1]] },
+  { id: "midje", label: "midje", keys: [["midjeB", 1], ["midjeD", 1]] },
+  { id: "sete", label: "sete", keys: [["seteB", 1], ["seteD", 1]] },
+  { id: "vriding", label: "vriding", keys: [["vridSete", 1]] },
+  { id: "skraa", label: "skråstilling", keys: [["skraa", 1]] },
+  { id: "finnar", label: "skiveplan", keys: [["finnar", 1]] },
+]
+
 /** Kva to-fingers-rulling på lerretet skrur på. */
-export const NUDGE_PARAMS = { vertical: "midjeB", horizontal: "skraa" }
+export const NUDGE_PARAMS = { vertical: "midjeB", horizontal: "skraa", pinch: "seteB" }
 
 export function clampParams(o: unknown, prev: Params): Params {
   return clampBag(o, prev as unknown as ParamBag, PARAM_RANGES, PARAM_KEYS) as unknown as Params
@@ -401,11 +464,16 @@ function repair(q: Params, locked: ReadonlySet<string>): Params {
   return q
 }
 
+/** produksjonsval, ikkje form: tjukner og innpassing vel ein etter plata
+ *  og maskina ein faktisk har — terningen rører dei aldri */
+const FREDA = ["finneT", "sokkelT", "kappeT", "pressfit", "fresD"] as const
+
 export function randomParams(
   rnd: () => number,
   prev: Params,
-  locked: ReadonlySet<string> = new Set(),
+  laastInn: ReadonlySet<string> = new Set(),
 ): Params {
+  const locked = new Set([...laastInn, ...FREDA])
   const posed = poseBag(
     rnd,
     prev as unknown as ParamBag,

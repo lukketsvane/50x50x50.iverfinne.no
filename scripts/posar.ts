@@ -1,70 +1,33 @@
 /**
  * Poseprøva: kvar kuratert pose i KVAR motor skal halde ALLE reglane —
- * harde og mjuke. Posane er ansikta utetter; annakvar terningkast startar
- * i ein av dei, og ein pose som bryt ei regel er eit dårleg fyrsteinntrykk
- * terningen aldri skulle ha fått dele ut.
+ * harde og mjuke. Posane er ansikta utetter; dei står som inngangar i
+ * panelet, og annakvar terningkast startar i ein av dei. Ein pose som
+ * bryt ei regel er eit dårleg fyrsteinntrykk.
+ *
+ * Namna kjem frå motoren sjølv (`poses` i kontrakten) — same liste som
+ * panelet syner, so det som vert prøvd her er nøyaktig det brukaren ser.
  *
  *   npx tsx scripts/posar.ts          alle motorar
- *   npx tsx scripts/posar.ts skive    berre éin
+ *   npx tsx scripts/posar.ts vaffel   berre éin
  */
 import { ALLE_MOTORAR as ENGINES } from "../lib/engines.ts"
-import { POSES as VAFFEL_POSES } from "../lib/vaffel/params.ts"
-import { POSES as SKIVE_POSES } from "../lib/skive/params.ts"
-import { POSES as STRAUM_POSES } from "../lib/straum/params.ts"
-import { POSES as RIBBE_POSES } from "../lib/ribbe/params.ts"
-import { POSES as KOTE_POSES } from "../lib/kote/params.ts"
-import { POSES as KARVE_POSES } from "../lib/karve/params.ts"
-import { POSES as FLETT_POSES } from "../lib/flett/params.ts"
-import { POSES as BOYG_POSES } from "../lib/boyg/params.ts"
-
-const POSAR: Record<string, readonly Record<string, number | string>[]> = {
-  vaffel: VAFFEL_POSES as never,
-  skive: SKIVE_POSES as never,
-  straum: STRAUM_POSES as never,
-  ribbe: RIBBE_POSES as never,
-  kote: KOTE_POSES as never,
-  karve: KARVE_POSES as never,
-  flett: FLETT_POSES as never,
-  boyg: BOYG_POSES as never,
-}
-
-const NAMN: Record<string, readonly string[]> = {
-  vaffel: [
-    "tett rutenett", "mjuk sylinder", "nesten kube", "timeglas", "portalbenken",
-    "lågryggstolen", "lenekrakken",
-  ],
-  skive: [
-    "grotta", "benken", "stolen", "den lette", "vifta", "vengene", "spent",
-    "pidestallen", "akvedukten", "sleden", "orgelet", "kvilestolen",
-  ],
-  straum: ["vridd søyle", "timeglas", "dokumentobjektet", "amfora", "diagonaltrauet"],
-  ribbe: ["vridd", "timeglas", "sopp", "krysset", "blomen"],
-  kote: ["skruen", "sokkelen", "kløveren", "porten", "trakta", "kotekartet"],
-  karve: ["kløveren", "sommarfuglen", "trefoten", "steinen", "trakta", "kassa"],
-  flett: [
-    "toskaftet", "ripsen", "korga", "bogekrakken",
-    "fire bein og fire rammer", "lenestolen", "slakken", "omslaget",
-  ],
-}
 
 const berre = process.argv[2]
 let fails = 0
 
 for (const eng of ENGINES) {
   if (berre && eng.id !== berre) continue
-  const poses = POSAR[eng.id] ?? []
   console.log(`== ${eng.id.toUpperCase()} ==`)
-  poses.forEach((pose, i) => {
-    const namn = NAMN[eng.id]?.[i] ?? `pose ${i}`
-    const p = eng.clamp({ ...eng.defaults, ...pose }, eng.defaults)
+  eng.poses.forEach((pose) => {
+    const p = eng.clamp({ ...eng.defaults, ...pose.bag }, eng.defaults)
     const m = eng.measure(p)
     const rules = eng.rules(p, m)
     const broken = rules.filter((r) => !r.ok)
     if (broken.length) {
       fails++
-      console.log(`  FEIL ${namn}: ${broken.map((r) => `${r.id}=${r.value}`).join(", ")}`)
+      console.log(`  FEIL ${pose.namn}: ${broken.map((r) => `${r.id}=${r.value}`).join(", ")}`)
     } else {
-      console.log(`  ok   ${namn}   ${m.mass.toFixed(1)} kg · ${m.tipAngle.toFixed(0)}° · ${m.units} ${eng.unitLabel}`)
+      console.log(`  ok   ${pose.namn}   ${m.mass.toFixed(1)} kg · ${m.tipAngle.toFixed(0)}° · ${m.units} ${eng.unitLabel}`)
     }
   })
 }

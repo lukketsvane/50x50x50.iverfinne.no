@@ -23,6 +23,7 @@
  */
 import { makeShell, planArcs, wrapPi, type Shell } from "./field"
 import { buildStack, type Stack, type Pt } from "./laminae"
+import { nest } from "./nest"
 import { buildMesh, DETAIL, type MeshData } from "./surface"
 import { CUBE, MATERIALS, type Params } from "./params"
 import { keep, type Metrics as Core } from "../core"
@@ -323,6 +324,11 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   const massCut = st.mass
   const mass = (volume * MATERIALS[p.material].rho) / 1e9
 
+  // --- plata -----------------------------------------------------------------
+  // Avfallsrekninga på arket: kva stabelen tek av plate når han vert nesta.
+  const ns = nest(st)
+  const sheetArea = ns.sheetW * ns.usedLen
+
   // --- velting -------------------------------------------------------------
   // Lasta kjem inn ved setet, ikkje ved objektet sitt eige tyngdepunkt: ein
   // person på 80 kg gjer dei seks kiloa i krakken til avrunding, og då er
@@ -488,6 +494,7 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
   const cm2 = (v: number) => nn(v / 100, 0) + " cm²"
   const dm3 = (v: number) => nn(v / 1e6, 2) + " dm³"
   const pct = (v: number) => nn(v * 100, 0) + " %"
+  const m2 = (v: number) => nn(v / 1e6, 2) + " m²"
   const kg = (v: number) => nn(v, 2)
   const mpa = (v: number) => nn(v, 2)
 
@@ -525,6 +532,9 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
 
     { id: "layers", label: "lag", value: st.count, unit: "stk", fmt: mm },
     { id: "parts", label: "delar", value: st.parts, unit: "stk", fmt: mm },
+    { id: "sheets", label: "plater", value: ns.sheets.length, unit: "stk", fmt: mm },
+    { id: "sheetArea", label: "plate medgått", value: sheetArea, unit: "mm²", fmt: m2 },
+    { id: "sheetUtil", label: "plateutnytting", value: ns.util, unit: "", fmt: pct },
     { id: "plyArea", label: "finérareal", value: st.area, unit: "mm²", fmt: cm2 },
     { id: "volume", label: "godsvolum", value: volume, unit: "mm³", fmt: dm3 },
     { id: "massCut", label: "masse som kutta", value: massCut, unit: "kg", fmt: kg },
@@ -576,6 +586,9 @@ export function measure(p: Params, pre: Prebuilt = {}): Metrics {
     layers: st.count,
     parts: st.parts,
     plyArea: st.area,
+    sheets: ns.sheets.length,
+    sheetArea,
+    sheetUtil: ns.util,
     volume,
     comZ,
     finRise,

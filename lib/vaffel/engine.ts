@@ -20,23 +20,31 @@ import type {
   ParamBag,
   Vec3,
   View,
+  Maskin,
 } from "../core"
 import type { Material } from "../core"
+import { LASER } from "../core"
+import { skalerDelar } from "../nestraster"
 import { meshToStl } from "../skal/export-stl"
 import { makeBody } from "./body"
 import { buildGrid } from "./ribs"
 import { DETAIL, contourLines, lagMesh, shellMesh } from "./mesh"
 import { measure } from "./metrics"
+import { feltPaMesh, lastVerste } from "./last"
+import { lastForm } from "./lastform"
+import { finmaskNett } from "../lastnett"
 import { checkRules } from "./rules"
 import { buildParts } from "./parts"
 import { nest } from "./nest"
 import { partsToDxf } from "./export-dxf"
-import { profileSvg, sheetSvg } from "./export-svg"
+import { alleArkSvg, profileSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
   GROUPS,
+  HOVUDDRAG,
   NUDGE_PARAMS,
   PARAM_KEYS,
+  POSAR,
   PARAM_RANGES,
   clampParams,
   randomParams,
@@ -58,7 +66,12 @@ export const VAFFEL: EngineDef = {
   keys: PARAM_KEYS,
   defaults: DEFAULT_PARAMS as unknown as ParamBag,
   nudge: NUDGE_PARAMS,
+  poses: POSAR,
+  hovuddrag: HOVUDDRAG,
   unitLabel: "ribber",
+  // lastkartet: VAFFEL er svaret prosjektet landar på, og han svarar fyrst
+  kanLast: true,
+  lastForm: (bag) => lastForm(asP(bag)) as unknown as ParamBag,
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
   random: (rnd, prev, locked) =>
@@ -80,6 +93,25 @@ export const VAFFEL: EngineDef = {
     if (view === "lag") {
       const m = lagMesh(g)
       return { ...m, lines: EMPTY(), heavy: EMPTY() }
+    }
+
+    if (view === "last") {
+      // Lastkartet: same nett som «lag», FINMASKA — store flate trekantar
+      // smører hjørnefargane lineært diagonalt over flata, og då synte
+      // kartet interpolasjonen i staden for feltet. Utnyttinga per hjørne
+      // attåt; modellen står i last.ts og er den same som measure brukar.
+      const m0 = lagMesh(g)
+      const m = { ...m0, ...finmaskNett(m0) }
+      // Ankeret er det analytiske maksimumet, ikkje hjørna sitt: hjørna
+      // samplar og glattar smale toppar, og fargane skal strekkjast mot
+      // det talet tavla faktisk viser.
+      return {
+        ...m,
+        felt: feltPaMesh(g, m.positions),
+        feltTak: lastVerste(g).util,
+        lines: EMPTY(),
+        heavy: EMPTY(),
+      }
     }
 
     // Konturteikninga legg ribbene flatt ved sida av kvarandre og fyller
@@ -115,7 +147,7 @@ export const VAFFEL: EngineDef = {
   measure: (bag) => measure(asP(bag)),
   rules: (bag, m) => checkRules(asP(bag), m),
 
-  exportFile(bag: ParamBag, what: ExportKind): ExportOut {
+  exportFile(bag: ParamBag, what: ExportKind, maskin?: Maskin): ExportOut {
     const p = asP(bag)
     const b = makeBody(p)
     if (what === "stl") {
@@ -130,11 +162,21 @@ export const VAFFEL: EngineDef = {
     if (what === "svg") {
       return { name: "vaffel-profilar.svg", mime: "image/svg+xml", text: profileSvg(g) }
     }
-    const pl = buildParts(g, p.material as Material)
-    const ns = nest(pl.parts)
-    if (what === "ark") {
-      return { name: "vaffel-ark1.svg", mime: "image/svg+xml", text: sheetSvg(ns, 0) }
+    if (what === "arksyn") {
+      // biletet i panelet: same pakking som measure las — sjå ExportKind
+      const ns = nest(buildParts(g, p.material as Material).parts)
+      return { name: "vaffel-ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
     }
-    return { name: "vaffel.dxf", mime: "application/dxf", text: partsToDxf(ns, p.ribbT) }
+    // laseren: heile geometrien i modellskala tjukn/ribbT, so spora
+    // framleis passar plata — nesta på lasersenga med laserluft
+    const laser = maskin?.id === "laser" ? maskin : null
+    const s = laser ? laser.tjukn / p.ribbT : 1
+    const pl = buildParts(g, p.material as Material)
+    const ns = nest(skalerDelar(pl.parts, s), laser ? { ...LASER, tett: true } : { cell: 4, tett: true })
+    const merk = laser ? "-laser" : ""
+    if (what === "ark") {
+      return { name: "vaffel-" + ns.sheets.length + "ark" + merk + ".svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
+    }
+    return { name: "vaffel" + merk + ".dxf", mime: "application/dxf", text: partsToDxf(ns, laser ? laser.tjukn : p.ribbT) }
   },
 }

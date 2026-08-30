@@ -25,6 +25,27 @@ const path = (pts: Pt[]) =>
  * det: delen som ligg nede til venstre på plata skal liggja nede til
  * venstre på arket.
  */
+/**
+ * ALLE arka i éi fil, stabla under kvarandre — eit objekt som treng to
+ * plater og berre får ut den fyrste, er eksportert halvt.
+ */
+export function alleArkSvg(n: Nesting): string {
+  const W = n.sheetW
+  const H = n.sheetH
+  const GAP = 60
+  const total = n.sheets.length * (H + GAP) - GAP
+  const out: string[] = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${total}mm" viewBox="0 0 ${W} ${total}">`,
+  ]
+  n.sheets.forEach((_, i) => {
+    const eitt = sheetSvg(n, i)
+    const indre = eitt.slice(eitt.indexOf(">") + 1, eitt.lastIndexOf("</svg>"))
+    out.push(`<g transform="translate(0,${i * (H + GAP)})">${indre}</g>`)
+  })
+  out.push(`</svg>`)
+  return out.join("\n")
+}
+
 export function sheetSvg(n: Nesting, index = 0): string {
   const sheet = n.sheets[Math.min(index, n.sheets.length - 1)]
   if (!sheet) return "<svg xmlns='http://www.w3.org/2000/svg'/>"
@@ -76,18 +97,30 @@ export function profileSvg(sh: Shell, g: Built): string {
     )
   }
 
+  // Høgrekolonnen: ringane øvst, setet under — kvar i sitt eige felt, med
+  // SAME målestokk, so storleiken kan lesast på tvers. Skalaen vert rekna
+  // av det som faktisk skal teiknast, ikkje av eit overslag: før stod
+  // setet med senter femti punkt frå botnen av arket og radius på fleire
+  // hundre millimeter, og då hang det ut av teikninga på kvart einaste
+  // objekt og skar gjennom ringane på vegen.
   const cx = W - 260
-  const cy = 250
-  const rs = Math.min(220 / (rMax + sh.p.bandOut), 1)
+  const ringCy = 190
+  const seatCy = 520
+  const SLOT = 160
+  let ringR = 1
+  for (const bd of g.bands) for (const q of bd.st) ringR = Math.max(ringR, q.b)
+  let seatR = 1
+  for (const q of g.seat.outline) seatR = Math.max(seatR, Math.hypot(q[0], q[1]))
+  const rs = Math.min(SLOT / ringR, SLOT / seatR, 1)
   for (const bd of g.bands) {
     for (const ring of [
-      bd.st.map((q): Pt => [cx + q.b * rs * Math.cos(q.u), cy - q.b * rs * Math.sin(q.u)]),
-      bd.st.map((q): Pt => [cx + q.a * rs * Math.cos(q.u), cy - q.a * rs * Math.sin(q.u)]),
+      bd.st.map((q): Pt => [cx + q.b * rs * Math.cos(q.u), ringCy - q.b * rs * Math.sin(q.u)]),
+      bd.st.map((q): Pt => [cx + q.a * rs * Math.cos(q.u), ringCy - q.a * rs * Math.sin(q.u)]),
     ]) {
       body.push(`<path d="${path(ring)}" fill="none" stroke="#111" stroke-width="0.8"/>`)
     }
   }
-  const so = g.seat.outline.map((q): Pt => [cx + q[0] * rs, cy + 400 - q[1] * rs])
+  const so = g.seat.outline.map((q): Pt => [cx + q[0] * rs, seatCy - q[1] * rs])
   body.push(`<path d="${path(so)}" fill="none" stroke="#111" stroke-width="1.4"/>`)
 
   return [

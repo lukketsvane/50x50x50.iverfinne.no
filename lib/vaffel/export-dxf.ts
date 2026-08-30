@@ -13,13 +13,19 @@
  * fjorten gonger klaringa, og då fell rutenettet frå kvarandre.
  */
 import { shoelace, type Pt } from "../core"
-import type { Part } from "./parts"
-import { placedRings, type Nesting } from "./nest"
+import { placedRings } from "./nest"
+import type { NestDel, Nesting } from "../nestraster"
 
 /** luka mellom arka i uttaket, mm */
 const SHEET_GAP = 200
 
-export function partsToDxf(nesting: Nesting, plyT: number, kerf = 3): string {
+/**
+ * Kuttfila tek ein GENERISK pakking, som kuttarket. Ho rører berre
+ * omrisset, hòla og namnet — det kvar einaste del i sandkassen har — so
+ * ei importert GLB kan skrivast av den same rutina. Sjå kommentaren i
+ * `export-svg.ts`.
+ */
+export function partsToDxf(nesting: Nesting<NestDel>, plyT: number, kerf = 3): string {
   const out: string[] = []
   const h = kerf / 2
   const pitch = nesting.sheetH + SHEET_GAP
@@ -51,16 +57,6 @@ export function partsToDxf(nesting: Nesting, plyT: number, kerf = 3): string {
     }
   })
 
-  out.push("0", "ENDSEC", "0", "EOF")
-  return out.join("\r\n") + "\r\n"
-}
-
-/** ein einskild del i 1:1, til kontroll mot ei ekte plate */
-export function partToDxf(part: Part, kerf = 3): string {
-  const out: string[] = []
-  head(out, 1000, 1000)
-  poly(out, "KUTT", offsetPoly(part.outline, kerf / 2))
-  for (const hole of part.holes) poly(out, "KUTT", offsetPoly(hole, -kerf / 2))
   out.push("0", "ENDSEC", "0", "EOF")
   return out.join("\r\n") + "\r\n"
 }

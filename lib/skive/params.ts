@@ -17,7 +17,9 @@ import {
   randomBag,
   shoelace,
   type Group,
+  type Hovuddrag,
   type ParamBag,
+  type Pose,
   type Range,
 } from "../core"
 import { buildSlices } from "./profile"
@@ -117,39 +119,42 @@ export const GROUPS: readonly Group[] = [
 export const PARAM_KEYS = GROUPS.flatMap((g) => g.keys)
 
 /**
- * Standarden siktar på referansespråket: tretten skiver, tjue millimeter
- * luft, ein låg kuppelrygg som fell av mot sidene, og ei stor opning under
- * setet. Ryggen er låg med vilje — kuben på 500 og sitjehøgdbandet i
- * NS-EN 1729 gjev til saman under 120 mm rygg over setet, og det er nok
- * til ei lend, ikkje til eit skulderblad.
+ * Standarden vart lagd om etter materialrekninga: den gamle var 11 skiver
+ * à 14 mm med 31 mm luft — 11,1 kg, to plater, og 97 % av godset gjorde
+ * ingenting. Denne er 9 skiver à 9 mm med 44 mm luft: 6,8 kg, éi plate,
+ * 49 % av arket vert delar — og grotta, sveipen og grepet les betre av di
+ * lufta får sleppe til. Ryggen er låg med vilje — kuben på 500 og
+ * sitjehøgdbandet i NS-EN 1729 gjev under 120 mm rygg over setet, nok til
+ * ei lend og ikkje eit skulderblad. Standardobjektet er argumentet; han
+ * skal ikkje vera den tyngste versjonen av seg sjølv.
  */
 export const DEFAULT_PARAMS: Params = {
   hogd: 404,
-  djup: 324,
+  djup: 340,
   grop: 16,
   nase: 26,
   setevipp: 0,
 
-  ryggH: 90,
-  ryggV: 13,
+  ryggH: 55,
+  ryggV: 15,
   ryggB: 14,
-  ryggT: 50,
-  grep: 0,
+  ryggT: 70,
+  grep: 42,
 
-  frambein: 112,
-  bakbein: 116,
-  bogeH: 290,
-  bogeN: 2.6,
+  frambein: 100,
+  bakbein: 112,
+  bogeH: 240,
+  bogeN: 2.0,
   mellomfot: 0,
-  flare: 2.2,
+  flare: 2.5,
   bakflare: 0.35,
 
-  skiver: 11,
-  plyT: 14,
-  luft: 31,
+  skiver: 9,
+  plyT: 9,
+  luft: 44,
   luftfall: 0,
-  kuppel: 0.42,
-  sidefall: 10,
+  kuppel: 0.3,
+  sidefall: 4,
   innsving: 0.05,
   bogefall: 0,
   bogedrift: 0,
@@ -161,108 +166,118 @@ export const DEFAULT_PARAMS: Params = {
 
 /**
  * Kuraterte posar: handdesigna utgangspunkt terningen jittrar kring
- * annakvar gong. Grotta er den mørke referansen — bogen krympar og sig på
- * skrå gjennom stabelen; benken er rein og rygglaus; stolen er den blå
- * referansen med høg kuppel; den lette er luft og nesten ingenting anna.
- * Pidestallen, akvedukten og sleden er dei tre nye familiane: sokkelen
- * utan boge, midtfoten som kløyver bogen, og bereholet i ryggen.
- * Kvilestolen er den siste: setet vippa bakover kring nasen, so ryggfoten
- * fell og det vert rom under kubelokket til ein rygg ein kan lena seg mot.
+ * annakvar gong. Åtte i staden for tolv: den nye standarden på 6,7 kg ER
+ * den lette, og fire posar som berre var same bogekrakken med små
+ * variasjonar (spent, vengene, orgelet, sleden) er ute. Rekkjefylgja er
+ * ein boge: tre måtar å sitje (stolen, kvilestolen, benken), so dei fire
+ * strukturfamiliane (akvedukten, grotta, pidestallen, stylta), so vifta.
+ * Kvar pose er slanka i plyT og skiver med lufta som betaling for
+ * breidda, målt i kvart steg — alle åtte står på EITT ark (før stod fem
+ * av tolv på to), med null brot.
  */
 export const POSES: readonly Partial<Params>[] = [
-  // grotta
-  {
-    bogefall: 0.72, bogedrift: 55, bogeH: 320, bogeN: 2.2,
-    skiver: 10, plyT: 14, luft: 34, ryggH: 70, kuppel: 0.15,
-    grop: 20, sidefall: 16, innsving: 0.03, djup: 330,
-  },
-  // benken
-  {
-    ryggH: 0, hogd: 396, djup: 360, frambein: 130, bakbein: 130,
-    bogeH: 300, luft: 36, skiver: 10, plyT: 15, kuppel: 0,
-    sidefall: 18, grop: 24, bogefall: 0.2,
-  },
-  // stolen
+  // stolen: den blå referansen — full rygg på 100 med høg kuppel som dreg
+  // ryggen ned mot sidene til ein dome
   {
     ryggH: 100, hogd: 396, ryggV: 20, ryggB: 24, kuppel: 0.55,
-    skiver: 12, plyT: 13, luft: 28, djup: 330, grop: 14, sidefall: 8,
-  },
-  // den lette
-  {
-    skiver: 8, plyT: 19, luft: 44, bogeH: 320, bogeN: 1.9,
-    frambein: 100, bakbein: 104, ryggH: 60, kuppel: 0.3,
-    innsving: 0.09, stavD: 14,
-  },
-  // vifta: skivene roterte i solfjøs — same kuttfil, heilt anna møbel
-  {
-    vifte: 7, skiver: 12, plyT: 13, luft: 26, ryggH: 80,
-    kuppel: 0.35, grop: 18, djup: 322, bogeH: 290, frambein: 104, bakbein: 106,
-  },
-  // vengene: ryggen STIG ut mot sidene og setet kronar seg
-  {
-    kuppel: -0.45, ryggH: 68, hogd: 396, sidefall: -12,
-    ryggV: 16, skiver: 12, plyT: 14, luft: 27, grop: 22,
-  },
-  // spent: dei ytste skivene er STØRRE — silhuetten spriker som ein gange
-  {
-    innsving: -0.08, djup: 324, hogd: 398, frambein: 100, bakbein: 104,
-    skiver: 11, plyT: 14, luft: 30, ryggH: 74, kuppel: 0.3, bogeH: 300,
-  },
-  // pidestallen: ingen boge — møbelet er ein massiv sokkel av få, tjukke
-  // skiver med mykje luft. Lufta er den einaste opninga som finst.
-  {
-    bogeH: 0, ryggH: 0, skiver: 7, plyT: 12, luft: 58, hogd: 414,
-    djup: 330, grop: 20, sidefall: 14, frambein: 92, bakbein: 92,
-    flare: 0.9, bakflare: 0.05, innsving: 0.1, nase: 20,
-  },
-  // akvedukten: midtfoten kløyver bogen i to — og drifta let han VANDRE
-  // gjennom stabelen, so dei to boga byter storleik frå skive til skive
-  {
-    mellomfot: 85, bogeH: 250, bogeN: 3, bogedrift: 20, djup: 360,
-    ryggH: 0, hogd: 402, frambein: 120, bakbein: 120, bakflare: 0.12,
-    skiver: 9, plyT: 12, luft: 42, grop: 24, sidefall: 16, kuppel: 0,
-  },
-  // sleden: bakkanten sparkar langt bakover og grepet sit i ryggen —
-  // stolen ein ber med eine handa og set frå seg på skrå
-  {
-    grep: 80, ryggH: 100, ryggT: 68, ryggV: 15, hogd: 394,
-    bakflare: 0.5, bakbein: 150, bogeH: 260, bogedrift: -30,
-    skiver: 12, plyT: 12, luft: 28, kuppel: 0.28, grop: 16, djup: 320,
-  },
-  // orgelet: lufta fell frå midten og ut — skivene står tett som piper
-  // midt i benken og glisnar mot kantane. Same kuttfil, berre gapa er
-  // graderte; luft 40 held minste gap (~28 mm) over fingerfella på 25.
-  {
-    luftfall: 0.55, skiver: 9, plyT: 14, luft: 40, ryggH: 0,
-    bogeH: 300, kuppel: 0, hogd: 404, djup: 340, grop: 22, sidefall: 14,
-    frambein: 120, bakbein: 120, bogefall: 0.15,
+    djup: 330, grop: 14, sidefall: 8, bogeH: 290,
+    skiver: 10, plyT: 10.5, luft: 40,
   },
   // kvilestolen: setet vippa åtte grader bakover kring nasen og ryggen
   // lena tjueto — ein sit ikkje oppreist i han, ein søkk bakover. Vippen
-  // senkar ryggfoten femti millimeter og kjøper heile ryggen plass under
-  // lokket, og setehøgda står på 440 av di dei femti er betalte att.
+  // senkar ryggfoten og kjøper heile ryggen plass under lokket.
   {
     setevipp: 8, ryggV: 22, ryggH: 100, hogd: 440, djup: 360, bakflare: 0.3,
     grop: 18, sidefall: 10, ryggB: 22, ryggT: 54, bogeH: 310, bogeN: 2.4,
-    skiver: 11, plyT: 12.5, luft: 32, kuppel: 0.4, frambein: 120,
-    bakbein: 130, innsving: 0.05, nase: 30,
+    kuppel: 0.4, frambein: 120, bakbein: 130, nase: 30, grep: 0,
+    skiver: 9, plyT: 10.5, luft: 45.5,
+  },
+  // benken: rein og rygglaus, djup grop og djupt sidefall — flata er
+  // hovudpersonen. Medvite tjukkast i settet: ein benk vert sparka.
+  {
+    ryggH: 0, djup: 360, frambein: 130, bakbein: 130, bogeH: 300,
+    bogeN: 2.6, kuppel: 0, sidefall: 18, grop: 24, bogefall: 0.2,
+    ryggT: 50, skiver: 9, plyT: 12, luft: 46,
+  },
+  // akvedukten: midtfoten kløyver bogen i to — og drifta let han VANDRE
+  // gjennom stabelen, so dei to boga byter storleik frå skive til skive.
+  // Beste plateutnyttinga i settet: 63 prosent.
+  {
+    mellomfot: 85, bogeH: 250, bogeN: 3, bogedrift: 20, djup: 360,
+    ryggH: 0, frambein: 120, bakbein: 120, bakflare: 0.12,
+    grop: 24, sidefall: 16, kuppel: 0, ryggT: 50,
+    skiver: 9, plyT: 10.5, luft: 43.5,
+  },
+  // grotta: bogen krympar og sig på skrå gjennom stabelen — hòlet er eit
+  // skulptert rom, ikkje ein tunnel
+  {
+    bogefall: 0.72, bogedrift: 55, bogeH: 320, bogeN: 2.2, ryggH: 70,
+    kuppel: 0.15, grop: 20, sidefall: 16, innsving: 0.03, djup: 330,
+    skiver: 9, plyT: 10.5, luft: 44,
+  },
+  // pidestallen: ingen boge — møbelet er ein massiv sokkel av få skiver
+  // med mykje luft. Lufta er den einaste opninga som finst.
+  {
+    bogeH: 0, ryggH: 0, hogd: 414, djup: 330, grop: 20, sidefall: 14,
+    frambein: 92, bakbein: 92, flare: 0.9, bakflare: 0.05, innsving: 0.1,
+    nase: 20, ryggT: 50, skiver: 7, plyT: 11, luft: 59,
+  },
+  // stylta: maksimal sitjehøgd og maksimal boge — møbelet som nesten
+  // berre er bein, det medvitne motstykket til pidestallen
+  {
+    hogd: 468, djup: 324, grop: 10, nase: 20, ryggH: 0, ryggT: 50,
+    bogeH: 330, bogeN: 1.8, frambein: 120, bakbein: 120, flare: 2.8,
+    bakflare: 0.15, skiver: 7, plyT: 10.5, luft: 60,
+  },
+  // vifta: skivene roterte i solfjøs — same kuttfil, heilt anna møbel
+  {
+    vifte: 8, ryggH: 80, kuppel: 0.35, grop: 18, djup: 324, bogeH: 290,
+    skiver: 10, plyT: 10.5, luft: 37.5,
   },
 ]
 
+/** Posane med namna sine — same liste, synlege som inngangar i panelet.
+ *  Namnet står her og ikkje inne i kvar pose, so poseBag (terningen) les
+ *  lista uendra. Rekkjefylgja er lista over. */
+const POSE_NAMN: readonly string[] = [
+  "stolen", "kvilestolen", "benken", "akvedukten",
+  "grotta", "pidestallen", "stylta", "vifta",
+]
+export const POSAR: readonly Pose[] = POSES.map((bag, i) => ({
+  namn: POSE_NAMN[i] ?? `pose ${i + 1}`,
+  bag,
+}))
+
+/** Hovuddraga: dei få kontrollane som verkeleg formar. Kvart drag styrer
+ *  eitt eller fleire eksisterande band saman — ingen nye parametrar. */
+export const HOVUDDRAG: readonly Hovuddrag[] = [
+  { id: "hogd", label: "høgd", keys: [["hogd", 1]] },
+  { id: "rygg", label: "rygg", keys: [["ryggH", 1]] },
+  { id: "boge", label: "boge", keys: [["bogeH", 1]] },
+  { id: "luft", label: "luft", keys: [["luft", 1]] },
+  { id: "skiver", label: "skiver", keys: [["skiver", 1]] },
+  { id: "kuppel", label: "kuppel", keys: [["kuppel", 1]] },
+]
+
 /** kva to fingrar på lerretet skrur på */
-export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "luft" }
+export const NUDGE_PARAMS = { vertical: "hogd", horizontal: "luft", pinch: "djup" }
 
 export function clampParams(o: unknown, prev: Params): Params {
   return clampBag(o, prev, PARAM_RANGES, PARAM_KEYS)
 }
+
+/** produksjonsval, ikkje form: platetjukna og staven vel ein etter det
+ *  ein faktisk har — terningen rører dei aldri */
+const FREDA = ["plyT", "stavD"] as const
 
 export function randomParams(
   rnd: () => number,
   prev: Params,
   locked: ReadonlySet<string> = new Set(),
 ): Params {
-  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, locked)
-  const q = posed ?? (randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, locked) as Params)
+  const laastSet = new Set([...locked, ...FREDA])
+  const posed = poseBag(rnd, prev, POSES, DEFAULT_PARAMS, PARAM_RANGES, PARAM_KEYS, laastSet)
+  const q = posed ?? (randomBag(rnd, prev, PARAM_RANGES, PARAM_KEYS, laastSet) as Params)
   // Terningen får kaste kva han vil, men somme tal er SUMAR av andre og
   // bryt reglane nesten alltid utan hjelp: breidda, høgda og djupna er
   // konvoluttar, massen er eit integral, og somme band er daudsoner der
@@ -270,7 +285,7 @@ export function randomParams(
   // rekkjefylgje — snappar, breidd, masse, luftfall, kube — og rører berre
   // ulåste skyvarar, alltid innanfor banda.
   const fix = (k: keyof Params, v: number) => {
-    if (locked.has(k)) return
+    if (laastSet.has(k)) return
     const r = PARAM_RANGES[k]
     ;(q as Record<string, number | string>)[k] = Math.min(r.max, Math.max(r.min, +v.toFixed(3)))
   }

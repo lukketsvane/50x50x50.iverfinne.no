@@ -25,7 +25,7 @@ import type {
 import { meshToStl } from "../skal/export-stl"
 import { nest } from "../vaffel/nest"
 import { partsToDxf } from "../vaffel/export-dxf"
-import { sheetSvg } from "../vaffel/export-svg"
+import { alleArkSvg } from "../vaffel/export-svg"
 import { blankett, boyeliner, bygg, DETAIL } from "./form"
 import { flateMesh, konturLines, lagMesh } from "./mesh"
 import { measure } from "./metrics"
@@ -35,8 +35,10 @@ import { blankettSvg } from "./export-svg"
 import {
   DEFAULT_PARAMS,
   GROUPS,
+  HOVUDDRAG,
   NUDGE_PARAMS,
   PARAM_KEYS,
+  POSAR,
   PARAM_RANGES,
   clampParams,
   randomParams,
@@ -56,6 +58,8 @@ export const BOYG: EngineDef = {
   keys: PARAM_KEYS,
   defaults: DEFAULT_PARAMS as unknown as ParamBag,
   nudge: NUDGE_PARAMS,
+  poses: POSAR,
+  hovuddrag: HOVUDDRAG,
   unitLabel: "skal",
 
   clamp: (o, prev) => clampParams(o, asP(prev)) as unknown as ParamBag,
@@ -125,8 +129,8 @@ export const BOYG: EngineDef = {
       return { name: "boyg-blankettar.svg", mime: "image/svg+xml", text: blankettSvg(b, p) }
     }
     const ns = nest(buildParts(b, p).parts)
-    if (what === "ark") {
-      return { name: "boyg-ark1.svg", mime: "image/svg+xml", text: sheetSvg(ns, 0) }
+    if (what === "ark" || what === "arksyn") {
+      return { name: "boyg-" + ns.sheets.length + "ark.svg", mime: "image/svg+xml", text: alleArkSvg(ns) }
     }
     return { name: "boyg.dxf", mime: "application/dxf", text: partsToDxf(ns, p.plyT) }
   },
