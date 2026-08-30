@@ -17,9 +17,6 @@ import { makeBody as vaffelBody } from "../lib/vaffel/body.ts"
 import { buildGrid } from "../lib/vaffel/ribs.ts"
 import { buildParts as vaffelParts } from "../lib/vaffel/parts.ts"
 
-import { buildSlices } from "../lib/skive/profile.ts"
-import { buildParts as skiveParts } from "../lib/skive/parts.ts"
-
 import { nest as straumNest } from "../lib/straum/nest.ts"
 import { makeBody as straumBody } from "../lib/straum/body.ts"
 import { buildParts as straumParts } from "../lib/straum/parts.ts"
@@ -38,10 +35,6 @@ function rigg(id: string, p: Record<string, number | string>) {
   switch (id) {
     case "vaffel": {
       const parts = vaffelParts(buildGrid(vaffelBody(p as never)), mat).parts
-      return { parts, nest: () => vaffelNest(parts) }
-    }
-    case "skive": {
-      const parts = skiveParts(p as never, buildSlices(p as never)).parts
       return { parts, nest: () => vaffelNest(parts) }
     }
     case "boyg": {

@@ -30,16 +30,17 @@ import { getEngine, isEngineId } from "./engines"
  * gamle står att i tabellen og les gamle lenkjer. Bokstaven «p» er
  * verna (#p= er JSON-forma), og base64url-teikna i nyttelasta kan aldri
  * innehalde «=», so formene kan ikkje forvekslast. Fjerna motorar
- * (flett, kote, karve) fekk aldri ein bokstav.
+ * (flett, kote, karve) fekk aldri ein bokstav. SKIVE og LAFT rakk å få
+ * kvar sin — «k» og «f» — før dei vart tekne ut. Dei to bokstavane er
+ * BRENDE og skal aldri gjevast til ein ny motor, so ei gammal SKIVE-
+ * eller LAFT-lenkje avkodar til ingenting i staden for til feil møbel.
  */
 const MOTOR_BOKSTAV: Record<string, string> = {
   vaffel: "v",
-  skive: "k",
   straum: "s",
   ribbe: "r",
   boyg: "b",
   skal: "l",
-  laft: "f",
 }
 const BOKSTAV_MOTOR: Record<string, EngineId> = Object.fromEntries(
   Object.entries(MOTOR_BOKSTAV).map(([m, b]) => [b, m as EngineId]),

@@ -4,10 +4,9 @@
  * `lib/engines.ts` seier det sjølv: «eit stillas er ein DUPLIKAT av
  * motoren det etterliknar. Fem like krakkar med ulike namn er ikkje fem
  * typologiar.» Det er ein påstand som har vore umogleg å prøve, av di
- * motorane ikkje deler ein einaste parameter — `hjorne` i LAFT og
+ * motorane ikkje deler ein einaste parameter — `bladN` i RIBBE og
  * `planform` i VAFFEL er ikkje same akse, og ein kan ikkje trekkje dei
- * frå kvarandre. `scripts/laft-avstand.ts` måler avstanden mellom POSAR
- * inne i éin motor; dette måler avstanden mellom MOTORAR.
+ * frå kvarandre. Dette måler avstanden mellom MOTORAR.
  *
  * Det som KAN samanliknast er det ferdige objektet. To typologiar som
  * kastar same skuggen frå alle tre sider, og som har same delelista, er
@@ -25,9 +24,9 @@
  *             dei er. Ein motor av tjue like ribber og ein av fem store
  *             plater er ikkje same produksjonsveg, same kva skuggen seier.
  *
- * Terskelen er ikkje sett, han er MÅLT: dei fem motorane som står i
- * nedtrekket i dag er per definisjon fem typologiar, so den likaste
- * paringa mellom dei er baren ein sjette må halde seg under.
+ * Terskelen er ikkje sett, han er MÅLT: dei tre motorane som står i
+ * nedtrekket i dag er per definisjon tre typologiar, so den likaste
+ * paringa mellom dei er baren ein ny må halde seg under.
  *
  *   npx tsx scripts/typologi-avstand.ts          alle motorar
  *   npx tsx scripts/typologi-avstand.ts 96       med eiga rutestorleik
@@ -163,12 +162,12 @@ for (const p of par.slice(0, 5)) {
 // --- baren -----------------------------------------------------------------
 // Motorane i nedtrekket er per definisjon typologiar. Den likaste paringa
 // mellom DEI er difor baren: ein motor som ligg nærare ein annan enn dei
-// ligg innbyrdes, er ikkje ein sjette typologi.
-const NEDTREKK = new Set(["vaffel", "skive", "straum", "ribbe", "laft"])
+// ligg innbyrdes, er ikkje ein ny typologi.
+const NEDTREKK = new Set(["vaffel", "straum", "ribbe"])
 const innbyrdes = par.filter((p) => NEDTREKK.has(p.a) && NEDTREKK.has(p.b))
 const bar = innbyrdes.length ? innbyrdes[0].v : 1
 console.log(
-  `\nbaren: den likaste paringa mellom dei fem i nedtrekket er ` +
+  `\nbaren: den likaste paringa mellom dei tre i nedtrekket er ` +
     `${innbyrdes[0]?.a}–${innbyrdes[0]?.b} på ${bar.toFixed(3)}`,
 )
 

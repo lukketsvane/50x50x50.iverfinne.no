@@ -1,10 +1,10 @@
 /**
  * PLATER I KVART SITT PLAN — OG SPOR SOM VERT REKNA, IKKJE TEIKNA.
  *
- * Fila låg under lib/laft/ til VIKING vart bygd. Ingenting i henne er
- * LAFT: ho kan ikkje namnet på ein einaste del, og ho spør berre om
- * plan, omriss og tjukner. To motorar treng henne no, og då skal ho bu
- * eitt sted og ikkje i den eine sin heim.
+ * Fila låg under lib/laft/ og vart flytta hit då VIKING skulle bruke
+ * henne òg. Ingenting i henne var LAFT: ho kan ikkje namnet på ein
+ * einaste del, og ho spør berre om plan, omriss og tjukner. Difor stod
+ * ho att då LAFT gjekk ut — VIKING byggjer på henne.
  *
  * Eit spor i ei plate er ikkje ein rektangel ein skriv opp. Det er
  * SKUGGEN av den delen som skal gjennom, kasta ned i plata sitt plan og

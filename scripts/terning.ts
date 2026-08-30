@@ -7,7 +7,7 @@
  * på terningknappen — kvart harde brot er eit ubyggbart objekt på skjermen.
  *
  *   npx tsx scripts/terning.ts             alle motorar, 200 kast
- *   npx tsx scripts/terning.ts skive 500   éin motor, eige tal kast
+ *   npx tsx scripts/terning.ts vaffel 500  éin motor, eige tal kast
  */
 import { seeded } from "../lib/core.ts"
 import { ALLE_MOTORAR as ENGINES } from "../lib/engines.ts"
