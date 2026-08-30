@@ -36,6 +36,17 @@ const PROVAR: readonly Prove[] = [
     hash: "vlA5YHodgT07F_QyKSzCRcZOl-",
     fasit: { hogd: 418, planA: 198, ribbX: 7, rygg: 66, view: "flate", beis: "aho" },
   },
+  // --- SKIVE, bokstav «k» — ute ei runde og attende med SAME band ---------
+  // Denne er ikkje ei gammal lenkje i GAMLE_BAND si tyding: han vert
+  // lesen av motoren slik han står i dag. Han står her av di han er det
+  // einaste PROVET for at SKIVE kom attende uendra — hadde eitt band
+  // vore rørt, ville hashen avkoda til eit anna møbel og denne rada slege
+  // ut. Hashen er laga med koden slik han stod FØR SKIVE gjekk ut.
+  {
+    namn: "skive · standard (før utgangen)",
+    hash: "kC4iPrmipzlO2_BE0pjZzPHEzNtQsAtkJ",
+    fasit: { hogd: 404, djup: 340, skiver: 9, plyT: 9, view: "lag", beis: "natur" },
+  },
   // --- RIBBE v1, bokstav «r» — 36 band, før bladtupp og leddeling ----------
   {
     namn: "ribbe v1 · standard",
@@ -88,7 +99,12 @@ for (const pr of PROVAR) {
 }
 
 console.log("\n== rundgang på det som står i dag ==")
-for (const eng of [getEngine("vaffel"), getEngine("ribbe"), getEngine("straum")]) {
+for (const eng of [
+  getEngine("vaffel"),
+  getEngine("skive"),
+  getEngine("ribbe"),
+  getEngine("straum"),
+]) {
   const h = kortHash(eng.id, eng.defaults, "lag", "natur")
   const attende = lesHash(h)
   if (!attende || attende.engine !== eng.id) {

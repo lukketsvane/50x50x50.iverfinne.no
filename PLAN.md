@@ -1657,6 +1657,99 @@ og det ligg i FORMA på delane like mykje som i pakkinga av dei.
 
 ---
 
+### 30 · SKIVE attende, og ei dør inn utanfrå — GJORD
+
+#### SKIVE var feil å ta ut
+
+Argumentet i etappe 27 var at han berre snittar éin veg og at VAFFEL og
+RIBBE seier alt han kan seie. Det var feil, og det tok ni referansekrakkar
+å sjå det: **éi retning er ikkje ein fattigare versjon av to — det er ein
+ANNAN ting.** Ei skive treng ikkje møte nokon på tvers, og då er heile
+konturen hennar fri. Ei kryssholdt ribbe har eit spor kvar ho kryssar ein
+nabo og må ha gods kring kvart av dei; ei skive kan vera kva form som
+helst. Det er difor mest kvar einaste papp- og finérkrakk i verda er
+skiver, og ein sandkasse som ikkje kan lage dei manglar ikkje ein pose —
+han manglar eit svar.
+
+`lib/skive/` er henta uendra ut av historia. Banda hans er BIT-IDENTISKE
+med dei han gjekk ut med, og difor får han bokstaven «k» attende i staden
+for ein ny: ei SKIVE-lenkje frå før utgangen peikar på det same møbelet no
+som ho gjorde då. `scripts/lenkjer.ts` provar det med ein hash laga med
+koden slik han stod FØR utgangen — hadde eitt einaste band vore rørt i
+mellomtida, hadde den rada slege ut og han måtte hatt ein ny bokstav.
+
+Fire i nedtrekket att: VAFFEL, SKIVE, STRAUM, RIBBE.
+
+#### GJEST: ei GLB inn, ei kuttliste ut
+
+`lib/gjest/` er ikkje ein femte typologi. Det er ei anna DØR inn til dei
+same delane: eit møbel nokon andre har teikna, snitta i to ribbefamiliar
+med det same kryssholdte leddet, pakka med den same pakkaren og med det
+same luftkravet.
+
+| fil | kva |
+|---|---|
+| `glb.ts` | GLB → trekantar. Handskriven, utan bibliotek: tolv byte hovud, ein JSON-bit og ein binærbit. Køyrer uendra i noden, i nettlesaren og i workeren, og dreg ikkje inn ein loader som vil ha eit DOM |
+| `skjer.ts` | plansnitt gjennom trekantsuppa, kjeda til lukka konturar |
+| `vev.ts` | to ribbefamiliar, overlappa lesne ut av båe konturane, og spora skorne |
+
+**Kjedinga.** Kvar trekant som kryssar planet gjev eitt linestykke, og
+endane skal møtast — men dei er REKNA punkt, kvart frå si eiga
+interpolasjon, so dei er aldri bit-like. Endane vert difor kvantiserte til
+eit rutenett før dei vert slegne saman, og ruta er relativ til objektet og
+ikkje ein konstant.
+
+**Ein mesh som ikkje er lukka** gjev opne kjeder. Dei vert ikkje kasta,
+dei vert lukka med ei rett line, og TALET vert meldt. Ein brukar som
+importerer eit skal utan botn skal få eit møbel og ei melding, ikkje ein
+tom skjerm.
+
+**Sporet er ein KANAL og ikkje eit hakk.** Konturen som før gjekk rett
+over sporet skal gå ned den eine sporveggen, langs botnen og opp den
+andre. Fyrste utgåva klemte punkta inn til sporranda i staden, og det gav
+ei BULK — ein del som ikkje går ned over naboen sin. Ho såg rett ut på
+arket, og det er nettopp difor ho stod ei runde: `scripts/gjest.ts` melder
+no om ein kontur kryssar seg sjølv, av di ein slik kontur pakkar FINT
+(arealet vert rekna som om han var enkel) og les som ein billeg del.
+
+Krysstestet måtte dessutan reknast om: eit rått kryssprodukt er eit AREAL,
+so han er null når eit punkt tilfeldigvis ligg på den uendelege lina
+gjennom eit segment langt vekke. Ein rotasjonsflate gjev slike samanfall
+heile tida. Delt på segmentlengda er talet ein avstand i millimeter, og då
+tyder terskelen noko.
+
+**Målt** på ei skål med 3 200 trekantar, passa inn til 470 mm:
+
+| ribber | ledd | plate | utnytting |
+|---|---|---|---|
+| 7 × 7 | 45 | 1 | 55,7 % |
+| 9 × 9 | 69 | 1 | 60,5 % |
+| 13 × 13 | 149 | 1 | 65,6 % |
+
+Snittet tek 23–43 ms. Alle konturane er enkle i alle fire oppsetta som
+vart prøvde.
+
+#### Og eit funn om pakkinga
+
+**GJEST pakkar betre enn motorane i sandkassen.** 60–66 % mot 46–50 %.
+Det er ikkje ein betre pakkar — det er den SAME pakkaren — og det seier
+difor noko om delane: ei skålribbe er brei og nesten konveks, medan ei
+vaffelribbe er lang, smal og bogeforma med ei stor opning under. Det
+stadfester det etappe 29 fann frå ein annan kant: **taket er ikkje
+pakkaren, det er forma på delane.** Vil ein ha arket betre utnytta, er
+det bogen og ikkje bin-packinga ein skal sjå på.
+
+#### Att
+
+**Grensesnittet.** Kjeda er prøvd frå fil til kuttark på kommandolina,
+men GLB-en er ikkje kopla til appen enno. Det er ikkje berre eit
+filfelt: ein mesh er DATA og ikkje eit punkt i eit parameterrom, so han
+kan ikkje kodast i hashen. Ei delt GJEST-lenkje kan bera nX, nY, tjukna
+og målet — men ikkje forma. Det må stå i grensesnittet og ikkje berre i
+ein kommentar, elles deler nokon ei lenkje som opnar feil møbel.
+
+---
+
 ---
 
 ## 6 Kva som skal målast
@@ -1789,3 +1882,4 @@ kjem frå éin stad.
 | `scripts/typologi-avstand.ts` | om to motorar er same krakken: skugge på tre sider pluss deleliste |
 | `scripts/lenkjer.ts` | om ei delt lenkje framleis peikar på det same møbelet — den einaste prøva som ser på tilstand utanfor koden |
 | `scripts/nestbenk.ts` | plateutnyttinga over HEILE settet, i båe pakkemodusane — og lufta mellom kvar del og kvar annan del |
+| `scripts/gjest.ts` | ei GLB inn, ei kuttliste ut: snitt, ledd, pakking, kuttark — og om nokon kontur kryssar seg sjølv |

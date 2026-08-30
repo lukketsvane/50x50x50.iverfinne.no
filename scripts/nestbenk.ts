@@ -32,6 +32,11 @@ import { nest as straumNest } from "../lib/straum/nest.ts"
 import { makeBody as straumBody } from "../lib/straum/body.ts"
 import { buildParts as straumParts } from "../lib/straum/parts.ts"
 
+// SKIVE har ingen eigen pakkar — han låner VAFFEL sin, av di ei skive og
+// ei ribbe er same slaget del på plata: ein kontur med hòl.
+import { buildSlices } from "../lib/skive/profile.ts"
+import { buildParts as skiveParts } from "../lib/skive/parts.ts"
+
 import { nest as ribbeNest } from "../lib/ribbe/nest.ts"
 import { makeShell } from "../lib/ribbe/shell.ts"
 import { buildAll, DETAIL as RIBBE_DETAIL } from "../lib/ribbe/mesh.ts"
@@ -62,6 +67,20 @@ function rigg(id: string, p: ParamBag): Rigg | null {
         parts,
         nest: (v) => {
           const n = vaffelNest(parts, v)
+          return {
+            util: n.util,
+            ark: n.sheets.length,
+            lagde: n.sheets.map((a) => a.placed.map(placedRings)),
+          }
+        },
+      }
+    }
+    case "skive": {
+      const parts = skiveParts(p as never, buildSlices(p as never)).parts
+      return {
+        parts,
+        nest: (v) => {
+          const n = vaffelNest(parts as never, v)
           return {
             util: n.util,
             ark: n.sheets.length,

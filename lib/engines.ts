@@ -1,14 +1,15 @@
 /**
  * Motorregisteret.
  *
- * Tre typologiar står ferdige, og dei er ikkje tre former. Dei er tre
+ * Fire typologiar står ferdige, og dei er ikkje fire former. Dei er fire
  * svar på det same spørsmålet: korleis byggjer ein ei krum sitjeflate av
  * flate plater? Kvar av dei har sitt eige ledd, sitt eige spill og si
  * eiga grense, og det er grensene som skil dei — ikkje silhuetten.
  *
- * VAFFEL er svaret prosjektet landar på. STRAUM og RIBBE står som
- * argumentet kring valet, og RIBBE er den næraste naboen: same leddet,
- * radialt i staden for kartesisk.
+ * VAFFEL er svaret prosjektet landar på. Dei tre andre står som
+ * argumentet kring valet: RIBBE er den næraste naboen (same leddet,
+ * radialt i staden for kartesisk), SKIVE er den motsette enden (éi
+ * retning, og difor ein fri kontur).
  *
  * Nedtrekket byter motor og ikkje form. Kvar motor held på sitt eige
  * punkt: byter du frå VAFFEL til STRAUM og attende, står VAFFEL-objektet
@@ -16,6 +17,7 @@
  * eitt parameterrom ikkje tyder noko i eit anna.
  */
 import type { EngineDef, EngineId } from "./core"
+import { SKIVE } from "./skive/engine"
 import { STRAUM } from "./straum/engine"
 import { RIBBE } from "./ribbe/engine"
 import { VAFFEL } from "./vaffel/engine"
@@ -36,15 +38,22 @@ const UNDER_BYGGING: readonly EngineDef[] = [BOYG, VIKING]
 // VAFFEL fyrst: han er standardobjektet, øvst i nedtrekket, og han er
 // SLUTTPRODUKTET. Resten står som argumentet kring valet.
 //
+// SKIVE er ATTE. Han gjekk ut på argumentet om at han berre snittar éin
+// veg og at VAFFEL og RIBBE seier alt han kan seie — og det argumentet
+// var feil. Éin retning er ikkje ein fattigare versjon av to; det er ein
+// ANNAN ting. Ei skive kan ha ein profil som ingen kryssholdt ribbe kan
+// ha, av di ho ikkje treng møte nokon på tvers: heile konturen er fri.
+// Det er difor mest kvar einaste papp- og finérkrakk i verda er skiver
+// og ikkje vaflar, og ein sandkasse som ikkje kan lage dei manglar ikkje
+// ein pose — han manglar eit svar.
+//
 // Tekne heilt ut, og kvar sin grunn: FLETT (vevne band — band er ikkje
 // plate), KARVE (subtraktiv skulptur — flata vart graven ut av ei limt
 // blokk, ikkje bygd av plater), KOTE (stabelen som aldri nådde flata:
-// setet var riller). LAFT og SKIVE fylgjer no etter. LAFT svara aldri på
-// spørsmålet — han NEKTA det, og ei flat sitjeflate er eit anna prosjekt.
-// SKIVE snitta berre éin veg, og alt han kunne seie seier VAFFEL og RIBBE
-// betre. SKAL er teken ut av registeret, men kjelda hans står att for
-// dokumentpipelinen.
-export const ENGINES: readonly EngineDef[] = [VAFFEL, STRAUM, RIBBE]
+// setet var riller), LAFT (han svara aldri på spørsmålet — han NEKTA
+// det, og ei flat sitjeflate er eit anna prosjekt). SKAL er teken ut av
+// registeret, men kjelda hans står att for dokumentpipelinen.
+export const ENGINES: readonly EngineDef[] = [VAFFEL, SKIVE, STRAUM, RIBBE]
 
 /** alt, ferdig og uferdig — det prøveskripta skal måle */
 export const ALLE_MOTORAR: readonly EngineDef[] = [...ENGINES, ...UNDER_BYGGING]
