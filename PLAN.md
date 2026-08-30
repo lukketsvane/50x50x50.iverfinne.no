@@ -38,36 +38,36 @@ reiskap, og ærleg nok til at det han seier kan stolast på.**
 
 ## 2 Kva som står i dag
 
-Sandkassen er ikkje éin generator lenger. Han er eit register med fem, og
+Sandkassen er ikkje éin generator lenger. Han er eit register med tre, og
 skalet veit ingenting om kva som ligg under nedtrekket.
 
 | lag | fil | status |
 |---|---|---|
-| kontrakt | `lib/core.ts` | `EngineDef`: parameterrom, tre lesemåtar, måltavle, reglar, fire eksportformat. Pluss geometrien alle fire treng: hylster, superellipse, meshvolum, kapasitetar |
-| register | `lib/engines.ts` | fem motorar, nedtrekk, per-motor tilstand |
+| kontrakt | `lib/core.ts` | `EngineDef`: parameterrom, tre lesemåtar, måltavle, reglar, fire eksportformat. Pluss geometrien alle treng: hylster, superellipse, meshvolum, kapasitetar |
+| register | `lib/engines.ts` | tre motorar, nedtrekk, per-motor tilstand |
 | tråd | `lib/worker.ts` | motoruavhengig; rutar på `req.engine` |
-| grensesnitt | `studio.tsx`, `viewer.tsx`, `controls-panel.tsx` | skriven éin gong, tener alle fem |
+| grensesnitt | `studio.tsx`, `viewer.tsx`, `controls-panel.tsx` | skriven éin gong, tener alle tre |
 | prøve | `scripts/typologies.ts` | kontraktprøva: nøklar, terning, lukka nett, NaN, kuben, reglar, tid |
 | mappe | `doc/render.py` | 16 sider, eigen rasterisator utan GPU |
 
-Og motorane i registeret, med tala frå `scripts/typologies.ts`. (`skal` er
-teken UT av registeret og står ikkje lenger her; kjelda hans er att for
-dokumentpipelinen.)
+Og motorane i registeret, med tala frå `scripts/typologies.ts`. (`skal`,
+`boyg` og `viking` står ikkje i nedtrekket; `laft` og `skive` er tekne
+heilt ut — sjå etappe 27.)
 
 | motor | produksjonsveg | skyvarar | reglar (harde) | masse | utnytting | bygg + mål |
 |---|---|---|---|---|---|---|
-| `laft` | to kryssande blad, eit sete og ei list | 28 | 18 (9) | 4,0 kg | 58 % | 5 ms |
-| `straum` | éin kropp skoren i skrå skiveplan, finnar sette i spor | 30 | 17 (5) | 5,05 kg | 8 % | 350 ms |
-| `ribbe` | radiale blad og vassrette band, kryssholdte i kvarandre | 33 | 16 (9) | 10,24 kg | 15 % | 100 ms |
-| `vaffel` | kryssholdte ribber i to retningar, utan lim og utan skruar | 21 | 16 (8) | 5,56 kg | 18 % | 585 ms |
+| `vaffel` | kryssholdte ribber i to retningar, utan lim og utan skruar | 24 | 17 (8) | 4,32 kg | 52 % | 295 ms |
+| `straum` | éin kropp skoren i skrå skiveplan, finnar sette i spor | 35 | 18 (6) | 4,25 kg | 40 % | 852 ms |
+| `ribbe` | radiale blad og vassrette band, kryssholdte i kvarandre | 36 | 17 (9) | 9,05 kg | 47 % | 273 ms |
 
-Alle fire held alle reglane sine på standardobjektet. Ingen av dei held
+Alle tre held alle reglane sine på standardobjektet. Ingen av dei held
 alle reglane på eit tilfeldig trekk — sjå etappe 7.
 
-**Det som er verdt å lese ut av tabellen:** SKAL er femten gonger tregare
-enn RIBBE. Det er ikkje ei slurv i SKAL — det er at eit felt som må
-marsjerast kostar meir enn ei flate som let seg skrive ned. Etappe 2 og 3
-handlar om den skilnaden.
+**Det som er verdt å lese ut av tabellen:** RIBBE ber dobbelt so mykje
+masse som VAFFEL for den same sitjeflata. Det er ikkje ei slurv i RIBBE —
+det er prisen på radialt: blada møtest i eit senter der det ikkje er plass
+til dei alle, og godset må vekse for å bere same lasta. Etappe 27 handlar
+om kva den prisen kjøper.
 
 ## 3 Arkitektur
 
@@ -1438,6 +1438,79 @@ fasettar butta kant i kant og SYDDE saman, utan spant og utan spor.
 
 ---
 
+### 27 · LAFT og SKIVE ut, og VAFFEL som sluttprodukt — GJORD
+
+**Kvifor.** Nedtrekket hadde fem, og fem er ikkje eit argument — det er
+ei meny. LAFT svara aldri på spørsmålet sandkassen stiller; han NEKTA
+det, og ei flat sitjeflate er eit anna prosjekt med ei anna grunngjeving.
+SKIVE snitta berre éin veg, og det er den fattigaste av snittstrategiane:
+alt han kunne seie om ei krum flate, seier VAFFEL og RIBBE betre, og han
+kunne ikkje seie noko dei ikkje kan. Tre står att, og dei er tre ulike
+svar: kartesisk kryssholdt (VAFFEL), skrått gjennomspor (STRAUM), radialt
+kryssholdt (RIBBE).
+
+**VAFFEL er sluttproduktet.** Det er ikkje ein preferanse lenger, det er
+kva resten av arbeidet skal tene. STRAUM og RIBBE står som argumentet
+kring valet.
+
+**Kva som vart gjort.** `lib/laft/` og `lib/skive/` er sletta, med dei
+fire LAFT-prøveskripta. `EngineId` mista to ledd, registeret to
+motorar, `scripts/nesting.ts` sin SKIVE-arm og `scripts/typologi-avstand.ts`
+sitt nedtrekkssett er retta.
+
+**Hashen.** `lib/hash.ts` seier at rekkjefylgjene er FROSNE, og det står
+ved lag. SKIVE og LAFT rakk å få kvar sin bokstav — «k» og «f» — og dei
+to bokstavane er no BRENDE: dei står i kommentaren og skal aldri gjevast
+til ein ny motor. Ei gammal SKIVE- eller LAFT-lenkje avkodar difor til
+INGENTING i staden for til feil møbel. Det er den ærlege oppførselen når
+motoren bak lenkja er borte.
+
+**Att: lib/plater.ts og lib/platemesh.ts.** Begge låg under `lib/laft/`
+til VIKING vart bygd og dei vart flytta ut. Dei står att av di dei aldri
+var LAFT — dei kan ikkje namnet på ein einaste del — og VIKING byggjer
+på dei.
+
+**Prøvd:** kontraktprøva grøn på alle fem motorane som står att,
+poseprøva grøn på alle posar, `npm run build` grøn, `npx tsc --noEmit`
+rein.
+
+### 28 · Formspennet: kva VAFFEL og RIBBE skal kunne — IKKJE GJORD
+
+Dette er neste veke sitt arbeid, og det er formulert som ei DEKNING og
+ikkje som ein funksjonsliste. Ni referansekrakkar i papp og kryssfiner er
+måten: dei er alle bygde av flate plater som møtest i kryss, og dei skal
+kunne nåast frå VAFFEL eller RIBBE ved å skru — ikkje ved å skrive ein ny
+motor. Kjem ein av dei ikkje innanfor, er det EIT av to svar, og båe er
+gode: anten manglar det ein akse, eller so er referansen ein annan
+typologi og skal seiast å vera det.
+
+Referansane, og kva kvar av dei krev:
+
+| referansen | kva han krev |
+|---|---|
+| radial vifte med to vassrette ringar over setet | RIBBE med band OVER setehøgd, ikkje berre under |
+| timeglaskrakk: radiale blad, brei fot, brei topp | RIBBE — midja finst; prøv om `waist` når djupt nok |
+| pod/egg: langsgåande krumme ribber, tverrgåande ringar | VAFFEL med ribbene BØYGDE i planet, ikkje rette |
+| eggekasse med rett rygg og flutet ryggplate | VAFFEL — ryggen som eige rutenett i eit skrått plan |
+| bladvifte der kvart blad har fri, avrunda tupp | RIBBE med bladprofil som stikk UT forbi skalet |
+| vogge: krumt understell som møbelet gyngar på | VAFFEL/RIBBE med krum understøtte i staden for føter |
+| lenestol: éin samanhengande skål frå fot til rygg | VAFFEL — silhuetten må kunne bøye seg forbi loddrett |
+| enkel eggekassekrakk, fire gonger fire | VAFFEL — står alt; nedre grensa for kompleksitet |
+| dreia søyle med hyller mellom blada | RIBBE med vassrette PLATER mellom blada, ikkje band |
+
+**Metoden.** For kvar referanse: finn punktet i rommet som kjem nærast,
+lagre det som ein POSE med namn, og skriv ned kva som mangla. Posane som
+lukkast er dokumentasjon; dei som ikkje lukkast er kravlista til aksane
+som skal byggjast. Ingen ny motor før alle ni er prøvde — det er heile
+poenget med å ha kutta ned til tre.
+
+**Baren.** `scripts/typologi-avstand.ts` måler avstanden mellom motorar,
+og VAFFEL og RIBBE skal ikkje kollapse i kvarandre av dette arbeidet. Går
+avstanden mellom dei under baren, har ein av dei ete den andre, og då er
+det eit svar òg.
+
+---
+
 ---
 
 ## 6 Kva som skal målast
@@ -1567,8 +1640,4 @@ kjem frå éin stad.
 | `scripts/plan-probe.ts` | kvar tida i `measure` går, `buildStack` mot vinkeloppløysing, `buildMesh` mot rutenett |
 | `scripts/plan-hash.ts` | informasjonsgrensa i eit punkt, og kva ei kvantisert koding ville kosta |
 | `scripts/plan-feasible.ts` | kor stor del av parameterrommet som er eit møbel, og kva reglar som fell |
-| `scripts/laft-ledd.ts` | om to plater deler materiale, og om kvart ledd faktisk grip — i eitt punkt |
-| `scripts/laft-sveip.ts` | same prøva over kvar pose og eit sveip av terningkast |
-| `scripts/laft-avstand.ts` | kor ulike posane er, målt i dei parametrane som formar |
-| `scripts/laft-gods.ts` | om kvart hòl ligg inne i den delen det er skore i, og har gods kring seg |
 | `scripts/typologi-avstand.ts` | om to motorar er same krakken: skugge på tre sider pluss deleliste |

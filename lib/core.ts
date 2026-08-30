@@ -1,19 +1,20 @@
 /**
  * SANDKASSE — det alle motorane deler.
  *
- * Fire typologiar står i denne sandkassen, og dei er ikkje fire former.
- * Dei er fire måtar å byggje ei krum flate av flate plater:
+ * Tre typologiar står i denne sandkassen, og dei er ikkje tre former.
+ * Dei er tre måtar å byggje ei krum flate av flate plater:
  *
  *   VAFFEL  kryssholdte ribber i to retningar, utan lim og utan skruar
- *   SKIVE   parallelle skiver med luft imellom, tredde på stavar
  *   STRAUM  éin kropp skoren i skrå skiveplan, finnar sette i spor
  *   RIBBE   radiale blad og vassrette band, kryssholdte i kvarandre
+ *
+ * VAFFEL er sluttproduktet; dei to andre er argumentet kring valet.
  *
  * Kvar av dei har si eiga likning, sitt eige parameterrom og sine eigne
  * ledd. Det dei deler er denne fila: kva eit måltal er, kva ein regel er,
  * kva eit band rundt ein skyvar er, og kva ein motor må kunne svare på for
  * å få stå på scena. Grensesnittet, den delbare lenkja og måltavla kjenner
- * berre kontrakten her — ikkje ein einaste av dei fire.
+ * berre kontrakten her — ikkje ein einaste av dei tre.
  */
 
 export const CUBE = 500 // oppgåva sin kube, mm
@@ -431,11 +432,9 @@ export function applyDrag(
 export type EngineId =
   | "skal"
   | "viking"
-  | "laft"
   | "straum"
   | "ribbe"
   | "vaffel"
-  | "skive"
   | "boyg"
 
 export type EngineDef = {

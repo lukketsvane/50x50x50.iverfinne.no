@@ -8,7 +8,7 @@
  * panelet syner, so det som vert prøvd her er nøyaktig det brukaren ser.
  *
  *   npx tsx scripts/posar.ts          alle motorar
- *   npx tsx scripts/posar.ts skive    berre éin
+ *   npx tsx scripts/posar.ts vaffel   berre éin
  */
 import { ALLE_MOTORAR as ENGINES } from "../lib/engines.ts"
 

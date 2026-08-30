@@ -1,12 +1,13 @@
 /**
  * EI PLATE SOM PRISME — nettet under alle motorar som byggjer av plater.
  *
- * Fila låg under lib/laft/ til VIKING vart bygd. Ingenting i henne veit
- * kva ho teiknar: ho tek eit omriss, nokre hòl, eit plan og ei tjukn, og
- * gjev eit prisme. Øyreklippinga, hòlbrua og veggnormalane er dei tre
- * tinga som er vonde å få rett — kollineære punkt som forsvinn i klippet
- * men ikkje i veggen, hòl som må bruast inn i omrisset utan å kollapse
- * trianguleringa, plan med ulik hand — og dei skal skrivast éin gong.
+ * Fila låg under lib/laft/ til VIKING vart bygd, og stod att då LAFT
+ * gjekk ut. Ingenting i henne veit kva ho teiknar: ho tek eit omriss,
+ * nokre hòl, eit plan og ei tjukn, og gjev eit prisme. Øyreklippinga,
+ * hòlbrua og veggnormalane er dei tre tinga som er vonde å få rett —
+ * kollineære punkt som forsvinn i klippet men ikkje i veggen, hòl som
+ * må bruast inn i omrisset utan å kollapse trianguleringa, plan med
+ * ulik hand — og dei skal skrivast éin gong.
  *
  * Lokket er PLATEFLATE (tek beis), veggen er KUTT (rå finér). Merkinga
  * fylgjer med som attributt, so materialet i framsyninga veit kva som er
