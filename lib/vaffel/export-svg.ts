@@ -11,8 +11,20 @@
  * skrivast ut i 1:1 utan at nokon må rekna om noko.
  */
 import { bbox, type Pt } from "../core"
-import { placedRings, type Nesting } from "./nest"
+import { placedRings } from "./nest"
+import type { NestDel, Nesting } from "../nestraster"
 import type { Grid } from "./ribs"
+
+/**
+ * Kuttarket tek ein GENERISK pakking og ikkje VAFFEL sin eigen.
+ *
+ * Teikninga rører berre det kvar einaste del i sandkassen har: omrisset,
+ * hòla og namnet. Ho har difor aldri hatt noko med VAFFEL å gjera — ho
+ * budde her av di det var her ho vart skriven. Ei importert GLB gjev
+ * delar av same slaget, og då skal ho teiknast av den same rutina: eitt
+ * kuttark i heile appen, ikkje eitt per stad delane kjem frå.
+ */
+type Pakking = Nesting<NestDel>
 
 const f = (v: number) => (Math.abs(v) < 1e-4 ? "0" : v.toFixed(2))
 const path = (pts: Pt[]) =>
@@ -29,7 +41,7 @@ const path = (pts: Pt[]) =>
  * seier frå. Éi fil som ber alt er den einaste eksporten som ikkje kan
  * gløyme noko.
  */
-export function alleArkSvg(n: Nesting): string {
+export function alleArkSvg(n: Pakking): string {
   const W = n.sheetW
   const H = n.sheetH
   const GAP = 60
@@ -47,7 +59,7 @@ export function alleArkSvg(n: Nesting): string {
   return out.join("\n")
 }
 
-export function sheetSvg(n: Nesting, index = 0): string {
+export function sheetSvg(n: Pakking, index = 0): string {
   const sheet = n.sheets[Math.min(index, n.sheets.length - 1)]
   if (!sheet) return "<svg xmlns='http://www.w3.org/2000/svg'/>"
   const W = n.sheetW
