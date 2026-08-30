@@ -426,11 +426,12 @@ export function Studio() {
         )}
       </div>
 
-      {/* Eitt ord og ei lenkje. Alt anna sida har å seie, seier objektet. */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-5 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <div className="text-[11px] tracking-[0.22em]" style={{ color: "var(--ink)" }}>
-          50 × 50 × 50
-        </div>
+      {/* Ei lenkje, og ikkje eit ord meir.
+          Tittelen «50 × 50 × 50» stod her og sa det objektet alt seier: det
+          står i ein kube. Fanen i nettlesaren ber namnet for den som treng
+          det. Lenkja står att av di ho gjer noko — ho fører ein vidare —
+          medan tittelen berre gjentok. */}
+      <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-end p-5 pt-[calc(env(safe-area-inset-top)+16px)]">
         <a
           href="https://iverfinne.no"
           target="_blank"
