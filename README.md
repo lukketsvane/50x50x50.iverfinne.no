@@ -146,7 +146,7 @@ godt — det gjer det berre mogleg.
 | `lib/avl.ts` | avlen: generativt søk mot mindre materiale, bak same kontrakt |
 | `lib/vaffel/` | kartesiske ribber i to retningar — sluttproduktet |
 | `lib/skive/` | parallelle skiver på stavar |
-| `lib/gjest/` | ei GLB utanfrå, snitta til dei same ribbene: GLB-lesar, plansnitt, vev |
+| `lib/gjest/` | ei fil utanfrå, snitta til dei same ribbene. Lesarane i `io/` og `soup.ts` er lånte uendra frå [slicerman](https://github.com/lukketsvane/slicer.iverfinne.no) (MIT, same forfattar) og les glb, gltf, stl, obj og ply |
 | `lib/straum/` | skrå skiveplan og finnar i spor |
 | `lib/ribbe/` | radiale blad og band, kryssholdte |
 | `lib/boyg/` | pressbøygde skal, under bygging |

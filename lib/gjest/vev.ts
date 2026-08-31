@@ -19,7 +19,7 @@
  * som ikkje er festa til noko, og det er ein feil brukaren skal sjå.
  */
 import type { Pt } from "../core"
-import type { Trekantar } from "./glb"
+import type { Soup } from "./glb"
 import { forenkl, reinsk, skjer, type Akse } from "./skjer"
 
 export type GjestVal = {
@@ -207,7 +207,7 @@ function arealAv(ring: Pt[]): number {
  * som i VAFFEL: ei ribbe heilt ute i kanten er ei ribbe med null breidd,
  * og ho ville stått i kuttlista utan å bera noko.
  */
-export function byggVev(tri: Trekantar, v: GjestVal): Vev {
+export function byggVev(tri: Soup, v: GjestVal): Vev {
   const bx = tri.max[0] - tri.min[0]
   const by = tri.max[1] - tri.min[1]
   const bz = tri.max[2] - tri.min[2]

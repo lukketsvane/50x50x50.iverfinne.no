@@ -14,16 +14,20 @@
  *   npx tsx scripts/gjest.ts stol.glb ark.svg --ribber 11x11 --tjukn 12
  */
 import { readFileSync, writeFileSync } from "node:fs"
-import { iKuben, lesGlb } from "../lib/gjest/glb.ts"
+import { FORMAT, iKuben, opneKantar, parseMesh } from "../lib/gjest/glb.ts"
 import { byggVev, STANDARD, type GjestVal } from "../lib/gjest/vev.ts"
 import { kutt, kuttDxf, kuttSvg, kryssarSegSjolv } from "../lib/gjest/kutt.ts"
 
 const args = process.argv.slice(2)
-const fil = args.find((a) => !a.startsWith("--") && a.endsWith(".glb"))
-const svgUt = args.find((a) => !a.startsWith("--") && a.endsWith(".svg"))
-const dxfUt = args.find((a) => !a.startsWith("--") && a.endsWith(".dxf"))
+const inn = args.filter((a) => !a.startsWith("--"))
+const svgUt = inn.find((a) => a.endsWith(".svg"))
+const dxfUt = inn.find((a) => a.endsWith(".dxf"))
+const fil = inn.find((a) => FORMAT.some((e) => a.toLowerCase().endsWith(e)))
 if (!fil) {
-  console.log("bruk: npx tsx scripts/gjest.ts <fil.glb> [ut.svg] [ut.dxf] [--ribber 9x9] [--tjukn 9]")
+  console.log(
+    `bruk: npx tsx scripts/gjest.ts <fil> [ut.svg] [ut.dxf] [--ribber 9x9] [--tjukn 9]\n` +
+      `      format: ${FORMAT.join(" ")}`,
+  )
   process.exit(1)
 }
 const flagg = (namn: string) => {
@@ -44,7 +48,7 @@ const ma = Number(flagg("maal"))
 if (ma > 0) val.maal = ma
 
 const t0 = performance.now()
-const raa = lesGlb(readFileSync(fil).buffer as ArrayBuffer)
+const raa = parseMesh(fil, readFileSync(fil).buffer as ArrayBuffer)
 const tri = iKuben(raa, val.maal)
 const tLes = performance.now() - t0
 
@@ -56,8 +60,12 @@ const raud = (s: string) => `\x1b[31m${s}\x1b[0m`
 const gul = (s: string) => `\x1b[33m${s}\x1b[0m`
 const gron = (s: string) => `\x1b[32m${s}\x1b[0m`
 
+const kantar = opneKantar(raa)
 console.log(fil)
-console.log(`  ${raa.n} trekantar · lesne på ${tLes.toFixed(0)} ms`)
+console.log(
+  `  ${raa.tris} trekantar · lesne på ${tLes.toFixed(0)} ms` +
+    (kantar ? gul(` · ${kantar} opne kantar — flata er ikkje lukka`) : " · lukka flate"),
+)
 console.log(
   `  ytre mål ${vev.boks.map((v) => v.toFixed(0)).join(" × ")} mm ` +
     `(passa inn til ${val.maal} mm)`,
