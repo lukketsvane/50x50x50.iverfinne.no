@@ -18,7 +18,13 @@
  * seier noko om, står skrive på henne.
  */
 import { useCallback, useMemo, useRef, useState } from "react"
-import { iKuben, lesGlb, type Trekantar } from "../../lib/gjest/glb"
+import {
+  FORMAT,
+  iKuben,
+  opneKantar,
+  parseMesh,
+  type Soup,
+} from "../../lib/gjest/glb"
 import { byggVev, STANDARD, type GjestVal } from "../../lib/gjest/vev"
 import { kutt, kuttDxf, kuttSvg, kryssarSegSjolv } from "../../lib/gjest/kutt"
 
@@ -55,7 +61,9 @@ type Svar = {
 }
 
 export default function GjestSide() {
-  const [tri, setTri] = useState<{ raa: Trekantar; namn: string } | null>(null)
+  const [tri, setTri] = useState<{ raa: Soup; namn: string; opne: number } | null>(
+    null,
+  )
   const [val, setVal] = useState<GjestVal>(STANDARD)
   const [feil, setFeil] = useState<string | null>(null)
   const filRef = useRef<HTMLInputElement>(null)
@@ -63,7 +71,11 @@ export default function GjestSide() {
   const les = useCallback(async (f: File) => {
     setFeil(null)
     try {
-      setTri({ raa: lesGlb(await f.arrayBuffer()), namn: f.name })
+      const raa = parseMesh(f.name, await f.arrayBuffer())
+      if (!raa.tris) throw new Error("Fann ingen trekantar i fila.")
+      // Om flata er LUKKA er ein eigenskap ved fila og ikkje ved snittet,
+      // so han vert målt éin gong her og ikkje på nytt for kvar ribbe.
+      setTri({ raa, namn: f.name, opne: opneKantar(raa) })
     } catch (e) {
       setTri(null)
       setFeil(e instanceof Error ? e.message : "Fila lét seg ikkje lesa.")
@@ -82,7 +94,7 @@ export default function GjestSide() {
       const k = kutt(vev)
       return {
         namn: tri.namn,
-        trekantar: tri.raa.n,
+        trekantar: tri.raa.tris,
         boks: vev.boks,
         ribber: vev.ribber.length,
         ledd: vev.ledd,
@@ -111,7 +123,7 @@ export default function GjestSide() {
     URL.revokeObjectURL(url)
   }
 
-  const grunn = svar ? svar.namn.replace(/\.glb$/i, "") : "gjest"
+  const grunn = svar ? svar.namn.replace(/\.[a-z0-9]+$/i, "") : "gjest"
 
   return (
     <main
@@ -137,16 +149,17 @@ export default function GjestSide() {
       {!tri && (
         <button
           onClick={() => filRef.current?.click()}
-          className="flex h-56 w-full items-center justify-center rounded-3xl border border-dashed text-[12px] tracking-[0.14em] opacity-70"
+          className="flex h-56 w-full flex-col items-center justify-center gap-2 rounded-3xl border border-dashed text-[12px] tracking-[0.14em] opacity-70"
         >
-          slepp ei .glb her, eller trykk
+          <span>slepp ei fil her, eller trykk</span>
+          <span className="opacity-60">{FORMAT.join("  ")}</span>
         </button>
       )}
 
       <input
         ref={filRef}
         type="file"
-        accept=".glb,model/gltf-binary"
+        accept={FORMAT.join(",")}
         hidden
         onChange={(e) => {
           const f = e.target.files?.[0]
@@ -160,7 +173,7 @@ export default function GjestSide() {
         </p>
       )}
 
-      {svar && (
+      {svar && tri && (
         <>
           <div className="mb-5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[12px]">
             <span className="tracking-[0.14em]">{svar.namn}</span>
@@ -169,6 +182,9 @@ export default function GjestSide() {
               {svar.ribber} ribber · {svar.ledd} ledd · {svar.ark} plate
               {svar.ark === 1 ? "" : "r"} · {Math.round(svar.util * 100)} % ark
             </span>
+            {tri.opne > 0 && (
+              <span className="opacity-60">· {tri.opne} opne kantar i fila</span>
+            )}
             <button
               onClick={() => filRef.current?.click()}
               className="ml-auto rounded-full border px-3 py-1 text-[11px] tracking-[0.14em]"
@@ -196,7 +212,7 @@ export default function GjestSide() {
               )}
               {svar.opne > 0 && (
                 <li className="opacity-70">
-                  {svar.opne} opne kjeder — mesh-en er ikkje lukka der, og dei vart lukka
+                  {svar.opne} opne kjeder — flata er ikkje lukka der, og dei vart lukka
                   med ei rett line
                 </li>
               )}

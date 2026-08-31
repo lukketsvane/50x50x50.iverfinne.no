@@ -20,7 +20,7 @@
  * eit møbel og ei melding, ikkje ein tom skjerm.
  */
 import type { Pt } from "../core"
-import type { Trekantar } from "./glb"
+import type { Soup } from "./glb"
 
 export type Snitt = {
   /** lukka konturar i (t, z): t er den aksen som ikkje er snittaksen */
@@ -39,7 +39,7 @@ export type Akse = 0 | 1
  * nøyaktig det koordinatet kuttfila og nettet brukar for ei ribbe i
  * VAFFEL, so ein gjesteprofil og ein vaffelprofil er same slaget ting.
  */
-export function skjer(tri: Trekantar, akse: Akse, pos: number, rute: number): Snitt {
+export function skjer(tri: Soup, akse: Akse, pos: number, rute: number): Snitt {
   const p = tri.pos
   // Endane vert kvantiserte til denne ruta før dei vert slegne saman.
   // For grov, og to skilde konturar smeltar; for fin, og ein lukka
