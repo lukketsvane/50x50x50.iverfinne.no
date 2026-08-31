@@ -139,19 +139,59 @@ export function contour(
   return loops
 }
 
-/** Fjernar punkt som ikkje seier noko: tre punkt på ei line er to for
- *  mange, og ei ribbe med 900 hjørne er ei DXF-fil ingen fres vil lesa. */
+/** avstanden frå p til lina gjennom a og c */
+function fraaLina(p: Pt2, a: Pt2, c: Pt2): number {
+  const dx = c[0] - a[0]
+  const dy = c[1] - a[1]
+  const len = Math.hypot(dx, dy)
+  if (len < 1e-9) return Math.hypot(p[0] - a[0], p[1] - a[1])
+  return Math.abs((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / len
+}
+
+/**
+ * Fjernar punkt som ikkje seier noko: tre punkt på ei line er to for
+ * mange, og ei ribbe med 900 hjørne er ei DXF-fil ingen fres vil lesa.
+ *
+ * TOLERANSEN MÅ VERA TOLERANSEN.
+ *
+ * Den fyrste utgåva prøvde kvart punkt mot lina frå det siste haldne
+ * punktet til NABOEN sin — ei kort line som knapt bøyer seg. På ein boge
+ * fall punkta då eitt for eitt, og feilen hopa seg opp langt forbi
+ * toleransen utan at noko målte henne. Målt på ein sirkel med radius 75 og
+ * fire hundre punkt, med den gamle:
+ *
+ *     tol 0,0625 →  0,11 mm      tol 0,25  →  1,81 mm
+ *     tol 0,125  →  0,45 mm      tol 0,5   →  7,14 mm
+ *
+ * Det er ikkje avrunding. VAFFEL kallar denne med 0,25, so ribbekonturane
+ * i kuttfila låg opptil 1,8 mm frå den forma nettet viste — på ein reiskap
+ * der klaringa i eit ledd er 0,2 mm og ein tjuedels millimeter avgjer om
+ * delane går i hop.
+ *
+ * No vert kvart punkt som skal kastast prøvt mot den lina som FAKTISK vert
+ * teikna, og lina får ikkje strekkje seg lenger enn til det fyrste punktet
+ * ho ikkje lenger held. Då tyder toleransen det han seier.
+ */
 export function simplify(poly: Pt2[], tol: number): Pt2[] {
-  if (poly.length < 4) return poly
+  const n = poly.length
+  if (n < 4) return poly
   const out: Pt2[] = [poly[0]]
-  for (let i = 1; i < poly.length; i++) {
-    const a = out[out.length - 1]
-    const b = poly[i]
-    const c = poly[(i + 1) % poly.length]
-    const cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
-    const len = Math.hypot(c[0] - a[0], c[1] - a[1])
-    if (len > 1e-9 && Math.abs(cross) / len < tol) continue
-    out.push(b)
+  let start = 0
+  for (let i = 2; i < n; i++) {
+    let held = true
+    for (let j = start + 1; j < i; j++) {
+      if (fraaLina(poly[j], poly[start], poly[i]) >= tol) {
+        held = false
+        break
+      }
+    }
+    if (!held) {
+      out.push(poly[i - 1])
+      start = i - 1
+    }
   }
+  // Det siste punktet står alltid: lina attende til fyrste punktet er ein
+  // ekte kant i ringen, og ikkje ei line nokon har funne på.
+  if (start !== n - 1) out.push(poly[n - 1])
   return out.length >= 3 ? out : poly
 }

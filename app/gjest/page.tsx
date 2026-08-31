@@ -23,13 +23,20 @@ import {
   iKuben,
   opneKantar,
   parseMesh,
+  rettVend,
   type Soup,
 } from "../../lib/gjest/glb"
-import { byggVev, STANDARD, type GjestVal } from "../../lib/gjest/vev"
+import { makeSolid } from "../../lib/gjest/solid"
+import { byggVev, DETALJ, STANDARD, type GjestVal } from "../../lib/gjest/ribber"
 import { kutt, kuttDxf, kuttSvg, kryssarSegSjolv } from "../../lib/gjest/kutt"
 
+/** dei tala ein kan dra i — `kastLause` er ein brytar og ikkje eit band */
+type TalNokkel = {
+  [K in keyof GjestVal]: GjestVal[K] extends number ? K : never
+}[keyof GjestVal]
+
 const BAND: {
-  k: keyof GjestVal
+  k: TalNokkel
   namn: string
   min: number
   max: number
@@ -40,7 +47,11 @@ const BAND: {
   { k: "nY", namn: "ribber langs Y", min: 3, max: 21, steg: 1 },
   { k: "t", namn: "platetjukn", min: 4, max: 24, steg: 0.5, eining: "mm" },
   { k: "maal", namn: "største mål", min: 200, max: 900, steg: 10, eining: "mm" },
-  { k: "glatt", namn: "glatting", min: 0.2, max: 4, steg: 0.1, eining: "mm" },
+  // Toleransen, og ikkje ei «glatting». Bandet stoggar på 1 mm av di talet
+  // no TYDER noko: `simplify` held det han lovar, so 1 mm er ein millimeter
+  // avvik frå forma i den fila maskina får. Den gamle sida gjekk til 4.
+  { k: "glatt", namn: "toleranse", min: 0.05, max: 1, steg: 0.05, eining: "mm" },
+  { k: "detalj", namn: "oppløysing", min: DETALJ.lav, max: DETALJ.hog, steg: 10, eining: "ruter" },
 ]
 
 type Svar = {
@@ -48,9 +59,12 @@ type Svar = {
   trekantar: number
   boks: [number, number, number]
   ribber: number
+  stykke: number
+  delte: number
+  hol: number
   ledd: number
-  lause: number
-  opne: number
+  kasta: number
+  smalast: number
   sjolvkryss: number
   ark: number
   util: number
@@ -61,9 +75,12 @@ type Svar = {
 }
 
 export default function GjestSide() {
-  const [tri, setTri] = useState<{ raa: Soup; namn: string; opne: number } | null>(
-    null,
-  )
+  const [tri, setTri] = useState<{
+    raa: Soup
+    namn: string
+    opne: number
+    snudd: boolean
+  } | null>(null)
   const [val, setVal] = useState<GjestVal>(STANDARD)
   const [feil, setFeil] = useState<string | null>(null)
   const filRef = useRef<HTMLInputElement>(null)
@@ -71,11 +88,13 @@ export default function GjestSide() {
   const les = useCallback(async (f: File) => {
     setFeil(null)
     try {
-      const raa = parseMesh(f.name, await f.arrayBuffer())
-      if (!raa.tris) throw new Error("Fann ingen trekantar i fila.")
-      // Om flata er LUKKA er ein eigenskap ved fila og ikkje ved snittet,
-      // so han vert målt éin gong her og ikkje på nytt for kvar ribbe.
-      setTri({ raa, namn: f.name, opne: opneKantar(raa) })
+      const inn = parseMesh(f.name, await f.arrayBuffer())
+      if (!inn.tris) throw new Error("Fann ingen trekantar i fila.")
+      // Begge desse er eigenskapar ved FILA og ikkje ved snittet, so dei
+      // vert avgjorde éin gong her og ikkje på nytt for kvar ribbe.
+      const opne = opneKantar(inn)
+      const { soup: raa, snudd } = rettVend(inn)
+      setTri({ raa, namn: f.name, opne, snudd })
     } catch (e) {
       setTri(null)
       setFeil(e instanceof Error ? e.message : "Fila lét seg ikkje lesa.")
@@ -83,24 +102,32 @@ export default function GjestSide() {
   }, [])
 
   // Heile kjeda er rein av (mesh, val), so ho høyrer i ein useMemo og ikkje
-  // i ein effekt. Snittet tek 20–50 ms på ein skål med 3 200 trekantar; over
-  // det er det talet på trekantar og ikkje talet på ribber som styrer.
+  // i ein effekt. Feltet tek 200–300 ms på ei skål med 3 200 trekantar ved
+  // standard oppløysing; det er strålane som kostar, og talet på dei veks
+  // med `detalj` og med talet på ribber.
   const svar = useMemo<Svar | null>(() => {
     if (!tri) return null
     const t0 = performance.now()
     try {
-      const nett = iKuben(tri.raa, val.maal)
-      const vev = byggVev(nett, val)
+      const sol = makeSolid(iKuben(tri.raa, val.maal))
+      const vev = byggVev(sol, val)
       const k = kutt(vev)
+      const stykke = vev.ribber.flatMap((r) => r.stykke)
+      const medSpor = vev.ribber.filter((r) => r.spor.length)
       return {
         namn: tri.namn,
         trekantar: tri.raa.tris,
         boks: vev.boks,
         ribber: vev.ribber.length,
+        stykke: stykke.length,
+        delte: vev.ribber.filter((r) => r.stykke.length > 1).length,
+        hol: stykke.reduce((a, s) => a + s.holes.length, 0),
         ledd: vev.ledd,
-        lause: vev.lause,
-        opne: vev.opne,
-        sjolvkryss: vev.ribber.filter((r) => kryssarSegSjolv(r.outline)).length,
+        kasta: vev.kasta,
+        smalast: medSpor.length
+          ? Math.min(...medSpor.map((r) => r.smalast))
+          : 0,
+        sjolvkryss: stykke.filter((s) => kryssarSegSjolv(s.outline)).length,
         ark: k.ark,
         util: k.util,
         netto: k.netto,
@@ -109,7 +136,7 @@ export default function GjestSide() {
         ms: performance.now() - t0,
       }
     } catch (e) {
-      setFeil(e instanceof Error ? e.message : "Snittet gjekk ikkje.")
+      setFeil(e instanceof Error ? e.message : "Feltet gjekk ikkje.")
       return null
     }
   }, [tri, val])
@@ -179,8 +206,9 @@ export default function GjestSide() {
             <span className="tracking-[0.14em]">{svar.namn}</span>
             <span className="opacity-60">
               {svar.boks.map((v) => Math.round(v)).join(" × ")} mm ·{" "}
-              {svar.ribber} ribber · {svar.ledd} ledd · {svar.ark} plate
-              {svar.ark === 1 ? "" : "r"} · {Math.round(svar.util * 100)} % ark
+              {svar.ribber} ribber · {svar.stykke} stykke · {svar.ledd} ledd ·{" "}
+              {svar.ark} plate{svar.ark === 1 ? "" : "r"} ·{" "}
+              {Math.round(svar.util * 100)} % ark
             </span>
             {tri.opne > 0 && (
               <span className="opacity-60">· {tri.opne} opne kantar i fila</span>
@@ -197,23 +225,52 @@ export default function GjestSide() {
               som ikkje heng saman med noko, eller ein kontur som kryssar seg
               sjølv, er ting ein må vite FØR ein kuttar — ikkje noko ein
               oppdagar når plata ligg i maskina. */}
-          {(svar.lause > 0 || svar.sjolvkryss > 0 || svar.opne > 0) && (
+          {(svar.sjolvkryss > 0 ||
+            svar.kasta > 0 ||
+            svar.ledd === 0 ||
+            (svar.smalast > 0 && svar.smalast < val.t * 2) ||
+            svar.delte > 0 ||
+            tri.snudd ||
+            tri.opne > 0) && (
             <ul className="mb-5 space-y-1 text-[12px]">
               {svar.sjolvkryss > 0 && (
                 <li style={{ color: "#c00" }}>
-                  {svar.sjolvkryss} ribber har ein kontur som kryssar seg sjølv — kuttbana
+                  {svar.sjolvkryss} stykke har ein kontur som kryssar seg sjølv — kuttbana
                   skjer gjennom sitt eige gods
                 </li>
               )}
-              {svar.lause > 0 && (
+              {svar.ledd === 0 && (
                 <li style={{ color: "#c00" }}>
-                  {svar.lause} ribber har ikkje eit einaste ledd — dei heng ikkje saman med noko
+                  ingen ledd i det heile — ribbene møter aldri kvarandre i gods, og
+                  delane held ikkje saman
                 </li>
               )}
-              {svar.opne > 0 && (
+              {svar.smalast > 0 && svar.smalast < val.t * 2 && (
+                <li style={{ color: "#c00" }}>
+                  smalaste godset gjennom eit spor er {svar.smalast.toFixed(1)} mm —
+                  ribba kan knekke der
+                </li>
+              )}
+              {svar.kasta > 0 && (
                 <li className="opacity-70">
-                  {svar.opne} opne kjeder — flata er ikkje lukka der, og dei vart lukka
-                  med ei rett line
+                  {svar.kasta} stykke kasta — dei hang ikkje i eit einaste ledd
+                </li>
+              )}
+              {svar.delte > 0 && (
+                <li className="opacity-70">
+                  {svar.delte} ribber er delte i fleire stykke — dei er lause bitar som
+                  må skjerast kvar for seg
+                </li>
+              )}
+              {tri.snudd && (
+                <li className="opacity-70">
+                  nettet var ut-inn og vart snudd — utan det hadde alt vore luft
+                </li>
+              )}
+              {tri.opne > 0 && (
+                <li className="opacity-70">
+                  {tri.opne} opne kantar — flata er ikkje lukka, og då er «inne» eit
+                  gjett. Snittet står, men det er ikkje rekna på noko heilt.
                 </li>
               )}
             </ul>
