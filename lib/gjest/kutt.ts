@@ -16,7 +16,7 @@
 import { nestRaster, type NestDel, type NestVal, type Nesting } from "../nestraster"
 import { alleArkSvg } from "../vaffel/export-svg"
 import { partsToDxf } from "../vaffel/export-dxf"
-import type { Vev } from "./vev"
+import type { Vev } from "./ribber"
 
 /** standardplata, same som i VAFFEL */
 export const ARK_W = 2440
@@ -36,18 +36,27 @@ export type Kutt = {
 /**
  * Delane, pakka. `tett` er standard her og ikkje i den levande målinga:
  * ein import er ein éin-gongs-operasjon, og då er det rett å leite.
+ *
+ * EIN DEL ER EIT STYKKE, IKKJE EI RIBBE. Ei ribbe kan vera delt: ein stol
+ * med fire bein, snitta på tvers nede, er fire lause bitar finér som skal
+ * liggje kvar for seg på plata. Den fyrste utgåva her tok éin del per
+ * ribbe og gav pakkaren «ytterkonturen» — den største ringen — med resten
+ * som HÒL. Tre av dei fire beina vart då trekte frå arealet av det fjerde,
+ * og kom aldri i kuttfila.
  */
 export function kutt(vev: Vev, val?: Partial<NestVal>): Kutt {
-  const delar: NestDel[] = vev.ribber.map((r, i) => ({
-    // id-en er BÅDE namnet på arket og nøkkelen pakkaren deler masker på.
-    // Difor aksen og nummeret og ikkje ein løpande teljar: to like ribber
-    // i same familien får då same maska, og pakkaren slepp å byggje henne
-    // to gonger.
-    id: `${r.akse === 0 ? "X" : "Y"}${i + 1}`,
-    outline: r.outline,
-    holes: r.holes,
-    area: r.area,
-  }))
+  const delar: NestDel[] = vev.ribber.flatMap((r) =>
+    r.stykke.map((st, n) => ({
+      // id-en er BÅDE namnet på arket og nøkkelen pakkaren deler masker
+      // på — «same id = same form». Difor aksen, ribbenummeret og ein
+      // bokstav for stykket: unikt per form, og lesbart på plata når nokon
+      // står med atten bitar og skal finne ut kva som er kva.
+      id: `${r.akse === 0 ? "X" : "Y"}${r.k + 1}${r.stykke.length > 1 ? "abcdefgh"[n] ?? String(n) : ""}`,
+      outline: st.outline,
+      holes: st.holes,
+      area: st.area,
+    })),
+  )
   const pakking = nestRaster(delar, {
     sheetW: ARK_W,
     sheetH: ARK_H,

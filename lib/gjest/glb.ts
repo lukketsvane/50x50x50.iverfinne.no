@@ -12,7 +12,16 @@
  * kan vita noko om — kva veg som er opp, og kor stort det skal vera.
  */
 import type { Vec3 } from "../core"
-import { bounds, makeSoup, weld, openEdges, type Soup } from "./soup"
+import {
+  bounds,
+  flip,
+  makeSoup,
+  openEdges,
+  shade,
+  signedVolume,
+  weld,
+  type Soup,
+} from "./soup"
 
 export type { Soup } from "./soup"
 export { parseMesh, FORMAT } from "./io/index"
@@ -27,6 +36,34 @@ export { parseMesh, FORMAT } from "./io/index"
  * faktisk slo ut i eit snitt.
  */
 export const opneKantar = (s: Soup) => openEdges(weld(s))
+
+/**
+ * Sveis nettet, og snu det om det er UT-INN.
+ *
+ * Dette steget fanst ikkje før, av di den gamle snittinga ikkje trong det:
+ * ho las berre KANTEN — kvar trekant som kryssa planet gav eit linestykke —
+ * og ein kant er den same kanten same kva veg trekanten vender.
+ *
+ * Strålen les noko anna: han les kva veg kvar trekant vender, og summerer
+ * seg fram til kor mange skal han står inne i. Vender heile nettet feil
+ * veg, er svaret hans at ALT er luft. Det er ikkje ei melding — det er
+ * null ribber og ein tom skjerm, og ingenting som seier kvifor.
+ *
+ * Og det er ikkje eit sjeldsyn. Prøveskåla i denne repoen er ut-inn, i
+ * alle fire formata: signert volum −1,46. Snudd gjev ho gods i 341 av 361
+ * søyler; usnudd i null. Ei fil frå ein skannar, ein eksport gjennom feil
+ * handhendte akse, ein modell spegla i staden for rotert — alle tre gjev
+ * dette, og brukaren har ingen måte å sjå det på.
+ *
+ * Fortegnet på volumet seier kva veg det er. Det krev at nettet er
+ * LUKKA — for eit ope skal er talet ikkje eit volum — men eit ope skal er
+ * alt meldt, og for det er det ingen rett svar å finne.
+ */
+export function rettVend(s: Soup): { soup: Soup; snudd: boolean } {
+  const w = weld(s)
+  if (signedVolume(w) >= 0) return { soup: s, snudd: false }
+  return { soup: makeSoup(shade(flip(w)).pos), snudd: true }
+}
 
 /**
  * Passar forma inn i oppgåva sin kube: sentrer i planet, set botnen på
