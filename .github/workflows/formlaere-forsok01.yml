@@ -1,0 +1,57 @@
+name: Formlæra: frys kandidatar frå 50x50x50
+
+on:
+  pull_request:
+    branches:
+      - claude/parametric-seating-design-w9qpwi
+    paths:
+      - scripts/formlaere-forsok01.ts
+      - .github/workflows/formlaere-forsok01.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Export immutable candidate manifest
+        env:
+          FORMLAERE_SETS: '8'
+        run: npx tsx scripts/formlaere-forsok01.ts > formlaere-kandidatar.json
+      - name: Validate candidate provenance and no fabricated choices
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          import crypto from 'node:crypto'
+          const doc=JSON.parse(fs.readFileSync('formlaere-kandidatar.json','utf8'))
+          const hash=doc.manifest_sha256
+          delete doc.manifest_sha256
+          const real=crypto.createHash('sha256').update(JSON.stringify(doc)).digest('hex')
+          if(hash!==real) throw Error('Manifest checksum mismatch')
+          if(doc.sets.length!==8) throw Error('Wrong number of choice sets')
+          for(const s of doc.sets) {
+            if(s.options.length!==4) throw Error('Not four alternatives')
+            if(new Set(s.options.map(x=>x.option_id)).size!==4) throw Error('Duplicate alternative in set')
+            if(s.options.some(x=>x.hard_rule_flags.length||!Number.isFinite(x.mu))) throw Error('Invalid candidate')
+            if(s.options.some(x=>Object.hasOwn(x,'chosen')||Object.hasOwn(x,'e1'))) throw Error('Invented outcome/agent rating')
+            if(Math.abs(s.options.reduce((a,x)=>a+x.mu,0)-1)>1e-12) throw Error('Presentation weights do not sum to one')
+          }
+          fs.writeFileSync('manifest.sha256',hash+'\n')
+          console.log('PASS: '+doc.sets.length+' candidate sets; checksum '+hash)
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: formlaere-50x50x50-manifest
+          path: |
+            formlaere-kandidatar.json
+            manifest.sha256
+          retention-days: 90
